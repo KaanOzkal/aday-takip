@@ -30,7 +30,40 @@ const storage = multer.diskStorage({
         cb(null, uniqueSuffix + '-' + file.originalname) 
     }
 });
-const upload = multer({ storage: storage });
+const upload = multer({
+    storage: multer.memoryStorage(),
+    limits: { fileSize: 5 * 1024 * 1024 } // 5MB Limit
+});
+// --- GOOGLE DRIVE YÜKLEME FONKSİYONU ---
+const uploadToGoogleDrive = async (fileObject) => {
+    try {
+        const auth = new google.auth.GoogleAuth({
+            credentials: JSON.parse(process.env.GOOGLE_CREDENTIALS), // Render'dan oku
+            scopes: ['https://www.googleapis.com/auth/drive.file'],
+        });
+        const driveService = google.drive({ version: 'v3', auth });
+
+        const bufferStream = new stream.PassThrough();
+        bufferStream.end(fileObject.buffer);
+
+        const response = await driveService.files.create({
+            media: {
+                mimeType: fileObject.mimetype,
+                body: bufferStream,
+            },
+            requestBody: {
+                name: fileObject.originalname,
+                parents: [process.env.DRIVE_FOLDER_ID], // Render'daki Klasör ID
+            },
+            fields: 'id, name, webViewLink',
+        });
+
+        return response.data; // { id: '...', webViewLink: '...' }
+    } catch (error) {
+        console.error('Drive Yükleme Hatası:', error);
+        throw error;
+    }
+};
 
 // --- NODEMAILER (DİNAMİK) ---
 const transporter = nodemailer.createTransport({
@@ -162,8 +195,29 @@ app.get('/documents', authCheck, (req, res) => res.render('documents', { user: r
 
 app.post('/documents/upload', authCheck, upload.single('file'), async (req, res) => {
     if (!req.file) return res.send('Dosya seçin.');
-    await Candidate.findByIdAndUpdate(req.user._id, { $push: { documents: { name: req.body.docType, filename: req.file.filename, status: 'İnceleniyor', date: new Date() } } });
-    res.redirect('/documents');
+
+    try {
+        console.log("Drive'a yükleniyor...");
+        const driveFile = await uploadToGoogleDrive(req.file);
+        
+        // Veritabanına dosyanın Drive Linkini kaydediyoruz
+        await Candidate.findByIdAndUpdate(req.user._id, { 
+            $push: { 
+                documents: { 
+                    name: req.body.docType, 
+                    filename: driveFile.name, // Dosya adı
+                    driveLink: driveFile.webViewLink, // Tıklanabilir link
+                    fileId: driveFile.id, 
+                    status: 'İnceleniyor', 
+                    date: new Date() 
+                } 
+            } 
+        });
+        
+        res.redirect('/documents');
+    } catch (error) {
+        res.send("Dosya yüklenirken hata oluştu: " + error.message);
+    }
 });
 
 app.get('/documents/delete/:docId', authCheck, async (req, res) => {
