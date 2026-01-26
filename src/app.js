@@ -371,6 +371,60 @@ app.get('/seed-candidates-full', async (req, res) => {
         res.send(`<h1 style="color:red">Hata:</h1> <p>${error.message}</p>`);
     }
 });
+// --- ALMANCA KELİME & CÜMLELERİ YÜKLEME ROTASI ---
+app.get('/seed-german-full', async (req, res) => {
+    
+    // Lojistik Sektörüne Özel Kelime Listesi
+    const kelimeListesi = [
+        // 1. KATEGORİ: DEPO & LOJİSTİK
+        { category: 'Depo', german: 'der Gabelstapler', turkish: 'Forklift', exampleGerman: 'Der Gabelstapler hebt die schwere Palette.' },
+        { category: 'Depo', german: 'das Lager', turkish: 'Depo / Ardiye', exampleGerman: 'Die Ware muss im Lager sortiert werden.' },
+        { category: 'Depo', german: 'die Fracht', turkish: 'Yük / Kargo', exampleGerman: 'Die Fracht ist pünktlich angekommen.' },
+        { category: 'Depo', german: 'beladen', turkish: 'Yüklemek', exampleGerman: 'Wir müssen den LKW schnell beladen.' },
+        { category: 'Depo', german: 'entladen', turkish: 'Boşaltmak', exampleGerman: 'Der Fahrer entlädt die Kisten an Rampe 5.' },
+        { category: 'Depo', german: 'der Lieferschein', turkish: 'İrsaliye', exampleGerman: 'Bitte unterschreiben Sie den Lieferschein.' },
+        { category: 'Depo', german: 'die Verpackung', turkish: 'Paketleme', exampleGerman: 'Die Verpackung ist beschädigt.' },
+
+        // 2. KATEGORİ: ARAÇ PARÇALARI
+        { category: 'Arac', german: 'der Reifen', turkish: 'Lastik', exampleGerman: 'Der rechte Vorderreifen hat wenig Luft.' },
+        { category: 'Arac', german: 'der Motor', turkish: 'Motor', exampleGerman: 'Der Motor macht seltsame Geräusche.' },
+        { category: 'Arac', german: 'die Bremse', turkish: 'Fren', exampleGerman: 'Die Bremsen müssen überprüft werden.' },
+        { category: 'Arac', german: 'der Spiegel', turkish: 'Ayna', exampleGerman: 'Stellen Sie die Spiegel vor der Fahrt ein.' },
+        { category: 'Arac', german: 'das Lenkrad', turkish: 'Direksiyon', exampleGerman: 'Halten Sie das Lenkrad mit beiden Händen.' },
+        { category: 'Arac', german: 'der Tank', turkish: 'Depo (Yakıt)', exampleGerman: 'Der Tank ist fast leer, wir müssen tanken.' },
+        { category: 'Arac', german: 'das Nummernschild', turkish: 'Plaka', exampleGerman: 'Das Nummernschild ist schmutzig.' },
+
+        // 3. KATEGORİ: ACİL DURUMLAR
+        { category: 'Acil', german: 'der Unfall', turkish: 'Kaza', exampleGerman: 'Es gab einen Unfall auf der A7.' },
+        { category: 'Acil', german: 'die Panne', turkish: 'Arıza', exampleGerman: 'Mein LKW hat eine Panne, ich brauche Hilfe.' },
+        { category: 'Acil', german: 'der Notruf', turkish: 'Acil Çağrı', exampleGerman: 'Wählen Sie im Notfall die 112.' },
+        { category: 'Acil', german: 'die Polizei', turkish: 'Polis', exampleGerman: 'Die Polizei kontrolliert den Verkehr.' },
+        { category: 'Acil', german: 'Erste Hilfe', turkish: 'İlk Yardım', exampleGerman: 'Der Verbandskasten ist für Erste Hilfe.' },
+        { category: 'Acil', german: 'Vorsicht!', turkish: 'Dikkat!', exampleGerman: 'Vorsicht! Die Straße ist glatt.' },
+
+        // 4. KATEGORİ: TRAFİK & YOL
+        { category: 'Trafik', german: 'der Stau', turkish: 'Trafik Sıkışıklığı', exampleGerman: 'Wir stehen seit einer Stunde im Stau.' },
+        { category: 'Trafik', german: 'die Ausfahrt', turkish: 'Çıkış (Otoban)', exampleGerman: 'Nehmen Sie die nächste Ausfahrt rechts.' },
+        { category: 'Trafik', german: 'die Umleitung', turkish: 'Yol Çalışması / Yönlendirme', exampleGerman: 'Wegen Bauarbeiten gibt es eine Umleitung.' },
+        { category: 'Trafik', german: 'die Maut', turkish: 'Otoban Ücreti', exampleGerman: 'In Deutschland müssen LKWs Maut bezahlen.' },
+        { category: 'Trafik', german: 'die Geschwindigkeit', turkish: 'Hız', exampleGerman: 'Beachten Sie die zulässige Geschwindigkeit.' },
+        { category: 'Trafik', german: 'die Ampel', turkish: 'Trafik Işığı', exampleGerman: 'Die Ampel ist rot, bitte halten Sie an.' },
+        { category: 'Trafik', german: 'rechts / links', turkish: 'Sağ / Sol', exampleGerman: 'Biegen Sie an der Kreuzung links ab.' }
+    ];
+
+    try {
+        // Önce eskileri temizle (Tekrar tekrar eklenmesin diye)
+        await LogisticsWord.deleteMany({});
+        
+        // Yenileri ekle
+        await LogisticsWord.insertMany(kelimeListesi);
+        
+        res.send(`<h1 style="color:green; text-align:center; font-family:sans-serif; margin-top:50px;">✅ Almanca Kelimeler ve Cümleler Yüklendi!</h1><p style="text-align:center"><a href="/german">Almanca Sayfasına Git</a></p>`);
+    } catch (error) {
+        console.error("Kelime yükleme hatası:", error);
+        res.send("Hata: " + error.message);
+    }
+});
 
 // --- PORT AYARI (Render için gerekli) ---
 const PORT = process.env.PORT || 3000;
