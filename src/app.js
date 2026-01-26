@@ -4,6 +4,8 @@ const bodyParser = require('body-parser');
 const session = require('express-session');
 const nodemailer = require('nodemailer');
 const path = require('path');
+const { google } = require('googleapis');
+const stream = require('stream');
 const multer = require('multer');
 require('dotenv').config(); // Yerelde .env dosyasını okumak için
 
