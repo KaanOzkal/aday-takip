@@ -1,0 +1,236 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title><%= categoryTitle %> | Almanca Eğitimi</title>
+    
+    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    
+    <style>
+        body {
+            background-color: #f8fafc;
+            font-family: 'Plus Jakarta Sans', sans-serif;
+            color: #334155;
+        }
+
+        /* Sidebar & Layout */
+        .sidebar {
+            min-height: 100vh;
+            background: white;
+            border-right: 1px solid #e2e8f0;
+        }
+        
+        .nav-link {
+            color: #64748b;
+            font-weight: 500;
+            padding: 0.75rem 1rem;
+            border-radius: 10px;
+            margin-bottom: 0.25rem;
+            transition: all 0.2s;
+        }
+        .nav-link:hover, .nav-link.active {
+            background-color: #f1f5f9;
+            color: #0f172a;
+        }
+        .nav-link.active {
+            background-color: #e0f2fe;
+            color: #0284c7;
+        }
+        .nav-link i { width: 24px; text-align: center; margin-right: 8px; }
+
+        /* Kelime Kartları */
+        .word-card {
+            background: white;
+            border: 1px solid #f1f5f9;
+            border-radius: 20px;
+            padding: 1.5rem;
+            transition: all 0.3s ease;
+            position: relative;
+            overflow: hidden;
+            height: 100%;
+            display: flex;
+            flex-direction: column;
+        }
+        
+        .word-card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 10px 20px -5px rgba(0, 0, 0, 0.1);
+            border-color: #e2e8f0;
+        }
+
+        .word-card::before {
+            content: '';
+            position: absolute;
+            top: 0; left: 0;
+            width: 100%; height: 4px;
+            background: linear-gradient(90deg, #3b82f6, #8b5cf6);
+        }
+
+        .german-word {
+            font-size: 1.5rem;
+            font-weight: 700;
+            color: #1e293b;
+            margin-bottom: 0.25rem;
+        }
+
+        .turkish-word {
+            color: #64748b;
+            font-weight: 500;
+            font-size: 1rem;
+        }
+
+        .example-box {
+            background: #f8fafc;
+            border-radius: 12px;
+            padding: 1rem;
+            margin-top: auto; /* Kartın en altına iter */
+            border: 1px solid #f1f5f9;
+        }
+
+        .audio-btn {
+            width: 36px; height: 36px;
+            border-radius: 50%;
+            display: flex; align-items: center; justify-content: center;
+            background: #f1f5f9;
+            color: #3b82f6;
+            transition: 0.2s;
+            cursor: pointer;
+        }
+        .audio-btn:hover { background: #e0f2fe; }
+
+    </style>
+</head>
+<body>
+
+    <nav class="navbar navbar-dark bg-dark d-lg-none sticky-top shadow-sm">
+        <div class="container-fluid">
+            <span class="navbar-brand fw-bold"><i class="fas fa-flag me-2"></i>AlmanyaKariyer</span>
+            <button class="navbar-toggler" type="button" data-bs-toggle="offcanvas" data-bs-target="#mobileSidebar">
+                <span class="navbar-toggler-icon"></span>
+            </button>
+        </div>
+    </nav>
+
+    <div class="container-fluid">
+        <div class="row">
+            
+            <div class="col-lg-2 d-none d-lg-block sidebar p-4 sticky-top">
+                <div class="d-flex align-items-center gap-2 mb-5">
+                    <div class="bg-primary text-white rounded p-2"><i class="fas fa-flag"></i></div>
+                    <span class="fw-bold fs-5 text-dark">AlmanyaKariyer</span>
+                </div>
+                
+                <nav class="nav flex-column gap-1">
+                    <a href="/panel" class="nav-link <%= page === 'panel' ? 'active' : '' %>"><i class="fas fa-home"></i> Ana Sayfa</a>
+                    <a href="/profile" class="nav-link <%= page === 'profile' ? 'active' : '' %>"><i class="fas fa-user-circle"></i> Profilim</a>
+                    <a href="/processes" class="nav-link <%= page === 'processes' ? 'active' : '' %>"><i class="fas fa-tasks"></i> Süreçler</a>
+                    <a href="/documents" class="nav-link <%= page === 'documents' ? 'active' : '' %>"><i class="fas fa-file-alt"></i> Dokümanlar</a>
+                    <a href="/messages" class="nav-link <%= page === 'messages' ? 'active' : '' %>"><i class="fas fa-comments"></i> Mesajlar</a>
+                    <a href="/german" class="nav-link active"><i class="fas fa-graduation-cap"></i> Almanca</a>
+                    <a href="/appointments" class="nav-link <%= page === 'appointments' ? 'active' : '' %>"><i class="fas fa-calendar-alt"></i> Randevular</a>
+                    <a href="/settings" class="nav-link <%= page === 'settings' ? 'active' : '' %>"><i class="fas fa-cog"></i> Ayarlar</a>
+                    <a href="/game" class="menu-item <%= page === 'game' ? 'active' : '' %>">
+    <i class="fas fa-gamepad"></i> <span class="menu-text">Oyun Alanı</span>
+</a>
+                    <hr>
+                    <a href="/logout" class="nav-link text-danger"><i class="fas fa-sign-out-alt"></i> Çıkış Yap</a>
+                </nav>
+            </div>
+
+            <div class="col-12 col-lg-10 p-4">
+                
+                <div class="d-flex align-items-center justify-content-between mb-5">
+                    <div class="d-flex align-items-center gap-3">
+                        <a href="/german" class="btn btn-white border shadow-sm rounded-circle p-2 d-flex align-items-center justify-content-center" style="width: 45px; height: 45px;">
+                            <i class="fas fa-arrow-left text-dark"></i>
+                        </a>
+                        <div>
+                            <h2 class="fw-bold text-dark mb-0"><%= categoryTitle %></h2>
+                            <p class="text-muted mb-0 small">Bu kategorideki kelime kartları</p>
+                        </div>
+                    </div>
+                    
+                    <div class="d-none d-md-flex align-items-center gap-2 bg-white px-3 py-2 rounded-pill shadow-sm border">
+                        <div class="bg-primary text-white rounded-circle d-flex align-items-center justify-content-center" style="width: 32px; height: 32px;">
+                            <%= user.firstName.charAt(0) %><%= user.lastName.charAt(0) %>
+                        </div>
+                        <span class="fw-bold small"><%= user.firstName %> <%= user.lastName %></span>
+                    </div>
+                </div>
+
+                <% if(words.length > 0) { %>
+                    <div class="row g-4">
+                        <% words.forEach(word => { %>
+                            <div class="col-12 col-md-6 col-xl-4">
+                                <div class="word-card shadow-sm">
+                                    <div class="d-flex justify-content-between align-items-start mb-3">
+                                        <div>
+                                            <div class="german-word"><%= word.german %></div>
+                                            <div class="turkish-word"><%= word.turkish %></div>
+                                        </div>
+                                    </div>
+
+                                    <% if(word.exampleGerman) { %>
+                                        <div class="example-box">
+                                            <div class="d-flex gap-2">
+                                                <i class="fas fa-quote-left text-primary opacity-25"></i>
+                                                <div>
+                                                    <p class="mb-1 text-dark fw-medium small"><%= word.exampleGerman %></p>
+                                                    <p class="mb-0 text-muted small" style="font-size: 0.85rem;"><%= word.exampleTurkish %></p>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    <% } else { %>
+                                        <div class="example-box text-center text-muted small">
+                                            Örnek cümle bulunmuyor.
+                                        </div>
+                                    <% } %>
+                                </div>
+                            </div>
+                        <% }) %>
+                    </div>
+                <% } else { %>
+                    <div class="text-center py-5">
+                        <div class="bg-white p-5 rounded-circle d-inline-block shadow-sm mb-3">
+                            <i class="fas fa-layer-group fa-3x text-muted opacity-25"></i>
+                        </div>
+                        <h5 class="fw-bold text-dark">Henüz kelime yok</h5>
+                        <p class="text-muted">Bu kategoriye henüz içerik eklenmemiş.</p>
+                        <a href="/german" class="btn btn-primary rounded-pill px-4 mt-2">Geri Dön</a>
+                    </div>
+                <% } %>
+
+            </div>
+        </div>
+    </div>
+
+    <div class="offcanvas offcanvas-start" tabindex="-1" id="mobileSidebar">
+        <div class="offcanvas-header bg-dark text-white">
+            <h5 class="offcanvas-title">Menü</h5>
+            <button type="button" class="btn-close btn-close-white" data-bs-dismiss="offcanvas"></button>
+        </div>
+        <div class="offcanvas-body">
+            <nav class="nav flex-column gap-2">
+                <a href="/panel" class="nav-link"><i class="fas fa-home"></i> Ana Sayfa</a>
+                <a href="/profile" class="nav-link"><i class="fas fa-user-circle"></i> Profilim</a>
+                <a href="/processes" class="nav-link"><i class="fas fa-tasks"></i> Süreçler</a>
+                <a href="/documents" class="nav-link"><i class="fas fa-file-alt"></i> Dokümanlar</a>
+                <a href="/messages" class="nav-link"><i class="fas fa-comments"></i> Mesajlar</a>
+                <a href="/german" class="nav-link active"><i class="fas fa-graduation-cap"></i> Almanca</a>
+                <a href="/appointments" class="nav-link"><i class="fas fa-calendar-alt"></i> Randevular</a>
+                <a href="/settings" class="nav-link"><i class="fas fa-cog"></i> Ayarlar</a>
+                <a href="/game" class="menu-item <%= page === 'game' ? 'active' : '' %>">
+    <i class="fas fa-gamepad"></i> <span class="menu-text">Oyun Alanı</span>
+</a>
+                <hr>
+                <a href="/logout" class="nav-link text-danger"><i class="fas fa-sign-out-alt"></i> Çıkış Yap</a>
+            </nav>
+        </div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+</body>
+</html>

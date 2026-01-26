@@ -1,0 +1,238 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Mesaj Merkezi | Almanya Kariyer</title>
+    
+    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    
+    <style>
+        body {
+            background-color: #f8fafc;
+            font-family: 'Plus Jakarta Sans', sans-serif;
+            color: #334155;
+        }
+
+        /* Sidebar & Layout */
+        .sidebar {
+            min-height: 100vh;
+            background: white;
+            border-right: 1px solid #e2e8f0;
+        }
+        
+        .nav-link {
+            color: #64748b;
+            font-weight: 500;
+            padding: 0.75rem 1rem;
+            border-radius: 10px;
+            margin-bottom: 0.25rem;
+            transition: all 0.2s;
+        }
+        .nav-link:hover, .nav-link.active {
+            background-color: #f1f5f9;
+            color: #0f172a;
+        }
+        .nav-link.active {
+            background-color: #e0f2fe;
+            color: #0284c7;
+        }
+        .nav-link i { width: 24px; text-align: center; margin-right: 8px; }
+
+        /* Mesaj Kutusu */
+        .inbox-container {
+            background: white;
+            border-radius: 16px;
+            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05);
+            border: 1px solid #e2e8f0;
+            overflow: hidden;
+            min-height: 600px;
+        }
+
+        .msg-item {
+            border-bottom: 1px solid #f1f5f9;
+            transition: all 0.2s ease;
+            position: relative;
+            background: white;
+        }
+        .msg-item:hover {
+            background-color: #f8fafc;
+            transform: translateX(5px);
+        }
+        .msg-item:last-child { border-bottom: none; }
+
+        .msg-avatar {
+            width: 48px;
+            height: 48px;
+            background: linear-gradient(135deg, #3b82f6, #6366f1);
+            color: white;
+            border-radius: 12px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: bold;
+            font-size: 1.2rem;
+            flex-shrink: 0;
+            box-shadow: 0 4px 6px -1px rgba(59, 130, 246, 0.3);
+        }
+
+        .msg-date {
+            font-size: 0.75rem;
+            color: #94a3b8;
+            white-space: nowrap;
+        }
+
+        .msg-content {
+            color: #475569;
+            line-height: 1.6;
+            font-size: 0.95rem;
+        }
+
+        /* Empty State */
+        .empty-state {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            height: 400px;
+            color: #cbd5e1;
+            text-align: center;
+        }
+    </style>
+</head>
+<body>
+
+    <nav class="navbar navbar-dark bg-dark d-lg-none sticky-top shadow-sm">
+        <div class="container-fluid">
+            <span class="navbar-brand fw-bold"><i class="fas fa-flag me-2"></i>AlmanyaKariyer</span>
+            <button class="navbar-toggler" type="button" data-bs-toggle="offcanvas" data-bs-target="#mobileSidebar">
+                <span class="navbar-toggler-icon"></span>
+            </button>
+        </div>
+    </nav>
+
+    <div class="container-fluid">
+        <div class="row">
+            
+            <div class="col-lg-2 d-none d-lg-block sidebar p-4 sticky-top">
+                <div class="d-flex align-items-center gap-2 mb-5">
+                    <div class="bg-primary text-white rounded p-2"><i class="fas fa-flag"></i></div>
+                    <span class="fw-bold fs-5 text-dark">AlmanyaKariyer</span>
+                </div>
+                
+                <nav class="nav flex-column gap-1">
+                    <a href="/panel" class="nav-link <%= page === 'panel' ? 'active' : '' %>"><i class="fas fa-home"></i> Ana Sayfa</a>
+                    <a href="/profile" class="nav-link <%= page === 'profile' ? 'active' : '' %>"><i class="fas fa-user-circle"></i> Profilim</a>
+                    <a href="/processes" class="nav-link <%= page === 'processes' ? 'active' : '' %>"><i class="fas fa-tasks"></i> Süreçler</a>
+                    <a href="/documents" class="nav-link <%= page === 'documents' ? 'active' : '' %>"><i class="fas fa-file-alt"></i> Dokümanlar</a>
+                    <a href="/messages" class="nav-link active"><i class="fas fa-comments"></i> Mesajlar</a>
+                    <a href="/german" class="nav-link <%= page === 'german' ? 'active' : '' %>"><i class="fas fa-graduation-cap"></i> Almanca</a>
+                    <a href="/appointments" class="nav-link <%= page === 'appointments' ? 'active' : '' %>"><i class="fas fa-calendar-alt"></i> Randevular</a>
+                    <a href="/settings" class="nav-link <%= page === 'settings' ? 'active' : '' %>"><i class="fas fa-cog"></i> Ayarlar</a>
+                    <a href="/game" class="menu-item <%= page === 'game' ? 'active' : '' %>">
+    <i class="fas fa-gamepad"></i> <span class="menu-text">Oyun Alanı</span>
+</a>
+                    <hr>
+                    <a href="/logout" class="nav-link text-danger"><i class="fas fa-sign-out-alt"></i> Çıkış Yap</a>
+                </nav>
+            </div>
+
+            <div class="col-12 col-lg-10 p-4">
+                
+                <div class="d-flex justify-content-between align-items-center mb-4">
+                    <div>
+                        <h2 class="fw-bold text-dark mb-1">Mesaj Merkezi</h2>
+                        <p class="text-muted mb-0">Danışmanlarınızdan gelen bildirimler ve duyurular.</p>
+                    </div>
+                    <div class="d-none d-md-flex align-items-center gap-2 bg-white px-3 py-2 rounded-pill shadow-sm border">
+                        <div class="bg-primary text-white rounded-circle d-flex align-items-center justify-content-center" style="width: 32px; height: 32px;">
+                            <%= user.firstName.charAt(0) %><%= user.lastName.charAt(0) %>
+                        </div>
+                        <span class="fw-bold small"><%= user.firstName %> <%= user.lastName %></span>
+                    </div>
+                </div>
+
+                <div class="inbox-container">
+                    
+                    <div class="p-3 border-bottom bg-light d-flex justify-content-between align-items-center">
+                        <div class="fw-bold text-dark d-flex align-items-center gap-2">
+                            <i class="fas fa-inbox text-primary"></i> Gelen Kutusu 
+                            <span class="badge bg-primary rounded-pill"><%= messages.length %></span>
+                        </div>
+                        <button class="btn btn-sm btn-white border shadow-sm text-muted" onclick="location.reload()">
+                            <i class="fas fa-sync-alt me-1"></i> Yenile
+                        </button>
+                    </div>
+
+                    <div class="message-list">
+                        <% if(messages.length > 0) { %>
+                            <% messages.forEach(msg => { %>
+                                <div class="msg-item p-4 d-flex align-items-start gap-3">
+                                    
+                                    <div class="msg-avatar">
+                                        <i class="fas fa-user-tie"></i>
+                                    </div>
+
+                                    <div class="flex-grow-1">
+                                        <div class="d-flex flex-column flex-sm-row justify-content-between align-items-start align-items-sm-center mb-2">
+                                            <h6 class="mb-0 fw-bold text-dark">
+                                                <%= msg.sender || 'Kariyer Danışmanı' %>
+                                                <span class="badge bg-primary bg-opacity-10 text-primary ms-2 border border-primary border-opacity-10" style="font-size: 0.7rem;">Yetkili</span>
+                                            </h6>
+                                            <span class="msg-date mt-1 mt-sm-0">
+                                                <i class="far fa-clock me-1"></i>
+                                                <%= new Date(msg.date).toLocaleDateString('tr-TR', { day: 'numeric', month: 'long', hour: '2-digit', minute: '2-digit' }) %>
+                                            </span>
+                                        </div>
+                                        <div class="bg-light p-3 rounded-3 border border-light">
+                                            <p class="msg-content mb-0"><%= msg.content %></p>
+                                        </div>
+                                    </div>
+                                </div>
+                            <% }) %>
+                        <% } else { %>
+                            <div class="empty-state">
+                                <div class="bg-light p-4 rounded-circle mb-3">
+                                    <i class="fas fa-envelope-open text-muted fa-3x"></i>
+                                </div>
+                                <h5 class="text-dark fw-bold">Henüz mesajınız yok</h5>
+                                <p class="text-muted small">Danışmanınız size yazdığında mesajlar burada görünecek.</p>
+                            </div>
+                        <% } %>
+                    </div>
+
+                </div>
+
+            </div>
+        </div>
+    </div>
+
+    <div class="offcanvas offcanvas-start" tabindex="-1" id="mobileSidebar">
+        <div class="offcanvas-header bg-dark text-white">
+            <h5 class="offcanvas-title">Menü</h5>
+            <button type="button" class="btn-close btn-close-white" data-bs-dismiss="offcanvas"></button>
+        </div>
+        <div class="offcanvas-body">
+            <nav class="nav flex-column gap-2">
+                <a href="/panel" class="nav-link"><i class="fas fa-home"></i> Ana Sayfa</a>
+                <a href="/profile" class="nav-link"><i class="fas fa-user-circle"></i> Profilim</a>
+                <a href="/processes" class="nav-link"><i class="fas fa-tasks"></i> Süreçler</a>
+                <a href="/documents" class="nav-link"><i class="fas fa-file-alt"></i> Dokümanlar</a>
+                <a href="/messages" class="nav-link active"><i class="fas fa-comments"></i> Mesajlar</a>
+                <a href="/german" class="nav-link"><i class="fas fa-graduation-cap"></i> Almanca</a>
+                <a href="/appointments" class="nav-link"><i class="fas fa-calendar-alt"></i> Randevular</a>
+                <a href="/settings" class="nav-link"><i class="fas fa-cog"></i> Ayarlar</a>
+                <a href="/game" class="menu-item <%= page === 'game' ? 'active' : '' %>">
+    <i class="fas fa-gamepad"></i> <span class="menu-text">Oyun Alanı</span>
+</a>
+                <hr>
+                <a href="/logout" class="nav-link text-danger"><i class="fas fa-sign-out-alt"></i> Çıkış Yap</a>
+            </nav>
+        </div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+</body>
+</html>

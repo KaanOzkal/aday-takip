@@ -1,0 +1,20 @@
+# Bağımlılıklar (Çok yer kaplar, npm install ile tekrar kurulur)
+node_modules/
+
+# Çevre Değişkenleri (Şifreler burada olduğu için ASLA yüklenmemeli)
+.env
+
+# Kullanıcı tarafından yüklenen dosyalar (Gereksiz yer kaplamasın)
+public/uploads/*
+
+# Ancak 'public/uploads' klasörünün kendisi git'e gitsin (Hata almamak için)
+!public/uploads/.gitkeep
+
+# İşletim sistemi dosyaları (Gereksiz)
+.DS_Store
+Thumbs.db
+
+# Log dosyaları
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*

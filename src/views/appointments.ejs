@@ -1,0 +1,259 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Randevular | Almanya Kariyer</title>
+    
+    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    
+    <style>
+        body {
+            background-color: #f8fafc;
+            font-family: 'Plus Jakarta Sans', sans-serif;
+            color: #334155;
+        }
+
+        /* Sidebar & Layout */
+        .sidebar {
+            min-height: 100vh;
+            background: white;
+            border-right: 1px solid #e2e8f0;
+        }
+        
+        .nav-link {
+            color: #64748b;
+            font-weight: 500;
+            padding: 0.75rem 1rem;
+            border-radius: 10px;
+            margin-bottom: 0.25rem;
+            transition: all 0.2s;
+        }
+        .nav-link:hover, .nav-link.active {
+            background-color: #f1f5f9;
+            color: #0f172a;
+        }
+        .nav-link.active {
+            background-color: #e0f2fe;
+            color: #0284c7;
+        }
+        .nav-link i { width: 24px; text-align: center; margin-right: 8px; }
+
+        /* Randevu Kartları */
+        .appointment-card {
+            background: white;
+            border: 1px solid #e2e8f0;
+            border-radius: 16px;
+            border-left-width: 5px;
+            transition: transform 0.2s, box-shadow 0.2s;
+        }
+        .appointment-card:hover {
+            transform: translateX(5px);
+            box-shadow: 0 4px 6px -1px rgba(0,0,0,0.05);
+        }
+
+        .status-Beklemede { border-left-color: #f59e0b; }
+        .status-Onaylandı { border-left-color: #10b981; }
+        .status-Reddedildi { border-left-color: #ef4444; }
+
+        /* Form Stilleri */
+        .form-control:focus, .form-select:focus {
+            border-color: #4f46e5;
+            box-shadow: 0 0 0 4px rgba(79, 70, 229, 0.1);
+        }
+        
+        .date-box {
+            background: #f8fafc;
+            border-radius: 12px;
+            padding: 0.5rem 1rem;
+            text-align: center;
+            border: 1px solid #e2e8f0;
+            min-width: 80px;
+        }
+    </style>
+</head>
+<body>
+
+    <nav class="navbar navbar-dark bg-dark d-lg-none sticky-top shadow-sm">
+        <div class="container-fluid">
+            <span class="navbar-brand fw-bold"><i class="fas fa-flag me-2"></i>AlmanyaKariyer</span>
+            <button class="navbar-toggler" type="button" data-bs-toggle="offcanvas" data-bs-target="#mobileSidebar">
+                <span class="navbar-toggler-icon"></span>
+            </button>
+        </div>
+    </nav>
+
+    <div class="container-fluid">
+        <div class="row">
+            
+            <div class="col-lg-2 d-none d-lg-block sidebar p-4 sticky-top">
+                <div class="d-flex align-items-center gap-2 mb-5">
+                    <div class="bg-primary text-white rounded p-2"><i class="fas fa-flag"></i></div>
+                    <span class="fw-bold fs-5 text-dark">AlmanyaKariyer</span>
+                </div>
+                
+                <nav class="nav flex-column gap-1">
+                    <a href="/panel" class="nav-link <%= page === 'panel' ? 'active' : '' %>"><i class="fas fa-home"></i> Ana Sayfa</a>
+                    <a href="/profile" class="nav-link <%= page === 'profile' ? 'active' : '' %>"><i class="fas fa-user-circle"></i> Profilim</a>
+                    <a href="/processes" class="nav-link <%= page === 'processes' ? 'active' : '' %>"><i class="fas fa-tasks"></i> Süreçler</a>
+                    <a href="/documents" class="nav-link <%= page === 'documents' ? 'active' : '' %>"><i class="fas fa-file-alt"></i> Dokümanlar</a>
+                    <a href="/messages" class="nav-link <%= page === 'messages' ? 'active' : '' %>"><i class="fas fa-comments"></i> Mesajlar</a>
+                    <a href="/german" class="nav-link <%= page === 'german' ? 'active' : '' %>"><i class="fas fa-graduation-cap"></i> Almanca</a>
+                    <a href="/appointments" class="nav-link active"><i class="fas fa-calendar-alt"></i> Randevular</a>
+                    <a href="/settings" class="nav-link <%= page === 'settings' ? 'active' : '' %>"><i class="fas fa-cog"></i> Ayarlar</a>
+                    <a href="/game" class="menu-item <%= page === 'game' ? 'active' : '' %>">
+    <i class="fas fa-gamepad"></i> <span class="menu-text">Oyun Alanı</span>
+</a>
+                    <hr>
+                    <a href="/logout" class="nav-link text-danger"><i class="fas fa-sign-out-alt"></i> Çıkış Yap</a>
+                </nav>
+            </div>
+
+            <div class="col-12 col-lg-10 p-4">
+                
+                <div class="d-flex justify-content-between align-items-center mb-4">
+                    <div>
+                        <h2 class="fw-bold text-dark mb-1">Randevu Yönetimi</h2>
+                        <p class="text-muted mb-0">Danışmanlarınızla görüşmek için randevu oluşturun ve takip edin.</p>
+                    </div>
+                    <div class="d-none d-md-flex align-items-center gap-2 bg-white px-3 py-2 rounded-pill shadow-sm border">
+                        <div class="bg-primary text-white rounded-circle d-flex align-items-center justify-content-center" style="width: 32px; height: 32px;">
+                            <%= user.firstName.charAt(0) %><%= user.lastName.charAt(0) %>
+                        </div>
+                        <span class="fw-bold small"><%= user.firstName %> <%= user.lastName %></span>
+                    </div>
+                </div>
+
+                <div class="row g-4">
+                    
+                    <div class="col-lg-4">
+                        <div class="card border-0 shadow-sm rounded-4 p-4 h-100">
+                            <div class="text-center mb-4">
+                                <div class="bg-primary bg-opacity-10 text-primary p-3 rounded-circle d-inline-block mb-3">
+                                    <i class="fas fa-calendar-plus fa-2x"></i>
+                                </div>
+                                <h5 class="fw-bold text-dark">Yeni Randevu Talep Et</h5>
+                                <p class="text-muted small mb-0">Uygun olduğunuz tarihi seçin, danışmanlarımız onaylasın.</p>
+                            </div>
+
+                            <form action="/appointments/create" method="POST">
+                                <div class="mb-3">
+                                    <label class="form-label small fw-bold text-muted">Randevu Türü</label>
+                                    <select name="type" class="form-select bg-light border-0 py-2">
+                                        <option value="Genel Görüşme">Genel Görüşme</option>
+                                        <option value="Evrak Teslimi">Evrak Teslimi</option>
+                                        <option value="Vize Hazırlığı">Vize Hazırlığı</option>
+                                        <option value="Acil Destek">Acil Destek</option>
+                                    </select>
+                                </div>
+
+                                <div class="mb-3">
+                                    <label class="form-label small fw-bold text-muted">Tarih</label>
+                                    <input type="date" name="date" class="form-control bg-light border-0 py-2" required>
+                                </div>
+
+                                <div class="mb-4">
+                                    <label class="form-label small fw-bold text-muted">Saat</label>
+                                    <input type="time" name="time" class="form-control bg-light border-0 py-2" required>
+                                </div>
+
+                                <button type="submit" class="btn btn-primary w-100 rounded-pill py-2 fw-bold shadow-sm">
+                                    Talep Oluştur <i class="fas fa-paper-plane ms-2"></i>
+                                </button>
+                            </form>
+                        </div>
+                    </div>
+
+                    <div class="col-lg-8">
+                        <div class="d-flex justify-content-between align-items-center mb-3">
+                            <h5 class="fw-bold text-dark m-0">Randevularım</h5>
+                            <span class="badge bg-white text-dark border shadow-sm rounded-pill px-3"><%= appointments.length %> Kayıt</span>
+                        </div>
+
+                        <% if(appointments.length > 0) { %>
+                            <div class="d-flex flex-column gap-3">
+                                <% appointments.forEach(app => { %>
+                                    <div class="appointment-card status-<%= app.status %> p-3 shadow-sm">
+                                        <div class="d-flex align-items-center justify-content-between">
+                                            
+                                            <div class="d-flex align-items-center gap-3">
+                                                <div class="date-box">
+                                                    <div class="fw-bold text-dark fs-5"><%= app.time %></div>
+                                                    <small class="text-muted" style="font-size: 0.7rem;">
+                                                        <%= new Date(app.date).toLocaleDateString('tr-TR', { day: 'numeric', month: 'short' }) %>
+                                                    </small>
+                                                </div>
+                                                <div>
+                                                    <h6 class="fw-bold mb-1 text-dark"><%= app.type %></h6>
+                                                    <p class="mb-0 small text-muted">
+                                                        <i class="far fa-clock me-1"></i> Talep: <%= new Date(app.createdAt).toLocaleDateString('tr-TR') %>
+                                                    </p>
+                                                </div>
+                                            </div>
+
+                                            <div class="text-end">
+                                                <% if(app.status === 'Onaylandı') { %>
+                                                    <span class="badge bg-success bg-opacity-10 text-success px-3 py-2 rounded-pill border border-success border-opacity-10">
+                                                        <i class="fas fa-check-circle me-1"></i> Onaylandı
+                                                    </span>
+                                                <% } else if(app.status === 'Reddedildi') { %>
+                                                    <span class="badge bg-danger bg-opacity-10 text-danger px-3 py-2 rounded-pill border border-danger border-opacity-10">
+                                                        <i class="fas fa-times-circle me-1"></i> Reddedildi
+                                                    </span>
+                                                <% } else { %>
+                                                    <span class="badge bg-warning bg-opacity-10 text-warning px-3 py-2 rounded-pill border border-warning border-opacity-10">
+                                                        <i class="fas fa-hourglass-half me-1"></i> İnceleniyor
+                                                    </span>
+                                                <% } %>
+                                            </div>
+
+                                        </div>
+                                    </div>
+                                <% }) %>
+                            </div>
+                        <% } else { %>
+                            <div class="card border-0 shadow-sm p-5 text-center rounded-4 bg-white">
+                                <div class="mb-3 text-muted opacity-25">
+                                    <i class="fas fa-calendar-times fa-4x"></i>
+                                </div>
+                                <h5 class="fw-bold text-dark">Henüz randevu talebiniz yok.</h5>
+                                <p class="text-muted">Soldaki formu kullanarak ilk randevunuzu oluşturabilirsiniz.</p>
+                            </div>
+                        <% } %>
+                    </div>
+
+                </div>
+
+            </div>
+        </div>
+    </div>
+
+    <div class="offcanvas offcanvas-start" tabindex="-1" id="mobileSidebar">
+        <div class="offcanvas-header bg-dark text-white">
+            <h5 class="offcanvas-title">Menü</h5>
+            <button type="button" class="btn-close btn-close-white" data-bs-dismiss="offcanvas"></button>
+        </div>
+        <div class="offcanvas-body">
+            <nav class="nav flex-column gap-2">
+                <a href="/panel" class="nav-link"><i class="fas fa-home"></i> Ana Sayfa</a>
+                <a href="/profile" class="nav-link"><i class="fas fa-user-circle"></i> Profilim</a>
+                <a href="/processes" class="nav-link"><i class="fas fa-tasks"></i> Süreçler</a>
+                <a href="/documents" class="nav-link"><i class="fas fa-file-alt"></i> Dokümanlar</a>
+                <a href="/messages" class="nav-link"><i class="fas fa-comments"></i> Mesajlar</a>
+                <a href="/german" class="nav-link"><i class="fas fa-graduation-cap"></i> Almanca</a>
+                <a href="/appointments" class="nav-link active"><i class="fas fa-calendar-alt"></i> Randevular</a>
+                <a href="/settings" class="nav-link <%= page === 'settings' ? 'active' : '' %>"><i class="fas fa-cog"></i> Ayarlar</a>
+                <a href="/game" class="menu-item <%= page === 'game' ? 'active' : '' %>">
+    <i class="fas fa-gamepad"></i> <span class="menu-text">Oyun Alanı</span>
+</a>
+                <hr>
+                <a href="/logout" class="nav-link text-danger"><i class="fas fa-sign-out-alt"></i> Çıkış Yap</a>
+            </nav>
+        </div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+</body>
+</html>

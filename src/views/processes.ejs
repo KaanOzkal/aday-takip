@@ -1,0 +1,343 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Süreç Takibi | Almanya Kariyer</title>
+    
+    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    
+    <style>
+        body {
+            background-color: #f8fafc;
+            font-family: 'Plus Jakarta Sans', sans-serif;
+            color: #334155;
+        }
+
+        /* Sidebar & Layout */
+        .sidebar {
+            min-height: 100vh;
+            background: white;
+            border-right: 1px solid #e2e8f0;
+        }
+        
+        .nav-link {
+            color: #64748b;
+            font-weight: 500;
+            padding: 0.75rem 1rem;
+            border-radius: 10px;
+            margin-bottom: 0.25rem;
+            transition: all 0.2s;
+        }
+        .nav-link:hover, .nav-link.active {
+            background-color: #f1f5f9;
+            color: #0f172a;
+        }
+        .nav-link.active {
+            background-color: #e0f2fe;
+            color: #0284c7;
+        }
+        .nav-link i { width: 24px; text-align: center; margin-right: 8px; }
+
+        /* Timeline CSS */
+        .timeline-wrapper {
+            position: relative;
+            padding: 1rem 0;
+        }
+
+        .timeline-line {
+            position: absolute;
+            left: 28px; /* İkonun tam ortası */
+            top: 0;
+            bottom: 0;
+            width: 4px;
+            background: #e2e8f0;
+            z-index: 0;
+            border-radius: 2px;
+        }
+
+        .timeline-progress {
+            position: absolute;
+            left: 28px;
+            top: 0;
+            width: 4px;
+            background: #10b981; /* Yeşil dolum */
+            z-index: 1;
+            transition: height 1s ease-in-out;
+            border-radius: 2px;
+        }
+
+        .timeline-item {
+            position: relative;
+            margin-bottom: 2rem;
+            display: flex;
+            align-items: flex-start; /* Mobilde hizalama için */
+            z-index: 2;
+        }
+
+        .timeline-icon-box {
+            width: 60px;
+            height: 60px;
+            border-radius: 16px;
+            background: white;
+            border: 4px solid #f1f5f9;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1.25rem;
+            color: #cbd5e1;
+            flex-shrink: 0;
+            transition: all 0.3s;
+            box-shadow: 0 4px 6px -1px rgba(0,0,0,0.05);
+            z-index: 2;
+        }
+
+        .timeline-item.active .timeline-icon-box {
+            background: #4f46e5;
+            color: white;
+            border-color: #e0e7ff;
+            transform: scale(1.1);
+            box-shadow: 0 10px 15px -3px rgba(79, 70, 229, 0.3);
+        }
+
+        .timeline-item.completed .timeline-icon-box {
+            background: #10b981;
+            color: white;
+            border-color: #d1fae5;
+        }
+
+        .timeline-card {
+            background: white;
+            border-radius: 16px;
+            padding: 1.5rem;
+            margin-left: 1.5rem;
+            flex-grow: 1;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.05);
+            border: 1px solid #e2e8f0;
+            transition: transform 0.2s;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            flex-wrap: wrap;
+            gap: 1rem;
+        }
+
+        .timeline-item.active .timeline-card {
+            border-left: 5px solid #4f46e5;
+            transform: translateX(5px);
+            box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1);
+        }
+
+        .timeline-item.completed .timeline-card {
+            opacity: 0.8;
+            background: #f8fafc;
+        }
+
+        .btn-detail {
+            background: #f1f5f9;
+            color: #475569;
+            border: none;
+            padding: 0.5rem 1.2rem;
+            border-radius: 8px;
+            font-weight: 600;
+            font-size: 0.9rem;
+            transition: 0.2s;
+        }
+        .btn-detail:hover { background: #e2e8f0; color: #1e293b; }
+        
+        .timeline-item.active .btn-detail {
+            background: #4f46e5;
+            color: white;
+        }
+        .timeline-item.active .btn-detail:hover { background: #4338ca; }
+
+        /* Mobil Ayarları */
+        @media (max-width: 576px) {
+            .timeline-card { flex-direction: column; align-items: flex-start; }
+            .btn-detail { width: 100%; margin-top: 10px; }
+        }
+    </style>
+</head>
+<body>
+
+    <nav class="navbar navbar-dark bg-dark d-lg-none sticky-top shadow-sm">
+        <div class="container-fluid">
+            <span class="navbar-brand fw-bold"><i class="fas fa-flag me-2"></i>AlmanyaKariyer</span>
+            <button class="navbar-toggler" type="button" data-bs-toggle="offcanvas" data-bs-target="#mobileSidebar">
+                <span class="navbar-toggler-icon"></span>
+            </button>
+        </div>
+    </nav>
+
+    <div class="container-fluid">
+        <div class="row">
+            
+            <div class="col-lg-2 d-none d-lg-block sidebar p-4 sticky-top">
+                <div class="d-flex align-items-center gap-2 mb-5">
+                    <div class="bg-primary text-white rounded p-2"><i class="fas fa-flag"></i></div>
+                    <span class="fw-bold fs-5 text-dark">AlmanyaKariyer</span>
+                </div>
+                
+                <nav class="nav flex-column gap-1">
+                    <a href="/panel" class="nav-link <%= page === 'panel' ? 'active' : '' %>"><i class="fas fa-home"></i> Ana Sayfa</a>
+                    <a href="/profile" class="nav-link <%= page === 'profile' ? 'active' : '' %>"><i class="fas fa-user-circle"></i> Profilim</a>
+                    <a href="/processes" class="nav-link <%= page === 'processes' ? 'active' : '' %>"><i class="fas fa-tasks"></i> Süreçler</a>
+                    <a href="/documents" class="nav-link <%= page === 'documents' ? 'active' : '' %>"><i class="fas fa-file-alt"></i> Dokümanlar</a>
+                    <a href="/messages" class="nav-link <%= page === 'messages' ? 'active' : '' %>"><i class="fas fa-comments"></i> Mesajlar</a>
+                    <a href="/german" class="nav-link <%= page === 'german' ? 'active' : '' %>"><i class="fas fa-graduation-cap"></i> Almanca</a>
+                    <a href="/appointments" class="nav-link <%= page === 'appointments' ? 'active' : '' %>"><i class="fas fa-calendar-alt"></i> Randevular</a>
+                    <a href="/settings" class="nav-link <%= page === 'settings' ? 'active' : '' %>"><i class="fas fa-cog"></i> Ayarlar</a>
+                    <a href="/game" class="menu-item <%= page === 'game' ? 'active' : '' %>">
+    <i class="fas fa-gamepad"></i> <span class="menu-text">Oyun Alanı</span>
+</a>
+                    <hr>
+                    <a href="/logout" class="nav-link text-danger"><i class="fas fa-sign-out-alt"></i> Çıkış Yap</a>
+                </nav>
+            </div>
+
+            <div class="col-12 col-lg-10 p-4">
+                
+                <div class="row justify-content-center mb-5 mt-3">
+                    <div class="col-lg-8">
+                        <div class="text-center mb-4">
+                            <span class="badge bg-primary bg-opacity-10 text-primary px-3 py-2 rounded-pill mb-3">Yol Haritası</span>
+                            <h2 class="fw-bold display-6 text-dark">Süreç Takibi</h2>
+                            <p class="text-muted">Almanya hedefinize giden yolda bulunduğunuz konum.</p>
+                        </div>
+
+                        <div class="card border-0 shadow-sm p-4 bg-white rounded-4">
+                            <div class="d-flex justify-content-between mb-2 small fw-bold text-uppercase text-muted">
+                                <span>Başlangıç</span>
+                                <span class="text-primary">%<%= progress %> Tamamlandı</span>
+                                <span>Hedef</span>
+                            </div>
+                            <div class="progress" style="height: 12px; border-radius: 10px; background-color: #f1f5f9;">
+                                <div class="progress-bar bg-primary progress-bar-striped progress-bar-animated" style="width: <%= progress %>%"></div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="row justify-content-center">
+                    <div class="col-lg-8">
+                        
+                        <div class="timeline-wrapper">
+                            <div class="timeline-line"></div>
+                            <% const lineHeight = (currentIndex / (processDetails.length - 1)) * 100; %>
+                            <div class="timeline-progress" style="height: <%= lineHeight %>%;"></div>
+
+                            <% processDetails.forEach((step, index) => { 
+                                let status = 'pending';
+                                if (index < currentIndex) status = 'completed';
+                                else if (index === currentIndex) status = 'active';
+                            %>
+                                <div class="timeline-item <%= status %>">
+                                    
+                                    <div class="timeline-icon-box">
+                                        <% if(status === 'completed') { %>
+                                            <i class="fas fa-check"></i>
+                                        <% } else { %>
+                                            <i class="fas <%= step.icon %>"></i>
+                                        <% } %>
+                                    </div>
+
+                                    <div class="timeline-card">
+                                        <div>
+                                            <h5 class="fw-bold mb-1 text-dark"><%= step.name %></h5>
+                                            
+                                            <% if(status === 'active') { %>
+                                                <span class="badge bg-primary bg-opacity-10 text-primary">
+                                                    <span class="spinner-grow spinner-grow-sm me-1" role="status"></span>
+                                                    İşlem Sürüyor
+                                                </span>
+                                            <% } else if (status === 'completed') { %>
+                                                <span class="badge bg-success bg-opacity-10 text-success"><i class="fas fa-check-circle me-1"></i> Tamamlandı</span>
+                                            <% } else { %>
+                                                <span class="badge bg-light text-muted border"><i class="fas fa-lock me-1"></i> Bekleniyor</span>
+                                            <% } %>
+                                        </div>
+                                        
+                                        <button class="btn-detail" data-bs-toggle="modal" data-bs-target="#modal<%= index %>">
+                                            Detaylar <i class="fas fa-arrow-right ms-1"></i>
+                                        </button>
+                                    </div>
+
+                                </div>
+
+                                <div class="modal fade" id="modal<%= index %>" tabindex="-1" aria-hidden="true">
+                                    <div class="modal-dialog modal-dialog-centered">
+                                        <div class="modal-content border-0 shadow-lg">
+                                            <div class="modal-header bg-light">
+                                                <div class="d-flex align-items-center gap-3">
+                                                    <div class="bg-white p-2 rounded-circle shadow-sm text-primary">
+                                                        <i class="fas <%= step.icon %> fa-lg"></i>
+                                                    </div>
+                                                    <div>
+                                                        <h5 class="modal-title fw-bold mb-0"><%= step.name %></h5>
+                                                        <small class="text-muted"><%= status === 'active' ? 'Şu anki aşamanız' : (status === 'completed' ? 'Tamamlandı' : 'Sırada') %></small>
+                                                    </div>
+                                                </div>
+                                                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                                            </div>
+                                            <div class="modal-body">
+                                                <h6 class="fw-bold mb-2">Açıklama</h6>
+                                                <p class="text-secondary mb-4 small"><%= step.desc %></p>
+                                                
+                                                <div class="bg-light p-3 rounded-3 d-flex justify-content-between align-items-center mb-4 border">
+                                                    <span class="text-muted small fw-bold">Tahmini Süre</span>
+                                                    <span class="text-dark fw-bold"><%= step.time %></span>
+                                                </div>
+
+                                                <% if(status === 'active' && step.name === 'Evrak Kontrolü') { %>
+                                                    <div class="d-grid">
+                                                        <a href="/documents" class="btn btn-primary rounded-pill">
+                                                            <i class="fas fa-folder-open me-2"></i> Belgeleri Yönet
+                                                        </a>
+                                                    </div>
+                                                <% } %>
+
+                                              
+
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                                <% }) %>
+                        </div>
+
+                    </div>
+                </div>
+
+            </div>
+        </div>
+    </div>
+
+    <div class="offcanvas offcanvas-start" tabindex="-1" id="mobileSidebar">
+        <div class="offcanvas-header bg-dark text-white">
+            <h5 class="offcanvas-title">Menü</h5>
+            <button type="button" class="btn-close btn-close-white" data-bs-dismiss="offcanvas"></button>
+        </div>
+        <div class="offcanvas-body">
+            <nav class="nav flex-column gap-2">
+                <a href="/panel" class="nav-link"><i class="fas fa-home"></i> Ana Sayfa</a>
+                <a href="/profile" class="nav-link"><i class="fas fa-user-circle"></i> Profilim</a>
+                <a href="/processes" class="nav-link active"><i class="fas fa-tasks"></i> Süreçler</a>
+                <a href="/documents" class="nav-link"><i class="fas fa-file-alt"></i> Dokümanlar</a>
+                <a href="/messages" class="nav-link"><i class="fas fa-comments"></i> Mesajlar</a>
+                <a href="/german" class="nav-link"><i class="fas fa-graduation-cap"></i> Almanca</a>
+                <a href="/appointments" class="nav-link"><i class="fas fa-calendar-alt"></i> Randevular</a>
+                <a href="/settings" class="nav-link"><i class="fas fa-cog"></i> Ayarlar</a>
+                <a href="/game" class="menu-item <%= page === 'game' ? 'active' : '' %>">
+    <i class="fas fa-gamepad"></i> <span class="menu-text">Oyun Alanı</span>
+</a>
+                <hr>
+                <a href="/logout" class="nav-link text-danger"><i class="fas fa-sign-out-alt"></i> Çıkış Yap</a>
+            </nav>
+        </div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+</body>
+</html>

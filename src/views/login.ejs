@@ -1,0 +1,43 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Giriş - Almanya İstihdam Takibi</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="/css/style.css">
+</head>
+<body class="d-flex align-items-center justify-content-center vh-100 bg-light">
+
+    <div class="card card-custom p-4 shadow-lg" style="max-width: 400px; width: 100%;">
+        <div class="german-stripe mb-3"></div>
+        <div class="text-center mb-4">
+            <h4>🇩🇪 Aday Takip Sistemi</h4>
+            <p class="text-muted small">Almanya İstihdam Süreci Giriş Ekranı</p>
+        </div>
+
+        <form action="/login" method="POST">
+            <div class="mb-3">
+                <label class="form-label">İsim</label>
+                <input type="text" name="firstName" class="form-control" placeholder="Adınız" required>
+            </div>
+            <div class="mb-3">
+                <label class="form-label">Soyisim</label>
+                <input type="text" name="lastName" class="form-control" placeholder="Soyadınız" required>
+            </div>
+            <div class="mb-3">
+                <label class="form-label">Pasaport Numarası</label>
+                <input type="text" name="passportNo" class="form-control" placeholder="U12345678" required>
+            </div>
+            <div class="d-grid">
+                <button type="submit" class="btn btn-primary">Sisteme Giriş Yap</button>
+            </div>
+        </form>
+        
+        <div class="text-center mt-3">
+            <small class="text-muted">Giriş sorunu yaşıyorsanız danışmanınızla iletişime geçin.</small>
+        </div>
+    </div>
+
+</body>
+</html>
