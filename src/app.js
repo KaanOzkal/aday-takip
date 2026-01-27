@@ -68,11 +68,12 @@ const uploadToGoogleDrive = async (fileObject) => {
 };
 
 // --- NODEMAILER (DİNAMİK) ---
+// --- MAİL AYARLARI ---
 const transporter = nodemailer.createTransport({
-    service: 'gmail', 
+    service: 'gmail',
     auth: {
-        user: process.env.EMAIL_USER || 'proje@berliner.com.tr', 
-        pass: process.env.EMAIL_PASS || 'rkmk zklb qbcv buhi'
+        user: process.env.EMAIL_USER, // Render'dan okuyacak
+        pass: process.env.EMAIL_PASS  // Render'dan okuyacak
     }
 });
 
