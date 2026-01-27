@@ -67,15 +67,19 @@ const uploadToGoogleDrive = async (fileObject) => {
     }
 };
 
-
+// --- BREVO (SENDINBLUE) MAİL AYARLARI (GÜÇLENDİRİLMİŞ) ---
 const transporter = nodemailer.createTransport({
     host: 'smtp-relay.brevo.com',
-    port: 587,
-    secure: false, // TLS kullanır
+    port: 2525, // 587 yerine 2525 deneyelim (Alternatif port)
+    secure: false, 
     auth: {
         user: process.env.EMAIL_USER, 
-        pass: process.env.EMAIL_PASS  
-    }
+        pass: process.env.EMAIL_PASS
+    },
+    // 👇 HATAYI ÇÖZECEK SİHİRLİ KODLAR 👇
+    family: 4, // Sadece IPv4 kullan (Render hatasını çözer)
+    connectionTimeout: 10000, // 10 saniye bekle
+    greetingTimeout: 5000 // Selamlaşma için 5 saniye bekle
 });
 // --- AYARLAR ---
 app.set('views', path.join(__dirname, 'views'));
