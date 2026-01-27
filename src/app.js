@@ -67,24 +67,16 @@ const uploadToGoogleDrive = async (fileObject) => {
     }
 };
 
-// --- NODEMAILER (DİNAMİK) ---
-// --- MAİL AYARLARI ---
-// --- GÜÇLENDİRİLMİŞ MAİL AYARI ---
-// --- DÜZELTİLMİŞ MAİL AYARI (PORT 587) ---
-// --- MAİL AYARI (IPV4 ZORLAMALI) ---
-const transporter = nodemailer.createTransport({
-    service: 'gmail',
-    auth: {
-        user: process.env.EMAIL_USER,
-        pass: process.env.EMAIL_PASS
-    },
-    // 👇 KRİTİK AYARLAR 👇
-    family: 4, // IPv6 yerine IPv4 kullanmaya zorla (Render hatasını çözer)
-    pool: true, // Bağlantıyı açık tut (daha hızlı)
-    maxConnections: 1, // Aynı anda tek mail at (Gmail spama düşürmesin)
-    rateLimit: 1 // Saniyede 1 mail (Güvenlik için)
-});
 
+const transporter = nodemailer.createTransport({
+    host: 'smtp-relay.brevo.com',
+    port: 587,
+    secure: false, // TLS kullanır
+    auth: {
+        user: process.env.EMAIL_USER, 
+        pass: process.env.EMAIL_PASS  
+    }
+});
 // --- AYARLAR ---
 app.set('views', path.join(__dirname, 'views'));
 app.set('view engine', 'ejs');
