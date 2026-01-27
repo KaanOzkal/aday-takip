@@ -71,17 +71,18 @@ const uploadToGoogleDrive = async (fileObject) => {
 // --- MAİL AYARLARI ---
 // --- GÜÇLENDİRİLMİŞ MAİL AYARI ---
 // --- DÜZELTİLMİŞ MAİL AYARI (PORT 587) ---
+// --- MAİL AYARI (IPV4 ZORLAMALI) ---
 const transporter = nodemailer.createTransport({
-    host: 'smtp.gmail.com',
-    port: 587, // 465 yerine 587 kullanıyoruz
-    secure: false, // 587 için burası false olmalı (Otomatik TLS'e yükseltir, merak etme güvenli)
+    service: 'gmail',
     auth: {
         user: process.env.EMAIL_USER,
         pass: process.env.EMAIL_PASS
     },
-    tls: {
-        rejectUnauthorized: false // Bazen sertifika hatası verirse bunu yoksayması için
-    }
+    // 👇 KRİTİK AYARLAR 👇
+    family: 4, // IPv6 yerine IPv4 kullanmaya zorla (Render hatasını çözer)
+    pool: true, // Bağlantıyı açık tut (daha hızlı)
+    maxConnections: 1, // Aynı anda tek mail at (Gmail spama düşürmesin)
+    rateLimit: 1 // Saniyede 1 mail (Güvenlik için)
 });
 
 // --- AYARLAR ---
