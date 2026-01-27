@@ -70,13 +70,17 @@ const uploadToGoogleDrive = async (fileObject) => {
 // --- NODEMAILER (DİNAMİK) ---
 // --- MAİL AYARLARI ---
 // --- GÜÇLENDİRİLMİŞ MAİL AYARI ---
+// --- DÜZELTİLMİŞ MAİL AYARI (PORT 587) ---
 const transporter = nodemailer.createTransport({
     host: 'smtp.gmail.com',
-    port: 465,
-    secure: true, // SSL kullanımı
+    port: 587, // 465 yerine 587 kullanıyoruz
+    secure: false, // 587 için burası false olmalı (Otomatik TLS'e yükseltir, merak etme güvenli)
     auth: {
         user: process.env.EMAIL_USER,
         pass: process.env.EMAIL_PASS
+    },
+    tls: {
+        rejectUnauthorized: false // Bazen sertifika hatası verirse bunu yoksayması için
     }
 });
 
