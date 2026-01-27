@@ -69,18 +69,14 @@ const uploadToGoogleDrive = async (fileObject) => {
 
 // --- BREVO (SENDINBLUE) MAİL AYARLARI (GÜÇLENDİRİLMİŞ) ---
 // --- GEÇİCİ TEST AYARI (HARDCODED) ---
+// --- BREVO MAİL AYARLARI (DOĞRU KULLANICI ADIYLA) ---
 const transporter = nodemailer.createTransport({
     host: 'smtp-relay.brevo.com',
     port: 587,
-    secure: false,
+    secure: false, // TLS kullanır
     auth: {
-        // 👇 BURAYA DİREKT MAİL ADRESİNİ YAZ (Tırnak içinde)
-        user: 'proje@berliner.com.tr', 
-        // 👇 BURAYA UZUN ŞİFREYİ DİREKT YAZ (Tırnak içinde)
-        pass: 'xsmtpsib-5424ee2d1a02af8f9284824cf51e482c971ba24a1269f9c2d4a5d01ec04cd5a1-oJHGsNKfT4snxct9' 
-    },
-    tls: {
-        rejectUnauthorized: false
+        user: process.env.EMAIL_USER, // Artık a0eab3... kodunu okuyacak
+        pass: process.env.EMAIL_PASS  // Uzun şifreyi okuyacak
     }
 });
 // --- AYARLAR ---
