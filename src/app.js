@@ -69,11 +69,14 @@ const uploadToGoogleDrive = async (fileObject) => {
 
 // --- NODEMAILER (DİNAMİK) ---
 // --- MAİL AYARLARI ---
+// --- GÜÇLENDİRİLMİŞ MAİL AYARI ---
 const transporter = nodemailer.createTransport({
-    service: 'gmail',
+    host: 'smtp.gmail.com',
+    port: 465,
+    secure: true, // SSL kullanımı
     auth: {
-        user: process.env.EMAIL_USER, // Render'dan okuyacak
-        pass: process.env.EMAIL_PASS  // Render'dan okuyacak
+        user: process.env.EMAIL_USER,
+        pass: process.env.EMAIL_PASS
     }
 });
 
@@ -325,17 +328,48 @@ app.post('/admin/message/internal', adminAuthCheck, async (req, res) => {
     res.redirect('/admin');
 });
 
+// --- GÜÇLENDİRİLMİŞ MAİL GÖNDERME ROTASI ---
 app.post('/admin/message/email', adminAuthCheck, async (req, res) => {
-    const candidate = await Candidate.findById(req.body.candidateId);
-    if (candidate.email) {
-        try {
-            await transporter.sendMail({
-                from: '"Almanya Kariyer" <proje@berliner.com.tr>', to: candidate.email,
-                subject: req.body.subject || 'Bildirim', html: `<div style="padding:20px;"><h3>Sayın ${candidate.firstName},</h3><p>${req.body.content}</p></div>`
-            });
-        } catch (error) { console.error("Mail hatası:", error); }
+    try {
+        console.log("📨 Mail gönderimi başlatılıyor...");
+        
+        // 1. Adayı bul
+        const candidate = await Candidate.findById(req.body.candidateId);
+        
+        if (!candidate) {
+            console.log("❌ Aday bulunamadı.");
+            return res.redirect('/admin?error=aday_yok');
+        }
+
+        if (!candidate.email) {
+            console.log("❌ Adayın mail adresi yok.");
+            return res.redirect('/admin?error=mail_yok');
+        }
+
+        // 2. Maili gönder
+        await transporter.sendMail({
+            from: `"Almanya Kariyer" <${process.env.EMAIL_USER}>`,
+            to: candidate.email,
+            subject: req.body.subject || 'Bilgilendirme',
+            html: `
+                <div style="font-family: Arial, sans-serif; padding: 20px; border: 1px solid #ddd;">
+                    <h2 style="color: #333;">Sayın ${candidate.firstName} ${candidate.lastName},</h2>
+                    <p style="font-size: 16px; color: #555;">${req.body.content}</p>
+                    <hr>
+                    <p style="font-size: 12px; color: #999;">Bu mesaj otomatik olarak gönderilmiştir.</p>
+                </div>
+            `
+        });
+
+        console.log(`✅ Mail başarıyla gönderildi: ${candidate.email}`);
+        res.redirect('/admin?status=mail_success');
+
+    } catch (error) {
+        // BURASI ÇÖKMEYİ ENGELLER
+        console.error("🚨 MAİL GÖNDERME HATASI:", error);
+        // Hata olsa bile site çalışmaya devam etsin:
+        res.redirect('/admin?error=mail_fail'); 
     }
-    res.redirect('/admin');
 });
 
 app.get('/seed-german-words', async (req, res) => {
