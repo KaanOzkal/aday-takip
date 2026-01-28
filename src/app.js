@@ -370,6 +370,55 @@ app.post('/admin/message/email', adminAuthCheck, async (req, res) => {
         res.redirect('/admin?error=mail_fail'); 
     }
 });
+// --- TOPLU MAİL GÖNDERME ROTASI (YENİ) ---
+app.post('/admin/message/email/bulk', adminAuthCheck, async (req, res) => {
+    const { subject, content } = req.body;
+    
+    console.log("📨 Toplu mail gönderimi başlatılıyor...");
+
+    try {
+        // 1. Mail adresi olan tüm adayları bul
+        const candidates = await Candidate.find({ email: { $exists: true, $ne: "" } });
+
+        if (candidates.length === 0) {
+            return res.redirect('/admin?error=no_candidates');
+        }
+
+        // 2. Herkese mail gönder (Hızlı olması için Promise.all kullanıyoruz)
+        const emailPromises = candidates.map(candidate => {
+            return transporter.sendMail({
+                from: '"BERLINER" <proje@berliner.com.tr>',
+                to: candidate.email,
+                subject: subject || 'Berliner Akademie Duyuru',
+                html: `
+                    <div style="font-family: Arial, sans-serif; padding: 20px; border: 1px solid #eee;">
+                        <h3 style="color: #d32f2f;">Sayın ${candidate.firstName} ${candidate.lastName},</h3>
+                        <p style="font-size: 16px; color: #333;">${content}</p>
+                        <br>
+                        <hr>
+                        <p style="font-size: 12px; color: #777;">
+                            Bu mail Berliner Akademie tarafından tüm adaylara gönderilmiştir.<br>
+                            Lütfen bu maile cevap vermeyiniz.
+                        </p>
+                    </div>
+                `
+            }).catch(err => {
+                // Tek bir kişiye gitmezse sistem çökmesin, log tutsun yeter
+                console.error(`❌ ${candidate.email} adresine gönderilemedi:`, err.message);
+            });
+        });
+
+        // Tüm maillerin gönderilmesini bekle
+        await Promise.all(emailPromises);
+
+        console.log(`✅ ${candidates.length} kişiye toplu mail işlemi tamamlandı.`);
+        res.redirect('/admin?status=bulk_mail_success');
+
+    } catch (error) {
+        console.error("🚨 Toplu Mail Hatası:", error);
+        res.redirect('/admin?error=bulk_mail_fail');
+    }
+});
 
 // --- 40 KİŞİLİK TOPLU ADAY EKLEME ROTASI ---
 app.get('/seed-candidates-full', async (req, res) => {

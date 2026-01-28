@@ -98,6 +98,26 @@
         </div>
     </div>
 </nav>
+<div class="card mb-4 shadow-sm">
+    <div class="card-header bg-danger text-white">
+        <i class="fas fa-envelope-open-text"></i> Toplu E-Mail Gönder (Tüm Adaylara)
+    </div>
+    <div class="card-body">
+        <form action="/admin/message/email/bulk" method="POST" onsubmit="return confirm('Tüm adaylara mail gönderilecek. Emin misiniz?');">
+            <div class="mb-3">
+                <label class="form-label">Mail Konusu</label>
+                <input type="text" name="subject" class="form-control" placeholder="Örn: Vize Randevuları Hakkında" required>
+            </div>
+            <div class="mb-3">
+                <label class="form-label">İçerik</label>
+                <textarea name="content" class="form-control" rows="4" placeholder="Mesajınızı buraya yazın..." required></textarea>
+            </div>
+            <button type="submit" class="btn btn-danger w-100">
+                <i class="fas fa-paper-plane"></i> Herkese Gönder
+            </button>
+        </form>
+    </div>
+</div>
 
 <div class="container-fluid px-4 pb-5">
     
