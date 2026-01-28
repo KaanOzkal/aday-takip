@@ -98,9 +98,10 @@ app.use(session({
 }));
 
 // --- SABİT VERİLER ---
+// --- SABİT VERİLER ---
 const STAGES = [
     'Başvuru Alındı', 'Evrak Kontrolü', 'Tercüme Süreci', 
-    'İşveren Onayı', 'Vize Hazırlığı', 'Vize Başvurusu', 
+    'İşveren Onayı', 'Vize Ön Onay', 'Vize Başvurusu', // 👈 BURASI DEĞİŞTİ (Eskiden Vize Hazırlığı idi)
     'Seyahat Planı', 'Almanya\'da'
 ];
 
@@ -262,11 +263,15 @@ app.get('/processes', authCheck, (req, res) => {
         { name: 'Evrak Kontrolü', time: '1-3 Gün', icon: 'fa-search', desc: 'Belgeleriniz inceleniyor.' },
         { name: 'Tercüme Süreci', time: '3-5 Gün', icon: 'fa-language', desc: 'Yeminli tercüme yapılıyor.' },
         { name: 'İşveren Onayı', time: '1-2 Hafta', icon: 'fa-handshake', desc: 'İşveren onayı bekleniyor.' },
-        { name: 'Vize Hazırlığı', time: 'Değişken', icon: 'fa-folder-open', desc: 'Vize dosyası hazırlanıyor.' },
+        
+        // 👇 BURASI GÜNCELLENDİ
+        { name: 'Vize Ön Onay', time: 'Değişken', icon: 'fa-stamp', desc: 'Ön onay belgesi bekleniyor.' },
+        
         { name: 'Vize Başvurusu', time: 'Değişken', icon: 'fa-passport', desc: 'Konsolosluk görüşmesi.' },
         { name: 'Seyahat Planı', time: '3 Gün', icon: 'fa-plane', desc: 'Uçak ve konaklama.' },
         { name: 'Almanya\'da', time: 'Süresiz', icon: 'fa-map-marked-alt', desc: 'Yeni hayatınız başladı.' }
     ];
+    // ... (kodun geri kalanı aynı)
     const currentIndex = STAGES.indexOf(req.user.currentStage);
     const progress = Math.round(((currentIndex + 1) / STAGES.length) * 100);
     res.render('processes', { user: req.user, page: 'processes', processDetails, currentIndex, progress });
@@ -463,14 +468,16 @@ app.get('/seed-candidates-full', async (req, res) => {
        { id: 37, ad: "Alper Koptur", meslek: "Kurye", durumId: 5, lokasyon: "Ankara", basvuruNo: "SAA-2026-037", pasaport: "U27276436", telefon: "+90 555 555 55 55", email: "alperkoptur06@gmail.com", puan: 88 },
        { id: 38, ad: "Ramazan Gökhan Kına", meslek: "Kurye", durumId: 5, lokasyon: "Ankara", basvuruNo: "HAM-2026-038", pasaport: "U36187035", telefon: "+90 555 555 55 55", email: "kina.gokhann@hotmail.com", puan: 87 },
        { id: 39, ad: "Yasin Kavak", meslek: "Kurye", durumId: 5, lokasyon: "Konya", basvuruNo: "MUL-2026-039", pasaport: "U37950988", telefon: "+90 555 555 55 55", email: "yasin1453442@gmail.com", puan: 84 },
-       { id: 40, ad: "Kaan Özkal", meslek: "Kurye", durumId: 5, lokasyon: "Ankara", basvuruNo: "MUL-2026-040", pasaport: "U12345678", telefon: "+90 555 555 55 55", email: "ozkalkaan490@gmail.com", puan: 100 }
+       { id: 40, ad: "Kaan Özkal", meslek: "Kurye", durumId: 4, lokasyon: "Ankara", basvuruNo: "MUL-2026-040", pasaport: "U12345678", telefon: "+90 555 555 55 55", email: "ozkalkaan490@gmail.com", puan: 100 }
        
     ];
 
+// ...
     const stageMap = {
-        4: "Vize Hazırlığı",
+        4: "Vize Ön Onay", // 👈 BURASI GÜNCELLENDİ
         5: "Vize Başvurusu" 
     };
+    // ...
 
     const formattedCandidates = rawData.map(item => {
         const parts = item.ad.trim().split(' ');
@@ -521,6 +528,19 @@ app.get('/seed-german-full', async (req, res) => {
         res.send(`<h1 style="color:green; text-align:center; margin-top:50px;">✅ Almanca Kelimeler Yüklendi!</h1><p style="text-align:center"><a href="/german">Almanca Sayfasına Git</a></p>`);
     } catch (error) {
         console.error("Kelime yükleme hatası:", error);
+        res.send("Hata: " + error.message);
+    }
+});
+// --- ESKİ İSİMLERİ DÜZELTME ROTASI ---
+app.get('/fix-stage-names', async (req, res) => {
+    try {
+        // "Vize Hazırlığı" yazan herkesi "Vize Ön Onay" yap
+        const result = await Candidate.updateMany(
+            { currentStage: 'Vize Hazırlığı' }, // Eski isim
+            { $set: { currentStage: 'Vize Ön Onay' } } // Yeni isim
+        );
+        res.send(`✅ İşlem Tamam: ${result.modifiedCount} adayın durumu güncellendi.`);
+    } catch (error) {
         res.send("Hata: " + error.message);
     }
 });
