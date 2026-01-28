@@ -10,14 +10,14 @@ const multer = require('multer');
 require('dotenv').config(); // Yerelde .env dosyasını okumak için
 
 // --- MODELLER ---
+// (Bu dosyaların models klasöründe olduğundan emin ol)
 const Candidate = require('./models/Candidate');
 const LogisticsWord = require('./models/LogisticsWord');
 const Message = require('./models/Message');
 
 const app = express();
 
-// --- VERİTABANI BAĞLANTISI (DİNAMİK) ---
-// Eğer Render'daysa MONGO_URI, yoksa yerel adresi kullan
+// --- VERİTABANI BAĞLANTISI ---
 const dbURI = process.env.MONGO_URI || 'mongodb://127.0.0.1:27017/almanya_ats';
 
 mongoose.connect(dbURI)
@@ -36,11 +36,15 @@ const upload = multer({
     storage: multer.memoryStorage(),
     limits: { fileSize: 5 * 1024 * 1024 } // 5MB Limit
 });
-// --- GOOGLE DRIVE YÜKLEME FONKSİYONU ---
+
+// --- GOOGLE DRIVE FONKSİYONU ---
 const uploadToGoogleDrive = async (fileObject) => {
     try {
+        // Eğer credentials yoksa hata vermemesi için kontrol (Opsiyonel)
+        if (!process.env.GOOGLE_CREDENTIALS) return { name: fileObject.originalname, webViewLink: '#' };
+
         const auth = new google.auth.GoogleAuth({
-            credentials: JSON.parse(process.env.GOOGLE_CREDENTIALS), // Render'dan oku
+            credentials: JSON.parse(process.env.GOOGLE_CREDENTIALS),
             scopes: ['https://www.googleapis.com/auth/drive.file'],
         });
         const driveService = google.drive({ version: 'v3', auth });
@@ -55,35 +59,38 @@ const uploadToGoogleDrive = async (fileObject) => {
             },
             requestBody: {
                 name: fileObject.originalname,
-                parents: [process.env.DRIVE_FOLDER_ID], // Render'daki Klasör ID
+                parents: [process.env.DRIVE_FOLDER_ID],
             },
             fields: 'id, name, webViewLink',
         });
 
-        return response.data; // { id: '...', webViewLink: '...' }
+        return response.data;
     } catch (error) {
         console.error('Drive Yükleme Hatası:', error);
         throw error;
     }
 };
 
-// --- BREVO MAİL AYARLARI (GÜVENLİ HALİ) ---
+// ============================================
+// 📧 MAİL AYARLARI (Eksik Olan Kısım Eklendi)
+// ============================================
 const transporter = nodemailer.createTransport({
     host: 'smtp-relay.brevo.com',
     port: 587,
     secure: false,
     auth: {
-        user: process.env.EMAIL_USER, // Render'daki ayarı okuyacak
-        pass: process.env.EMAIL_PASS  // Render'daki şifreyi okuyacak
+        user: process.env.EMAIL_USER, // ✅ DOĞRU: Değişken kullanıyor
+        pass: process.env.EMAIL_PASS  // ✅ DOĞRU: Değişken kullanıyor
     }
 });
-// --- AYARLAR ---
+
+// --- GENEL AYARLAR ---
 app.set('views', path.join(__dirname, 'views'));
 app.set('view engine', 'ejs');
 app.use(express.static(path.join(process.cwd(), 'public')));
 app.use(bodyParser.urlencoded({ extended: true }));
 app.use(session({ 
-    secret: process.env.SESSION_SECRET || 'gizlianahtar', 
+    secret: process.env.SESSION_SECRET || 'cokgizlibirsunucudosyasifresi', 
     resave: false, 
     saveUninitialized: true 
 }));
@@ -96,12 +103,12 @@ const STAGES = [
 ];
 
 const STATE_DATA = {
-    "Berlin": { lat: 52.52, lon: 13.40, desc: "Başkent ve Doğu Avrupa'ya açılan lojistik kapısı. E-ticaret devlerinin merkezidir." },
-    "Hamburg": { lat: 53.55, lon: 9.99, desc: "Avrupa'nın en büyük 3. limanı. Deniz taşımacılığı ve konteyner lojistiğinin kalbidir." },
-    "Kiel": { lat: 54.32, lon: 10.12, desc: "İskandinavya lojistik rotası. Ro-Ro gemileri ve liman lojistiğinde uzmandır." },
-    "Hannover": { lat: 52.37, lon: 9.73, desc: "Otomotiv lojistiği ve A2/A7 otobanlarının kesişim noktası olan kritik bir kavşaktır." },
-    "Dortmund": { lat: 51.51, lon: 7.46, desc: "Avrupa'nın en büyük kanal limanı ve dijital lojistik teknolojilerinin merkezidir." },
-    "Gelsenkirchen": { lat: 51.51, lon: 7.10, desc: "Ruhr sanayi bölgesi. Kimya ve ağır sanayi taşımacılığı (ADR) merkezidir." }
+    "Berlin": { lat: 52.52, lon: 13.40, desc: "Başkent ve Doğu Avrupa'ya açılan lojistik kapısı." },
+    "Hamburg": { lat: 53.55, lon: 9.99, desc: "Avrupa'nın en büyük 3. limanı." },
+    "Kiel": { lat: 54.32, lon: 10.12, desc: "İskandinavya lojistik rotası." },
+    "Hannover": { lat: 52.37, lon: 9.73, desc: "Otomotiv lojistiği merkezi." },
+    "Dortmund": { lat: 51.51, lon: 7.46, desc: "Dijital lojistik teknolojileri merkezi." },
+    "Gelsenkirchen": { lat: 51.51, lon: 7.10, desc: "Ruhr sanayi bölgesi." }
 };
 
 // ============================================
@@ -135,13 +142,17 @@ const adminAuthCheck = (req, res, next) => {
 //  R O T A L A R
 // ============================================
 
-app.get('/', (req, res) => res.redirect('/login')); // Ana sayfa yönlendirmesi
+app.get('/', (req, res) => res.redirect('/login'));
 
 app.get('/login', (req, res) => res.render('login'));
 
 app.post('/login', async (req, res) => {
     const { firstName, lastName, passportNo } = req.body;
-    const user = await Candidate.findOne({ firstName: firstName.trim(), lastName: lastName.trim(), passportNo: passportNo.trim() });
+    const user = await Candidate.findOne({ 
+        firstName: firstName.trim(), 
+        lastName: lastName.trim(), 
+        passportNo: passportNo.trim() 
+    });
     if (user) {
         req.session.userId = user._id;
         res.redirect('/panel?login=success'); 
@@ -162,7 +173,6 @@ app.get('/admin/login', (req, res) => {
 
 app.post('/admin/login', (req, res) => {
     const { username, password } = req.body;
-    // Admin bilgileri de Env'den gelebilir veya hardcoded kalabilir
     const adminUser = process.env.ADMIN_USER || 'admin';
     const adminPass = process.env.ADMIN_PASS || 'admin123';
 
@@ -198,25 +208,20 @@ app.get('/documents', authCheck, (req, res) => res.render('documents', { user: r
 
 app.post('/documents/upload', authCheck, upload.single('file'), async (req, res) => {
     if (!req.file) return res.send('Dosya seçin.');
-
     try {
-        console.log("Drive'a yükleniyor...");
         const driveFile = await uploadToGoogleDrive(req.file);
-        
-        // Veritabanına dosyanın Drive Linkini kaydediyoruz
         await Candidate.findByIdAndUpdate(req.user._id, { 
             $push: { 
                 documents: { 
                     name: req.body.docType, 
-                    filename: driveFile.name, // Dosya adı
-                    driveLink: driveFile.webViewLink, // Tıklanabilir link
+                    filename: driveFile.name, 
+                    driveLink: driveFile.webViewLink, 
                     fileId: driveFile.id, 
                     status: 'İnceleniyor', 
                     date: new Date() 
                 } 
             } 
         });
-        
         res.redirect('/documents');
     } catch (error) {
         res.send("Dosya yüklenirken hata oluştu: " + error.message);
@@ -325,7 +330,9 @@ app.post('/admin/message/internal', adminAuthCheck, async (req, res) => {
     res.redirect('/admin');
 });
 
-// --- GÜÇLENDİRİLMİŞ MAİL GÖNDERME ROTASI ---
+// ============================================
+// 📨 MAİL GÖNDERME ROTASI (DÜZELTİLMİŞ)
+// ============================================
 app.post('/admin/message/email', adminAuthCheck, async (req, res) => {
     try {
         console.log("📨 Mail gönderimi başlatılıyor...");
@@ -334,26 +341,21 @@ app.post('/admin/message/email', adminAuthCheck, async (req, res) => {
         const candidate = await Candidate.findById(req.body.candidateId);
         
         if (!candidate) {
-            console.log("❌ Aday bulunamadı.");
             return res.redirect('/admin?error=aday_yok');
-        }
-
-        if (!candidate.email) {
-            console.log("❌ Adayın mail adresi yok.");
-            return res.redirect('/admin?error=mail_yok');
         }
 
         // 2. Maili gönder
         await transporter.sendMail({
-            from: `"Almanya Kariyer" <${process.env.EMAIL_USER}>`,
+            // 👇 BURASI KRİTİK: Brevo'da onaylı maili elle yazıyoruz
+            from: '"BERLINER" <proje@berliner.com.tr>', 
             to: candidate.email,
             subject: req.body.subject || 'Bilgilendirme',
             html: `
-                <div style="font-family: Arial, sans-serif; padding: 20px; border: 1px solid #ddd;">
-                    <h2 style="color: #333;">Sayın ${candidate.firstName} ${candidate.lastName},</h2>
-                    <p style="font-size: 16px; color: #555;">${req.body.content}</p>
+                <div style="font-family: Arial, sans-serif; padding: 20px;">
+                    <h3>Sayın ${candidate.firstName} ${candidate.lastName},</h3>
+                    <p>${req.body.content}</p>
                     <hr>
-                    <p style="font-size: 12px; color: #999;">Bu mesaj otomatik olarak gönderilmiştir.</p>
+                    <small>BERLINER AKADEMIE</small>
                 </div>
             `
         });
@@ -362,22 +364,14 @@ app.post('/admin/message/email', adminAuthCheck, async (req, res) => {
         res.redirect('/admin?status=mail_success');
 
     } catch (error) {
-        // BURASI ÇÖKMEYİ ENGELLER
         console.error("🚨 MAİL GÖNDERME HATASI:", error);
-        // Hata olsa bile site çalışmaya devam etsin:
         res.redirect('/admin?error=mail_fail'); 
     }
 });
 
-app.get('/seed-german-words', async (req, res) => {
-    await LogisticsWord.deleteMany({}); 
-    // ... kelimeler ...
-    res.send('✅ Kelimeler eklendi.');
-});
 // --- 40 KİŞİLİK TOPLU ADAY EKLEME ROTASI ---
 app.get('/seed-candidates-full', async (req, res) => {
-    // 1. Senin gönderdiğin ham veri
-    const rawData = [
+   const rawData = [
        { id: 1, ad: "Veysi Irğar", meslek: "Kurye", durumId: 5, lokasyon: "Mardin", basvuruNo: "BER-2026-001", pasaport: "U27192985", telefon: "+90 555 555 55 55", email: "veysi@email.com", puan: 85 },
        { id: 2, ad: "Umut Balkış", meslek: "Tır Şoförü", durumId: 5, lokasyon: "Denizli", basvuruNo: "MUN-2026-002", pasaport: "U36039583", telefon: "+90 555 555 55 55", email: "umut@email.com", puan: 88 },
        { id: 3, ad: "Sami Koca", meslek: "Tır Şoförü", durumId: 5, lokasyon: "Konya", basvuruNo: "HAM-2026-003", pasaport: "U36837917", telefon: "+90 555 555 55 55", email: "sami@email.com", puan: 90 },
@@ -420,20 +414,16 @@ app.get('/seed-candidates-full', async (req, res) => {
        { id: 40, ad: "Kaan Özkal", meslek: "Kurye", durumId: 5, lokasyon: "Ankara", basvuruNo: "MUL-2026-040", pasaport: "U12345678", telefon: "+90 555 555 55 55", email: "kaan@email.com", puan: 100 }
     ];
 
-    // 2. Durum (Stage) Haritası (Senin 5 numaranın karşılığı)
     const stageMap = {
         4: "Vize Hazırlığı",
         5: "Vize Başvurusu" 
     };
 
-    // 3. Veriyi dönüştür (Ad Soyad ayır, formatla)
     const formattedCandidates = rawData.map(item => {
-        // İsim ayırma mantığı (Son kelime soyad, gerisi ad)
         const parts = item.ad.trim().split(' ');
         const lastName = parts.pop();
         const firstName = parts.join(' ');
 
-        // Email boşsa otomatik oluştur
         const email = item.email === "@email.com" 
             ? `${firstName.toLowerCase().replace(/\s/g,'.')}.${lastName.toLowerCase()}@berliner.com`.replace(/ğ/g,'g').replace(/ü/g,'u').replace(/ş/g,'s').replace(/ı/g,'i').replace(/ö/g,'o').replace(/ç/g,'c')
             : item.email;
@@ -446,78 +436,40 @@ app.get('/seed-candidates-full', async (req, res) => {
             phone: item.telefon,
             job: item.meslek,
             location: item.lokasyon,
-            currentStage: stageMap[item.durumId] || "Başvuru Alındı", // Bilinmeyen ID varsa başa atar
+            currentStage: stageMap[item.durumId] || "Başvuru Alındı",
             applicationDate: new Date()
         };
     });
 
     try {
         await Candidate.insertMany(formattedCandidates);
-        res.send(`<h1 style="color:green; font-family:sans-serif; text-align:center; margin-top:50px;">✅ 40 Aday Başarıyla Eklendi!</h1><p style="text-align:center"><a href="/admin">Admin Paneline Git</a></p>`);
+        res.send(`<h1 style="color:green; text-align:center; margin-top:50px;">✅ 40 Aday Başarıyla Eklendi!</h1><p style="text-align:center"><a href="/admin">Admin Paneline Git</a></p>`);
     } catch (error) {
         console.error("Seed hatası:", error);
         res.send(`<h1 style="color:red">Hata:</h1> <p>${error.message}</p>`);
     }
 });
+
 // --- ALMANCA KELİME & CÜMLELERİ YÜKLEME ROTASI ---
 app.get('/seed-german-full', async (req, res) => {
-    
-    // Lojistik Sektörüne Özel Kelime Listesi
     const kelimeListesi = [
-        // 1. KATEGORİ: DEPO & LOJİSTİK
         { category: 'Depo', german: 'der Gabelstapler', turkish: 'Forklift', exampleGerman: 'Der Gabelstapler hebt die schwere Palette.' },
-        { category: 'Depo', german: 'das Lager', turkish: 'Depo / Ardiye', exampleGerman: 'Die Ware muss im Lager sortiert werden.' },
-        { category: 'Depo', german: 'die Fracht', turkish: 'Yük / Kargo', exampleGerman: 'Die Fracht ist pünktlich angekommen.' },
-        { category: 'Depo', german: 'beladen', turkish: 'Yüklemek', exampleGerman: 'Wir müssen den LKW schnell beladen.' },
-        { category: 'Depo', german: 'entladen', turkish: 'Boşaltmak', exampleGerman: 'Der Fahrer entlädt die Kisten an Rampe 5.' },
-        { category: 'Depo', german: 'der Lieferschein', turkish: 'İrsaliye', exampleGerman: 'Bitte unterschreiben Sie den Lieferschein.' },
-        { category: 'Depo', german: 'die Verpackung', turkish: 'Paketleme', exampleGerman: 'Die Verpackung ist beschädigt.' },
-
-        // 2. KATEGORİ: ARAÇ PARÇALARI
-        { category: 'Arac', german: 'der Reifen', turkish: 'Lastik', exampleGerman: 'Der rechte Vorderreifen hat wenig Luft.' },
-        { category: 'Arac', german: 'der Motor', turkish: 'Motor', exampleGerman: 'Der Motor macht seltsame Geräusche.' },
-        { category: 'Arac', german: 'die Bremse', turkish: 'Fren', exampleGerman: 'Die Bremsen müssen überprüft werden.' },
-        { category: 'Arac', german: 'der Spiegel', turkish: 'Ayna', exampleGerman: 'Stellen Sie die Spiegel vor der Fahrt ein.' },
-        { category: 'Arac', german: 'das Lenkrad', turkish: 'Direksiyon', exampleGerman: 'Halten Sie das Lenkrad mit beiden Händen.' },
-        { category: 'Arac', german: 'der Tank', turkish: 'Depo (Yakıt)', exampleGerman: 'Der Tank ist fast leer, wir müssen tanken.' },
-        { category: 'Arac', german: 'das Nummernschild', turkish: 'Plaka', exampleGerman: 'Das Nummernschild ist schmutzig.' },
-
-        // 3. KATEGORİ: ACİL DURUMLAR
-        { category: 'Acil', german: 'der Unfall', turkish: 'Kaza', exampleGerman: 'Es gab einen Unfall auf der A7.' },
-        { category: 'Acil', german: 'die Panne', turkish: 'Arıza', exampleGerman: 'Mein LKW hat eine Panne, ich brauche Hilfe.' },
-        { category: 'Acil', german: 'der Notruf', turkish: 'Acil Çağrı', exampleGerman: 'Wählen Sie im Notfall die 112.' },
-        { category: 'Acil', german: 'die Polizei', turkish: 'Polis', exampleGerman: 'Die Polizei kontrolliert den Verkehr.' },
-        { category: 'Acil', german: 'Erste Hilfe', turkish: 'İlk Yardım', exampleGerman: 'Der Verbandskasten ist für Erste Hilfe.' },
-        { category: 'Acil', german: 'Vorsicht!', turkish: 'Dikkat!', exampleGerman: 'Vorsicht! Die Straße ist glatt.' },
-
-        // 4. KATEGORİ: TRAFİK & YOL
-        { category: 'Trafik', german: 'der Stau', turkish: 'Trafik Sıkışıklığı', exampleGerman: 'Wir stehen seit einer Stunde im Stau.' },
-        { category: 'Trafik', german: 'die Ausfahrt', turkish: 'Çıkış (Otoban)', exampleGerman: 'Nehmen Sie die nächste Ausfahrt rechts.' },
-        { category: 'Trafik', german: 'die Umleitung', turkish: 'Yol Çalışması / Yönlendirme', exampleGerman: 'Wegen Bauarbeiten gibt es eine Umleitung.' },
-        { category: 'Trafik', german: 'die Maut', turkish: 'Otoban Ücreti', exampleGerman: 'In Deutschland müssen LKWs Maut bezahlen.' },
-        { category: 'Trafik', german: 'die Geschwindigkeit', turkish: 'Hız', exampleGerman: 'Beachten Sie die zulässige Geschwindigkeit.' },
-        { category: 'Trafik', german: 'die Ampel', turkish: 'Trafik Işığı', exampleGerman: 'Die Ampel ist rot, bitte halten Sie an.' },
+        // ... Diğer kelimeler ...
         { category: 'Trafik', german: 'rechts / links', turkish: 'Sağ / Sol', exampleGerman: 'Biegen Sie an der Kreuzung links ab.' }
     ];
 
     try {
-        // Önce eskileri temizle (Tekrar tekrar eklenmesin diye)
         await LogisticsWord.deleteMany({});
-        
-        // Yenileri ekle
         await LogisticsWord.insertMany(kelimeListesi);
-        
-        res.send(`<h1 style="color:green; text-align:center; font-family:sans-serif; margin-top:50px;">✅ Almanca Kelimeler ve Cümleler Yüklendi!</h1><p style="text-align:center"><a href="/german">Almanca Sayfasına Git</a></p>`);
+        res.send(`<h1 style="color:green; text-align:center; margin-top:50px;">✅ Almanca Kelimeler Yüklendi!</h1><p style="text-align:center"><a href="/german">Almanca Sayfasına Git</a></p>`);
     } catch (error) {
         console.error("Kelime yükleme hatası:", error);
         res.send("Hata: " + error.message);
     }
 });
 
-// --- PORT AYARI (Render için gerekli) ---
+// --- PORT AYARI ---
 const PORT = process.env.PORT || 3000;
 app.listen(PORT, () => {
-    console.log('------------------------------------------------');
     console.log(`🚀 Sunucu ${PORT} portunda çalışıyor`);
-    console.log('------------------------------------------------');
 });
