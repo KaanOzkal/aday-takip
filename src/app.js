@@ -72,18 +72,20 @@ const uploadToGoogleDrive = async (fileObject) => {
 };
 
 // ============================================
-// 📧 MAİL AYARLARI (Eksik Olan Kısım Eklendi)
+// 📧 MAİL AYARLARI (GÜÇLENDİRİLMİŞ AYAR)
 // ============================================
 const transporter = nodemailer.createTransport({
     host: 'smtp-relay.brevo.com',
-    port: 587,
-    secure: false,
+    // 👇 PORTU 2525 YAPIYORUZ (587 bazen takılır, 2525 Brevo için daha iyidir)
+    port: 2525, 
+    secure: false, 
     auth: {
-        user: process.env.EMAIL_USER, // ✅ DOĞRU: Değişken kullanıyor
-        pass: process.env.EMAIL_PASS  // ✅ DOĞRU: Değişken kullanıyor
-    }
+        user: process.env.EMAIL_USER, 
+        pass: process.env.EMAIL_PASS 
+    },
+    // 👇 İŞTE TIMEOUT HATASINI ÇÖZEN SİHİRLİ KOD 👇
+    family: 4 // IPv6 yerine IPv4 kullanmaya zorla
 });
-
 // --- GENEL AYARLAR ---
 app.set('views', path.join(__dirname, 'views'));
 app.set('view engine', 'ejs');
