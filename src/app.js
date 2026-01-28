@@ -373,6 +373,7 @@ app.post('/admin/message/email', adminAuthCheck, async (req, res) => {
 
 // --- 40 KİŞİLİK TOPLU ADAY EKLEME ROTASI ---
 app.get('/seed-candidates-full', async (req, res) => {
+    
    const rawData = [
        { id: 1, ad: "Veysi Irğar", meslek: "Kurye", durumId: 5, lokasyon: "Mardin", basvuruNo: "BER-2026-001", pasaport: "U27192985", telefon: "+90 555 555 55 55", email: "veysi@email.com", puan: 85 },
        { id: 2, ad: "Umut Balkış", meslek: "Tır Şoförü", durumId: 5, lokasyon: "Denizli", basvuruNo: "MUN-2026-002", pasaport: "U36039583", telefon: "+90 555 555 55 55", email: "umut@email.com", puan: 88 },
@@ -413,7 +414,8 @@ app.get('/seed-candidates-full', async (req, res) => {
        { id: 37, ad: "Alper Koptur", meslek: "Kurye", durumId: 5, lokasyon: "Ankara", basvuruNo: "SAA-2026-037", pasaport: "U27276436", telefon: "+90 555 555 55 55", email: "alperkoptur06@gmail.com", puan: 88 },
        { id: 38, ad: "Ramazan Gökhan Kına", meslek: "Kurye", durumId: 5, lokasyon: "Ankara", basvuruNo: "HAM-2026-038", pasaport: "U36187035", telefon: "+90 555 555 55 55", email: "kina.gokhann@hotmail.com", puan: 87 },
        { id: 39, ad: "Yasin Kavak", meslek: "Kurye", durumId: 5, lokasyon: "Konya", basvuruNo: "MUL-2026-039", pasaport: "U37950988", telefon: "+90 555 555 55 55", email: "yasin1453442@gmail.com", puan: 84 },
-       { id: 40, ad: "Kaan Özkal", meslek: "Kurye", durumId: 5, lokasyon: "Ankara", basvuruNo: "MUL-2026-040", pasaport: "U12345678", telefon: "+90 555 555 55 55", email: "kaan@email.com", puan: 100 }
+       { id: 40, ad: "Kaan Özkal", meslek: "Kurye", durumId: 5, lokasyon: "Ankara", basvuruNo: "MUL-2026-040", pasaport: "U12345678", telefon: "+90 555 555 55 55", email: "ozkalkaan490@gmail.com", puan: 100 }
+       
     ];
 
     const stageMap = {
@@ -443,7 +445,11 @@ app.get('/seed-candidates-full', async (req, res) => {
         };
     });
 
-    try {
+  try {
+        // 👇👇👇 BURAYA EKLE (Bu satır eskileri temizler) 👇👇👇
+        await Candidate.deleteMany({}); 
+        // 👆👆👆 EKLEMEN GEREKEN SATIR BU 👆👆👆
+
         await Candidate.insertMany(formattedCandidates);
         res.send(`<h1 style="color:green; text-align:center; margin-top:50px;">✅ 40 Aday Başarıyla Eklendi!</h1><p style="text-align:center"><a href="/admin">Admin Paneline Git</a></p>`);
     } catch (error) {
