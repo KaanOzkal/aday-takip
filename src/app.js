@@ -265,7 +265,7 @@ app.get('/processes', authCheck, (req, res) => {
         { name: 'İşveren Onayı', time: '1-2 Hafta', icon: 'fa-handshake', desc: 'İşveren onayı bekleniyor.' },
         
         // 👇 BURASI GÜNCELLENDİ
-        { name: 'Vize Ön Onay', time: 'Değişken', icon: 'fa-stamp', desc: 'Ön onay belgesi bekleniyor.' },
+        { name: 'Vize Ön Onay', time: 'Değişken', icon: 'fa-stamp', desc: 'resmi kurumların onayı bekleniyor.' },
         
         { name: 'Vize Başvurusu', time: 'Değişken', icon: 'fa-passport', desc: 'Konsolosluk görüşmesi.' },
         { name: 'Seyahat Planı', time: '3 Gün', icon: 'fa-plane', desc: 'Uçak ve konaklama.' },
