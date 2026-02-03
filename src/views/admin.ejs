@@ -178,7 +178,9 @@
             <button class="btn btn-danger btn-sm fw-semibold shadow-sm" data-bs-toggle="modal" data-bs-target="#bulkEmailModal">
                 <i class="fas fa-envelope-open-text me-1"></i> Toplu Mail
             </button>
-
+<a href="/admin/sync-drive-files" class="btn btn-warning btn-sm fw-bold shadow-sm" onclick="return confirm('Eski Drive klasörü taranıp isim eşleşmesi yapan dosyalar adaylara eklenecek. İşlem biraz sürebilir. Onaylıyor musunuz?')">
+    <i class="fab fa-google-drive me-1"></i> Dosyaları Eşitle
+</a>
             <div class="vr mx-2 text-muted"></div>
 
             <a href="/logout" class="btn btn-dark btn-sm rounded-pill px-3">
@@ -419,6 +421,7 @@
             </div>
         </div>
     </div>
+    
 
     <div class="modal fade" id="msgModal<%= candidate._id %>" tabindex="-1">
         <div class="modal-dialog">
@@ -436,6 +439,7 @@
                             <button class="nav-link" data-bs-toggle="tab" data-bs-target="#mailMsg<%= candidate._id %>">E-Posta</button>
                         </li>
                     </ul>
+                    
                     
                     <div class="tab-content">
                         <div class="tab-pane fade show active" id="panelMsg<%= candidate._id %>">

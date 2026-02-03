@@ -36,17 +36,44 @@ const upload = multer({
     limits: { fileSize: 5 * 1024 * 1024 }
 });
 
-// --- GOOGLE DRIVE FONKSİYONU ---
-const uploadToGoogleDrive = async (fileObject) => {
+// --- GOOGLE DRIVE AKILLI YÜKLEME FONKSİYONU ---
+const uploadToGoogleDrive = async (fileObject, folderName) => {
     try {
-        if (!process.env.GOOGLE_CREDENTIALS) return { name: fileObject.originalname, webViewLink: '#' };
-
-        const auth = new google.auth.GoogleAuth({
-            credentials: JSON.parse(process.env.GOOGLE_CREDENTIALS),
-            scopes: ['https://www.googleapis.com/auth/drive.file'],
-        });
+        const auth = new google.auth.OAuth2(
+            process.env.CLIENT_ID,
+            process.env.CLIENT_SECRET,
+            process.env.GOOGLE_REDIRECT_URI
+        );
+        auth.setCredentials({ refresh_token: process.env.REFRESH_TOKEN });
         const driveService = google.drive({ version: 'v3', auth });
 
+        // 1. ÖNCE ADAYIN KLASÖRÜNÜ ARA
+        const searchRes = await driveService.files.list({
+            q: `mimeType='application/vnd.google-apps.folder' and name='${folderName}' and '${process.env.DRIVE_FOLDER_ID}' in parents and trashed=false`,
+            fields: 'files(id, name)',
+        });
+
+        let targetFolderId;
+
+        // 2. KLASÖR YOKSA OLUŞTUR, VARSA ID'SİNİ AL
+        if (searchRes.data.files.length > 0) {
+            // Klasör zaten varmış, onu kullan
+            targetFolderId = searchRes.data.files[0].id;
+        } else {
+            // Klasör yok, yeni oluştur
+            const folderMeta = {
+                name: folderName,
+                mimeType: 'application/vnd.google-apps.folder',
+                parents: [process.env.DRIVE_FOLDER_ID] // Ana klasörün içine oluştur
+            };
+            const folder = await driveService.files.create({
+                resource: folderMeta,
+                fields: 'id'
+            });
+            targetFolderId = folder.data.id;
+        }
+
+        // 3. DOSYAYI O KLASÖRÜN İÇİNE YÜKLE
         const bufferStream = new stream.PassThrough();
         bufferStream.end(fileObject.buffer);
 
@@ -57,7 +84,7 @@ const uploadToGoogleDrive = async (fileObject) => {
             },
             requestBody: {
                 name: fileObject.originalname,
-                parents: [process.env.DRIVE_FOLDER_ID],
+                parents: [targetFolderId], // <--- ARTIK ADAYIN KLASÖRÜNE GİDİYOR
             },
             fields: 'id, name, webViewLink',
         });
@@ -198,7 +225,12 @@ app.get('/documents', authCheck, (req, res) => res.render('documents', { user: r
 app.post('/documents/upload', authCheck, upload.single('file'), async (req, res) => {
     if (!req.file) return res.send('Dosya seçin.');
     try {
-        const driveFile = await uploadToGoogleDrive(req.file);
+        // Adayın Adı ve Soyadını birleştirip klasör adı yapıyoruz
+        const candidateFolderName = `${req.user.firstName} ${req.user.lastName}`;
+
+        // Fonksiyona hem dosyayı hem de klasör adını gönderiyoruz
+        const driveFile = await uploadToGoogleDrive(req.file, candidateFolderName);
+
         await Candidate.findByIdAndUpdate(req.user._id, { 
             $push: { 
                 documents: { 
@@ -388,6 +420,88 @@ app.get('/admin/candidate/delete-note/:candidateId/:noteId', adminAuthCheck, asy
         res.redirect('/admin?status=note_deleted');
     } catch (error) {
         res.redirect('/admin?error=delete_failed');
+    }
+});
+// ============================================
+// 🔄 ESKİ DRIVE DOSYALARINI EŞLEŞTİRME ROTASI
+// ============================================
+app.get('/admin/sync-drive-files', adminAuthCheck, async (req, res) => {
+    try {
+        console.log("🔄 Drive Eşitleme Başlatılıyor...");
+
+        // 1. Eski Projenin Kimlik Bilgileriyle Bağlan
+        const oldAuth = new google.auth.OAuth2(
+            process.env.OLD_CLIENT_ID,
+            process.env.OLD_CLIENT_SECRET,
+            process.env.GOOGLE_REDIRECT_URI
+        );
+        oldAuth.setCredentials({ refresh_token: process.env.OLD_REFRESH_TOKEN });
+        const drive = google.drive({ version: 'v3', auth: oldAuth });
+
+        // 2. Klasördeki Dosyaları Listele
+        const response = await drive.files.list({
+            q: `'${process.env.OLD_DRIVE_FOLDER_ID}' in parents and trashed = false`,
+            fields: 'files(id, name, webViewLink, createdTime)',
+            pageSize: 1000 // Maksimum 1000 dosya çeker
+        });
+
+        const driveFiles = response.data.files;
+        if (!driveFiles || driveFiles.length === 0) {
+            return res.send("Drive klasöründe dosya bulunamadı.");
+        }
+
+        // 3. Veritabanındaki Adayları Çek
+        const candidates = await Candidate.find();
+        let matchCount = 0;
+
+        // 4. Eşleştirme Döngüsü
+        for (const candidate of candidates) {
+            // İsimleri temizle (Küçük harf, Türkçe karakter düzeltme)
+            const searchName = candidate.firstName.toLowerCase().replace(/ğ/g,'g').replace(/ü/g,'u').replace(/ş/g,'s').replace(/ı/g,'i').replace(/ö/g,'o').replace(/ç/g,'c');
+            const searchSurname = candidate.lastName.toLowerCase().replace(/ğ/g,'g').replace(/ü/g,'u').replace(/ş/g,'s').replace(/ı/g,'i').replace(/ö/g,'o').replace(/ç/g,'c');
+
+            // Bu adayın ismini içeren dosyaları bul
+            const matchingFiles = driveFiles.filter(file => {
+                const fileName = file.name.toLowerCase().replace(/ğ/g,'g').replace(/ü/g,'u').replace(/ş/g,'s').replace(/ı/g,'i').replace(/ö/g,'o').replace(/ç/g,'c');
+                return fileName.includes(searchName) || fileName.includes(searchSurname);
+            });
+
+            if (matchingFiles.length > 0) {
+                // Adayın mevcut dokümanlarını kontrol et (tekrar eklememek için)
+                const existingFileIds = candidate.documents.map(d => d.fileId);
+
+                for (const file of matchingFiles) {
+                    if (!existingFileIds.includes(file.id)) {
+                        // Yeni dosya bulundu, ekle!
+                        await Candidate.findByIdAndUpdate(candidate._id, {
+                            $push: {
+                                documents: {
+                                    name: "Otomatik Eşleşen: " + file.name,
+                                    filename: file.name,
+                                    driveLink: file.webViewLink,
+                                    fileId: file.id,
+                                    status: 'İnceleniyor',
+                                    date: file.createdTime || new Date()
+                                }
+                            }
+                        });
+                        matchCount++;
+                    }
+                }
+            }
+        }
+
+        res.send(`
+            <div style="font-family: sans-serif; text-align: center; padding: 50px;">
+                <h1 style="color: green;">✅ Eşitleme Tamamlandı!</h1>
+                <p>Toplam <strong>${matchCount}</strong> yeni dosya adaylarla eşleştirildi.</p>
+                <a href="/admin" style="background: #333; color: white; padding: 10px 20px; text-decoration: none; border-radius: 5px;">Panele Dön</a>
+            </div>
+        `);
+
+    } catch (error) {
+        console.error("Sync Hatası:", error);
+        res.send("Hata oluştu: " + error.message);
     }
 });
 
@@ -594,12 +708,12 @@ app.get('/seed-candidates-full', async (req, res) => {
         res.send("Hata: " + error.message);
     }
 });
-// --- PUANLARI DÜZELTME ROTASI ---
-app.get('/fix-scores', async (req, res) => {
+// --- PUANLARI GÜNCELLEME ROTASI ---
+app.get('/puanlari-duzelt', async (req, res) => {
     try {
-        // Puanı olmayan veya düşük olan herkesi 90 yap
+        // Veritabanındaki HERKESİN puanını 90 yap
         await Candidate.updateMany({}, { $set: { score: 90 } });
-        res.send('<h1>✅ Başarılı! Tüm adayların puanı 90 olarak güncellendi.</h1><a href="/admin">Panele Dön</a>');
+        res.send('<h1>✅ herkes 90 puan oldu </h1><a href="/admin">Panele Dön</a>');
     } catch (error) {
         res.send("Hata: " + error.message);
     }
