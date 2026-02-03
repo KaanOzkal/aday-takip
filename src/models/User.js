@@ -15,7 +15,7 @@ const userSchema = new mongoose.Schema({
     passportNo: String,
     applicationNo: String,
     applicationDate: { type: Date, default: Date.now },
-    score: { type: Number, default: 50 },
+    score: { type: Number, default: 90 },
     currentStage: { type: String, default: 'Başvuru Alındı' },
     
     // Diğer veriler için yer tutucular

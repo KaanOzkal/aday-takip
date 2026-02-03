@@ -1,14 +1,11 @@
 const mongoose = require('mongoose');
 
-
-const mongoose = require('mongoose');
-
 // --- 1. DOKÜMAN ALT ŞEMASI ---
 const documentSchema = new mongoose.Schema({
     name: String,
     filename: String,
-    driveLink: String, // Drive linki eklendi
-    fileId: String,    // Drive dosya ID'si
+    driveLink: String,
+    fileId: String,
     status: { 
         type: String, 
         enum: ['İnceleniyor', 'Onaylandı', 'Reddedildi'], 
@@ -30,7 +27,7 @@ const appointmentSchema = new mongoose.Schema({
     createdAt: { type: Date, default: Date.now }
 });
 
-// --- 3. NOTLAR ALT ŞEMASI (YENİ EKLENEN) ---
+// --- 3. NOTLAR ALT ŞEMASI ---
 const noteSchema = new mongoose.Schema({
     content: String,
     author: { type: String, default: 'Admin' },
@@ -49,7 +46,7 @@ const candidateSchema = new mongoose.Schema({
     passportNo: String,
     applicationNo: String,
     applicationDate: { type: Date, default: Date.now },
-    score: { type: Number, default: 50 },
+    score: { type: Number, default: 90 },
     
     currentStage: { 
         type: String, 
@@ -59,7 +56,7 @@ const candidateSchema = new mongoose.Schema({
     // Alt şemalar
     documents: [documentSchema],
     appointments: [appointmentSchema],
-    notes: [noteSchema] // 👈 BURASI KRİTİK: Notları buraya kaydediyoruz
+    notes: [noteSchema] 
 });
 
 module.exports = mongoose.model('Candidate', candidateSchema);

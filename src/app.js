@@ -7,10 +7,9 @@ const path = require('path');
 const { google } = require('googleapis');
 const stream = require('stream');
 const multer = require('multer');
-require('dotenv').config(); // Yerelde .env dosyasını okumak için
+require('dotenv').config(); 
 
 // --- MODELLER ---
-// (Bu dosyaların models klasöründe olduğundan emin ol)
 const Candidate = require('./models/Candidate');
 const LogisticsWord = require('./models/LogisticsWord');
 const Message = require('./models/Message');
@@ -34,13 +33,12 @@ const storage = multer.diskStorage({
 });
 const upload = multer({
     storage: multer.memoryStorage(),
-    limits: { fileSize: 5 * 1024 * 1024 } // 5MB Limit
+    limits: { fileSize: 5 * 1024 * 1024 }
 });
 
 // --- GOOGLE DRIVE FONKSİYONU ---
 const uploadToGoogleDrive = async (fileObject) => {
     try {
-        // Eğer credentials yoksa hata vermemesi için kontrol (Opsiyonel)
         if (!process.env.GOOGLE_CREDENTIALS) return { name: fileObject.originalname, webViewLink: '#' };
 
         const auth = new google.auth.GoogleAuth({
@@ -71,53 +69,46 @@ const uploadToGoogleDrive = async (fileObject) => {
     }
 };
 
-// ============================================
-// 📧 MAİL AYARLARI (GÜÇLENDİRİLMİŞ AYAR)
-// ============================================
+// --- MAİL AYARLARI ---
 const transporter = nodemailer.createTransport({
     host: 'smtp-relay.brevo.com',
-    // 👇 PORTU 2525 YAPIYORUZ (587 bazen takılır, 2525 Brevo için daha iyidir)
     port: 2525, 
     secure: false, 
     auth: {
         user: process.env.EMAIL_USER, 
         pass: process.env.EMAIL_PASS 
     },
-    // 👇 İŞTE TIMEOUT HATASINI ÇÖZEN SİHİRLİ KOD 👇
-    family: 4 // IPv6 yerine IPv4 kullanmaya zorla
+    family: 4 
 });
+
 // --- GENEL AYARLAR ---
 app.set('views', path.join(__dirname, 'views'));
 app.set('view engine', 'ejs');
 app.use(express.static(path.join(process.cwd(), 'public')));
 app.use(bodyParser.urlencoded({ extended: true }));
 app.use(session({ 
-    secret: process.env.SESSION_SECRET || 'cokgizlibirsunucudosyasifresi', 
+    secret: process.env.SESSION_SECRET || 'gizli', 
     resave: false, 
     saveUninitialized: true 
 }));
 
 // --- SABİT VERİLER ---
-// --- SABİT VERİLER ---
 const STAGES = [
     'Başvuru Alındı', 'Evrak Kontrolü', 'Tercüme Süreci', 
-    'İşveren Onayı', 'Vize Ön Onay', 'Vize Başvurusu', // 👈 BURASI DEĞİŞTİ (Eskiden Vize Hazırlığı idi)
+    'İşveren Onayı', 'Vize Ön Onay', 'Vize Başvurusu', 
     'Seyahat Planı', 'Almanya\'da'
 ];
 
 const STATE_DATA = {
-    "Berlin": { lat: 52.52, lon: 13.40, desc: "Başkent ve Doğu Avrupa'ya açılan lojistik kapısı." },
-    "Hamburg": { lat: 53.55, lon: 9.99, desc: "Avrupa'nın en büyük 3. limanı." },
-    "Kiel": { lat: 54.32, lon: 10.12, desc: "İskandinavya lojistik rotası." },
-    "Hannover": { lat: 52.37, lon: 9.73, desc: "Otomotiv lojistiği merkezi." },
-    "Dortmund": { lat: 51.51, lon: 7.46, desc: "Dijital lojistik teknolojileri merkezi." },
-    "Gelsenkirchen": { lat: 51.51, lon: 7.10, desc: "Ruhr sanayi bölgesi." }
+    "Berlin": { lat: 52.52, lon: 13.40, desc: "Başkent." },
+    "Hamburg": { lat: 53.55, lon: 9.99, desc: "Liman kenti." },
+    "Kiel": { lat: 54.32, lon: 10.12, desc: "Kuzey rotası." },
+    "Hannover": { lat: 52.37, lon: 9.73, desc: "Sanayi merkezi." },
+    "Dortmund": { lat: 51.51, lon: 7.46, desc: "Teknoloji." },
+    "Gelsenkirchen": { lat: 51.51, lon: 7.10, desc: "Ruhr bölgesi." }
 };
 
-// ============================================
-//  M I D D L E W A R E
-// ============================================
-
+// --- MIDDLEWARE ---
 const authCheck = async (req, res, next) => {
     if (!req.session.userId) return res.redirect('/login');
     try {
@@ -128,7 +119,6 @@ const authCheck = async (req, res, next) => {
         res.locals.unreadCount = unreadCount;
         next();
     } catch (error) {
-        console.error("AuthCheck Hatası:", error);
         res.redirect('/login');
     }
 };
@@ -142,11 +132,10 @@ const adminAuthCheck = (req, res, next) => {
 };
 
 // ============================================
-//  R O T A L A R
+//  ROTALAR
 // ============================================
 
 app.get('/', (req, res) => res.redirect('/login'));
-
 app.get('/login', (req, res) => res.render('login'));
 
 app.post('/login', async (req, res) => {
@@ -168,7 +157,7 @@ app.get('/logout', (req, res) => {
     req.session.destroy(() => res.redirect('/login'));
 });
 
-// --- ADMIN ---
+// --- ADMIN LOGIN ---
 app.get('/admin/login', (req, res) => {
     if(req.session.isAdmin) return res.redirect('/admin');
     res.render('admin_login');
@@ -176,14 +165,11 @@ app.get('/admin/login', (req, res) => {
 
 app.post('/admin/login', (req, res) => {
     const { username, password } = req.body;
-    const adminUser = process.env.ADMIN_USER || 'admin';
-    const adminPass = process.env.ADMIN_PASS || 'admin123';
-
-    if (username === adminUser && password === adminPass) {
+    if (username === (process.env.ADMIN_USER || 'admin') && password === (process.env.ADMIN_PASS || 'admin123')) {
         req.session.isAdmin = true;
         res.redirect('/admin');
     } else {
-        res.render('admin_login', { error: 'Kullanıcı adı veya şifre hatalı!' });
+        res.render('admin_login', { error: 'Hatalı giriş!' });
     }
 });
 
@@ -203,7 +189,7 @@ app.get('/profile', authCheck, (req, res) => res.render('profile', { user: req.u
 
 app.post('/profile/update', authCheck, async (req, res) => {
     const { email, phone, job, location, targetState } = req.body;
-    await Candidate.findByIdAndUpdate(req.user._id, { email: email?.trim(), phone: phone?.trim(), job: job?.trim(), location: location?.trim(), targetState });
+    await Candidate.findByIdAndUpdate(req.user._id, { email, phone, job, location, targetState });
     res.redirect('/profile?status=success');
 });
 
@@ -227,7 +213,7 @@ app.post('/documents/upload', authCheck, upload.single('file'), async (req, res)
         });
         res.redirect('/documents');
     } catch (error) {
-        res.send("Dosya yüklenirken hata oluştu: " + error.message);
+        res.send("Hata: " + error.message);
     }
 });
 
@@ -263,15 +249,11 @@ app.get('/processes', authCheck, (req, res) => {
         { name: 'Evrak Kontrolü', time: '1-3 Gün', icon: 'fa-search', desc: 'Belgeleriniz inceleniyor.' },
         { name: 'Tercüme Süreci', time: '3-5 Gün', icon: 'fa-language', desc: 'Yeminli tercüme yapılıyor.' },
         { name: 'İşveren Onayı', time: '1-2 Hafta', icon: 'fa-handshake', desc: 'İşveren onayı bekleniyor.' },
-        
-        // 👇 BURASI GÜNCELLENDİ
-        { name: 'Vize Ön Onay', time: 'Değişken', icon: 'fa-stamp', desc: 'resmi kurumların onayı bekleniyor.' },
-        
+        { name: 'Vize Ön Onay', time: 'Değişken', icon: 'fa-stamp', desc: 'Ön onay belgesi bekleniyor.' },
         { name: 'Vize Başvurusu', time: 'Değişken', icon: 'fa-passport', desc: 'Konsolosluk görüşmesi.' },
         { name: 'Seyahat Planı', time: '3 Gün', icon: 'fa-plane', desc: 'Uçak ve konaklama.' },
         { name: 'Almanya\'da', time: 'Süresiz', icon: 'fa-map-marked-alt', desc: 'Yeni hayatınız başladı.' }
     ];
-    // ... (kodun geri kalanı aynı)
     const currentIndex = STAGES.indexOf(req.user.currentStage);
     const progress = Math.round(((currentIndex + 1) / STAGES.length) * 100);
     res.render('processes', { user: req.user, page: 'processes', processDetails, currentIndex, progress });
@@ -295,6 +277,7 @@ app.get('/admin', adminAuthCheck, async (req, res) => {
     res.render('admin', { candidates, stages: STAGES });
 });
 
+// --- ADMIN İŞLEMLERİ ---
 app.post('/admin/message/bulk', adminAuthCheck, async (req, res) => {
     const { content } = req.body;
     try {
@@ -307,7 +290,6 @@ app.post('/admin/message/bulk', adminAuthCheck, async (req, res) => {
         }
         res.redirect('/admin?status=bulk_success');
     } catch (error) {
-        console.error("Toplu mesaj hatası:", error);
         res.send("Hata oluştu.");
     }
 });
@@ -320,62 +302,6 @@ app.post('/admin/candidate/add', adminAuthCheck, async (req, res) => {
 app.post('/admin/candidate/update', adminAuthCheck, async (req, res) => {
     await Candidate.findByIdAndUpdate(req.body.candidateId, { currentStage: req.body.newStage });
     res.redirect('/admin');
-});
-// ============================================
-// 📝 NOT SİSTEMİ ROTALARI (BUNLARI EKLE)
-// ============================================
-
-// 1. Not Ekleme
-app.post('/admin/candidate/add-note', adminAuthCheck, async (req, res) => {
-    try {
-        const { candidateId, noteContent } = req.body;
-        
-        // Boş not eklenmesini engelle
-        if (!noteContent.trim()) return res.redirect('/admin');
-
-        await Candidate.findByIdAndUpdate(candidateId, {
-            $push: { 
-                notes: { 
-                    content: noteContent, 
-                    date: new Date(),
-                    author: 'Admin' 
-                } 
-            }
-        });
-
-        console.log(`✅ Not eklendi: ${candidateId}`);
-        res.redirect('/admin?status=note_added');
-    } catch (error) {
-        console.error("Not ekleme hatası:", error);
-        res.redirect('/admin?error=note_failed');
-    }
-});
-
-// 2. Not Silme
-app.get('/admin/candidate/delete-note/:candidateId/:noteId', adminAuthCheck, async (req, res) => {
-    try {
-        await Candidate.findByIdAndUpdate(req.params.candidateId, {
-            $pull: { notes: { _id: req.params.noteId } }
-        });
-        
-        console.log(`🗑️ Not silindi: ${req.params.noteId}`);
-        res.redirect('/admin?status=note_deleted');
-    } catch (error) {
-        console.error("Not silme hatası:", error);
-        res.redirect('/admin?error=delete_failed');
-    }
-});
-
-// --- NOT SİLME ROTASI (Opsiyonel ama gerekli olur) ---
-app.get('/admin/candidate/delete-note/:candidateId/:noteId', adminAuthCheck, async (req, res) => {
-    try {
-        await Candidate.findByIdAndUpdate(req.params.candidateId, {
-            $pull: { notes: { _id: req.params.noteId } }
-        });
-        res.redirect('/admin?status=note_deleted');
-    } catch (error) {
-        res.redirect('/admin?error=delete_failed');
-    }
 });
 
 app.post('/admin/document/status', adminAuthCheck, async (req, res) => {
@@ -393,155 +319,258 @@ app.post('/admin/message/internal', adminAuthCheck, async (req, res) => {
     res.redirect('/admin');
 });
 
-// ============================================
-// 📨 MAİL GÖNDERME ROTASI (DÜZELTİLMİŞ)
-// ============================================
+// --- MAİL GÖNDERME ---
 app.post('/admin/message/email', adminAuthCheck, async (req, res) => {
     try {
-        console.log("📨 Mail gönderimi başlatılıyor...");
-        
-        // 1. Adayı bul
         const candidate = await Candidate.findById(req.body.candidateId);
-        
-        if (!candidate) {
-            return res.redirect('/admin?error=aday_yok');
-        }
+        if (!candidate || !candidate.email) return res.redirect('/admin?error=mail_yok');
 
-        // 2. Maili gönder
         await transporter.sendMail({
-            // 👇 BURASI KRİTİK: Brevo'da onaylı maili elle yazıyoruz
             from: '"BERLINER" <proje@berliner.com.tr>', 
             to: candidate.email,
             subject: req.body.subject || 'Bilgilendirme',
-            html: `
-                <div style="font-family: Arial, sans-serif; padding: 20px;">
-                    <h3>Sayın ${candidate.firstName} ${candidate.lastName},</h3>
-                    <p>${req.body.content}</p>
-                    <hr>
-                    <small>BERLINER AKADEMIE</small>
-                </div>
-            `
+            html: `<div style="padding: 20px;"><h3>Sayın ${candidate.firstName},</h3><p>${req.body.content}</p><hr><small>BERLINER AKADEMIE</small></div>`
         });
-
-        console.log(`✅ Mail başarıyla gönderildi: ${candidate.email}`);
         res.redirect('/admin?status=mail_success');
-
     } catch (error) {
-        console.error("🚨 MAİL GÖNDERME HATASI:", error);
         res.redirect('/admin?error=mail_fail'); 
     }
 });
-// --- TOPLU MAİL GÖNDERME ROTASI (YENİ) ---
+
 app.post('/admin/message/email/bulk', adminAuthCheck, async (req, res) => {
     const { subject, content } = req.body;
-    
-    console.log("📨 Toplu mail gönderimi başlatılıyor...");
-
     try {
-        // 1. Mail adresi olan tüm adayları bul
         const candidates = await Candidate.find({ email: { $exists: true, $ne: "" } });
+        if (candidates.length === 0) return res.redirect('/admin?error=no_candidates');
 
-        if (candidates.length === 0) {
-            return res.redirect('/admin?error=no_candidates');
-        }
-
-        // 2. Herkese mail gönder (Hızlı olması için Promise.all kullanıyoruz)
         const emailPromises = candidates.map(candidate => {
             return transporter.sendMail({
                 from: '"BERLINER" <proje@berliner.com.tr>',
                 to: candidate.email,
-                subject: subject || 'Berliner Akademie Duyuru',
-                html: `
-                    <div style="font-family: Arial, sans-serif; padding: 20px; border: 1px solid #eee;">
-                        <h3 style="color: #d32f2f;">Sayın ${candidate.firstName} ${candidate.lastName},</h3>
-                        <p style="font-size: 16px; color: #333;">${content}</p>
-                        <br>
-                        <hr>
-                        <p style="font-size: 12px; color: #777;">
-                            Bu mail Berliner Akademie tarafından tüm adaylara gönderilmiştir.<br>
-                            Lütfen bu maile cevap vermeyiniz.
-                        </p>
-                    </div>
-                `
-            }).catch(err => {
-                // Tek bir kişiye gitmezse sistem çökmesin, log tutsun yeter
-                console.error(`❌ ${candidate.email} adresine gönderilemedi:`, err.message);
-            });
+                subject: subject || 'Duyuru',
+                html: `<div style="padding: 20px;"><h3>Sayın ${candidate.firstName},</h3><p>${content}</p><hr><small>BERLINER AKADEMIE</small></div>`
+            }).catch(err => console.error(err));
         });
 
-        // Tüm maillerin gönderilmesini bekle
         await Promise.all(emailPromises);
-
-        console.log(`✅ ${candidates.length} kişiye toplu mail işlemi tamamlandı.`);
         res.redirect('/admin?status=bulk_mail_success');
-
     } catch (error) {
-        console.error("🚨 Toplu Mail Hatası:", error);
         res.redirect('/admin?error=bulk_mail_fail');
     }
 });
 
-// --- 40 KİŞİLİK TOPLU ADAY EKLEME ROTASI ---
+// --- NOT SİSTEMİ (EKLENDİ) ---
+app.post('/admin/candidate/add-note', adminAuthCheck, async (req, res) => {
+    try {
+        const { candidateId, noteContent } = req.body;
+        if (!noteContent.trim()) return res.redirect('/admin');
+
+        await Candidate.findByIdAndUpdate(candidateId, {
+            $push: { 
+                notes: { 
+                    content: noteContent, 
+                    date: new Date(),
+                    author: 'Admin' 
+                } 
+            }
+        });
+        res.redirect('/admin?status=note_added');
+    } catch (error) {
+        res.redirect('/admin?error=note_failed');
+    }
+});
+
+app.get('/admin/candidate/delete-note/:candidateId/:noteId', adminAuthCheck, async (req, res) => {
+    try {
+        await Candidate.findByIdAndUpdate(req.params.candidateId, {
+            $pull: { notes: { _id: req.params.noteId } }
+        });
+        res.redirect('/admin?status=note_deleted');
+    } catch (error) {
+        res.redirect('/admin?error=delete_failed');
+    }
+});
+
+// --- SEED (TOHUMLAMA) ---
 app.get('/seed-candidates-full', async (req, res) => {
-    
-   const rawData = [
+      const rawData = [
+
+
+
        { id: 1, ad: "Veysi Irğar", meslek: "Kurye", durumId: 5, lokasyon: "Mardin", basvuruNo: "BER-2026-001", pasaport: "U27192985", telefon: "+90 555 555 55 55", email: "veysi@email.com", puan: 85 },
+
+
+
        { id: 2, ad: "Umut Balkış", meslek: "Tır Şoförü", durumId: 5, lokasyon: "Denizli", basvuruNo: "MUN-2026-002", pasaport: "U36039583", telefon: "+90 555 555 55 55", email: "umut@email.com", puan: 88 },
+
+
+
        { id: 3, ad: "Sami Koca", meslek: "Tır Şoförü", durumId: 5, lokasyon: "Konya", basvuruNo: "HAM-2026-003", pasaport: "U36837917", telefon: "+90 555 555 55 55", email: "sami@email.com", puan: 90 },
+
+
+
        { id: 4, ad: "Mücahit Dinçer", meslek: "Tır Şoförü", durumId: 5, lokasyon: "istanbul", basvuruNo: "KOL-2026-004", pasaport: "U28059476", telefon: "+90 555 555 55 55", email: "mucahit@email.com", puan: 82 },
+
+
+
        { id: 5, ad: "Muammer Arslan", meslek: "Tır Şoförü", durumId: 5, lokasyon: "İstanbul", basvuruNo: "FRA-2026-005", pasaport: "U38138827", telefon: "+90 555 555 55 55", email: "muammer@email.com", puan: 88 },
+
+
+
        { id: 6, ad: "Mehmet Ozan Özmen", meslek: "Kurye", durumId: 5, lokasyon: "Ankara", basvuruNo: "STU-2026-006", pasaport: "U22433028", telefon: "+90 555 555 55 55", email: "mehmet.ozan@email.com", puan: 95 },
+
+
+
        { id: 7, ad: "Mehmet Emin Yaman", meslek: "Tır Şoförü", durumId: 5, lokasyon: "İzmir", basvuruNo: "DUS-2026-007", pasaport: "U35565318", telefon: "+90 555 555 55 55", email: "mehmet.emin@email.com", puan: 92 },
+
+
+
        { id: 8, ad: "Mahmut Sürhan Karadal", meslek: "Kurye", durumId: 5, lokasyon: "Adana", basvuruNo: "DOR-2026-008", pasaport: "U23636576", telefon: "+90 555 555 55 55", email:"surhankaradal27@gmail.com", puan: 90 },
+
+
+
        { id: 9, ad: "Kerim İpek", meslek: "Tır Şoförü", durumId: 5, lokasyon: "Niğde", basvuruNo: "ESS-2026-009", pasaport: "U25148300", telefon: "+90 555 555 55 55", email: "kerim@email.com", puan: 85 },
+
+
+
        { id: 10, ad: "İsrafil Yılmaz", meslek: "Tır Şoförü", durumId: 5, lokasyon: "Mersin", basvuruNo: "LEI-2026-010", pasaport: "U88050133", telefon: "+90 555 555 55 55", email: "israfil@email.com", puan: 89 },
+
+
+
        { id: 11, ad: "İbrahim Can Eser", meslek: "Kurye", durumId: 5 , lokasyon: "Ankara", basvuruNo: "BRE-2026-011", pasaport: "U27946181", telefon: "+90 555 555 55 55", email: "ibrahim@email.com", puan: 99 },
+
+
+
        { id: 12, ad: "Halil İbrahim Aras", meslek: "Tır Şoförü", durumId: 5, lokasyon: "Diyarbakır", basvuruNo: "DRE-2026-012", pasaport: "U37493231", telefon: "+90 555 555 55 55", email: "halil@email.com", puan: 81 },
+
+
+
        { id: 13, ad: "Hakan Yiğit", meslek: "Tır Şoförü", durumId: 5, lokasyon: "Adana", basvuruNo: "HAN-2026-013", pasaport: "U28910675", telefon: "+90 555 555 55 55", email: "hakan@email.com", puan: 83 },
+
+
+
        { id: 14, ad: "Fatih Mustafa Alıravcı", meslek: "Kurye", durumId: 5, lokasyon: "İstanbul", basvuruNo: "NUR-2026-014", pasaport: "U23981375", telefon: "+90 555 555 55 55", email: "fatih@email.com", puan: 86 },
+
+
+
        { id: 15, ad: "Ercan Ayata", meslek: "Tır Şoförü", durumId: 5, lokasyon: "Osmaniye", basvuruNo: "DUI-2026-015", pasaport: "U15981690", telefon: "+90 555 555 55 55", email: "ercan@email.com", puan: 87 },
+
+
+
        { id: 16, ad: "Doğan Bozkurt", meslek: "Tır Şoförü", durumId: 5, lokasyon: "Antalya", basvuruNo: "BOC-2026-016", pasaport: "U26435423", telefon: "+90 555 555 55 55", email: "dogan@email.com", puan: 91 },
+
+
+
        { id: 17, ad: "Burhanettin Irğar", meslek: "Kurye", durumId: 5, lokasyon: "Mardin", basvuruNo: "WUP-2026-017", pasaport: "U30274584", telefon: "+90 555 555 55 55", email: "burhanirgar@gmail.com", puan: 84 },
+
+
+
        { id: 18, ad: "Ali Yılmaz", meslek: "Tır Şoförü", durumId: 5, lokasyon: "Gaziantep", basvuruNo: "BIE-2026-018", pasaport: "U32781709", telefon: "+90 555 555 55 55", email: "aliyl14531453@gmail.com", puan: 92 },
+
+
+
        { id: 19, ad: "Ahmet Gök", meslek: "Kurye", durumId: 5, lokasyon: "Adana", basvuruNo: "BON-2026-019", pasaport: "U22798501", telefon: "+90 555 555 55 55", email: "ahmetgok.12@gmail.com", puan: 89 },
+
+
+
        { id: 20, ad: "Murat Koçcu", meslek: "Tır Şoförü", durumId: 4, lokasyon: "Konya", basvuruNo: "MUN-2026-020", pasaport: "U29925245", telefon: "+90 555 555 55 55", email: "muratkoccuu@gmail.com", puan: 86 },
+
+
+
        { id: 21, ad: "Senai Kılıç", meslek: "Tır Şoförü", durumId: 5, lokasyon: "Diyarbakır", basvuruNo: "KAR-2026-021", pasaport: "U88384327", telefon: "+90 555 555 55 55", email: "djbmdy@gmail.com", puan: 85 },
+
+
+
        { id: 22, ad: "Can Yiğit Deveci", meslek: "Kurye", durumId: 5, lokasyon: "Ankara", basvuruNo: "MAN-2026-022", pasaport: "U35459456", telefon: "+90 555 555 55 55", email: "canyigitdeveci@gmail.com", puan: 87 },
+
+
+
        { id: 23, ad: "Emrah Ocak", meslek: "Kurye", durumId: 5, lokasyon: "Ordo", basvuruNo: "AUG-2026-023", pasaport: "U26894356", telefon: "+90 555 555 55 55", email: "ocakemrah052@gmail.com", puan: 90 },
+
+
+
        { id: 24, ad: "Turgay Yiğit", meslek: "Tır Şoförü", durumId: 5, lokasyon: "İzmir", basvuruNo: "WIE-2026-024", pasaport: "U88024920", telefon: "+90 555 555 55 55", email: "turgayygt35@gmail.com", puan: 93 },
+
+
+
        { id: 25, ad: "Orkun Misket", meslek: "Tır Şoförü", durumId: 5, lokasyon: "Aydın", basvuruNo: "GEL-2026-025", pasaport: "U38466149", telefon: "+90 555 555 55 55", email: "orkunmisket@gmail.com", puan: 88 },
+
+
+
        { id: 26, ad: "Enes Uzun", meslek: "Tır Şoförü", durumId: 5, lokasyon: "İstabul", basvuruNo: "MON-2026-026", pasaport: "U24465019", telefon: "+90 555 555 55 55", email: "muhammedhamza5555@gmail.com", puan: 82 },
+
+
+
        { id: 27, ad: "Uğur Küçükhurman", meslek: "Tır Şoförü", durumId: 5, lokasyon: "Manisa", basvuruNo: "BRA-2026-027", pasaport: "U23716873", telefon: "+90 555 555 55 55", email: "ugur_kucuk_hurman@hotmail.com", puan: 84 },
+
+
+
        { id: 28, ad: "Cabbar Balkır", meslek: "Tır Şoförü", durumId: 5, lokasyon: "İzmir", basvuruNo: "CHE-2026-028", pasaport: "U88277528", telefon: "+90 555 555 55 55", email: "cabbarbalkir01@gmail.com", puan: 86 },
+
+
+
        { id: 29, ad: "Erdal Arslan", meslek: "Tır Şoförü", durumId: 5, lokasyon: "Adıyaman", basvuruNo: "KIE-2026-029", pasaport: "U38115169", telefon: "+90 555 555 55 55", email: "yasin.arslan02@hotmail.com", puan: 88 },
+
+
+
        { id: 30, ad: "Yılmaz Akdeniz", meslek: "Tır Şoförü", durumId: 5, lokasyon: "İstanbul", basvuruNo: "MAG-2026-030", pasaport: "U29596300", telefon: "+90 555 555 55 55", email: "akdenizyilmaz1@gmail.com", puan: 90 },
+
+
+
        { id: 31, ad: "Muhammed Kürşad Demirci", meslek: "Kurye", durumId: 5, lokasyon: "Sivas", basvuruNo: "OBE-2026-031", pasaport: "U33945199", telefon: "+90 555 555 55 55", email: "kursqd.arslan@outlook.com", puan: 85 },
+
+
+
        { id: 32, ad: "Onur Orhan", meslek: "Tır Şoförü", durumId: 5, lokasyon: "Kocaeli", basvuruNo: "LUB-2026-032", pasaport: "U88013159", telefon: "+90 555 555 55 55", email: "okyanustabirdamla34@gmail.com", puan: 86 },
+
+
+
        { id: 33, ad: "Alper Gümüş", meslek: "Kurye", durumId: 5, lokasyon: "Denizli", basvuruNo: "FRE-2026-033", pasaport: "U36125073", telefon: "+90 555 555 55 55", email: "alperengumus@hotmail.com", puan: 89 },
+
+
+
        { id: 34, ad: "Ferhat Konuk", meslek: "Kurye", durumId: 5, lokasyon: "İzmir", basvuruNo: "HAG-2026-034", pasaport: "U34437396", telefon: "+90 555 555 55 55", email: "ferhatkonuk35@hotmail.com", puan: 86 },
+
+
+
        { id: 35, ad: "Buket Atasayar", meslek: "Kurye", durumId: 5, lokasyon: "Bursa", basvuruNo: "ROS-2026-035", pasaport: "U30862420", telefon: "+90 555 555 55 55", email: "buketatasayar10@gmail.com", puan: 83 },
+
+
+
        { id: 36, ad: "Ahmet Adın", meslek: "Kurye", durumId: 5, lokasyon: "Niğde", basvuruNo: "KAS-2026-036", pasaport: "U37396044", telefon: "+90 555 555 55 55", email: "ahmetadin62@gmail.com", puan: 91 },
+
+
+
        { id: 37, ad: "Alper Koptur", meslek: "Kurye", durumId: 5, lokasyon: "Ankara", basvuruNo: "SAA-2026-037", pasaport: "U27276436", telefon: "+90 555 555 55 55", email: "alperkoptur06@gmail.com", puan: 88 },
+
+
+
        { id: 38, ad: "Ramazan Gökhan Kına", meslek: "Kurye", durumId: 5, lokasyon: "Ankara", basvuruNo: "HAM-2026-038", pasaport: "U36187035", telefon: "+90 555 555 55 55", email: "kina.gokhann@hotmail.com", puan: 87 },
+
+
+
        { id: 39, ad: "Yasin Kavak", meslek: "Kurye", durumId: 5, lokasyon: "Konya", basvuruNo: "MUL-2026-039", pasaport: "U37950988", telefon: "+90 555 555 55 55", email: "yasin1453442@gmail.com", puan: 84 },
+
+
+
        { id: 40, ad: "Kaan Özkal", meslek: "Kurye", durumId: 4, lokasyon: "Ankara", basvuruNo: "MUL-2026-040", pasaport: "U12345678", telefon: "+90 555 555 55 55", email: "ozkalkaan490@gmail.com", puan: 100 }
+
+
+
        
+
+
+
     ];
 
-// ...
-    const stageMap = {
-        4: "Vize Ön Onay", // 👈 BURASI GÜNCELLENDİ
-        5: "Vize Başvurusu" 
-    };
-    // ...
+    const stageMap = { 4: "Vize Ön Onay", 5: "Vize Başvurusu" };
 
     const formattedCandidates = rawData.map(item => {
         const parts = item.ad.trim().split(' ');
         const lastName = parts.pop();
         const firstName = parts.join(' ');
-
         const email = item.email === "@email.com" 
-            ? `${firstName.toLowerCase().replace(/\s/g,'.')}.${lastName.toLowerCase()}@berliner.com`.replace(/ğ/g,'g').replace(/ü/g,'u').replace(/ş/g,'s').replace(/ı/g,'i').replace(/ö/g,'o').replace(/ç/g,'c')
+            ? `${firstName.toLowerCase().replace(/\s/g,'.')}.${lastName.toLowerCase()}@berliner.com`
             : item.email;
 
         return {
@@ -557,51 +586,25 @@ app.get('/seed-candidates-full', async (req, res) => {
         };
     });
 
-  try {
-        // 👇👇👇 BURAYA EKLE (Bu satır eskileri temizler) 👇👇👇
-        await Candidate.deleteMany({}); 
-        // 👆👆👆 EKLEMEN GEREKEN SATIR BU 👆👆👆
-
+    try {
+        await Candidate.deleteMany({});
         await Candidate.insertMany(formattedCandidates);
-        res.send(`<h1 style="color:green; text-align:center; margin-top:50px;">✅ 40 Aday Başarıyla Eklendi!</h1><p style="text-align:center"><a href="/admin">Admin Paneline Git</a></p>`);
-    } catch (error) {
-        console.error("Seed hatası:", error);
-        res.send(`<h1 style="color:red">Hata:</h1> <p>${error.message}</p>`);
-    }
-});
-
-// --- ALMANCA KELİME & CÜMLELERİ YÜKLEME ROTASI ---
-app.get('/seed-german-full', async (req, res) => {
-    const kelimeListesi = [
-        { category: 'Depo', german: 'der Gabelstapler', turkish: 'Forklift', exampleGerman: 'Der Gabelstapler hebt die schwere Palette.' },
-        // ... Diğer kelimeler ...
-        { category: 'Trafik', german: 'rechts / links', turkish: 'Sağ / Sol', exampleGerman: 'Biegen Sie an der Kreuzung links ab.' }
-    ];
-
-    try {
-        await LogisticsWord.deleteMany({});
-        await LogisticsWord.insertMany(kelimeListesi);
-        res.send(`<h1 style="color:green; text-align:center; margin-top:50px;">✅ Almanca Kelimeler Yüklendi!</h1><p style="text-align:center"><a href="/german">Almanca Sayfasına Git</a></p>`);
-    } catch (error) {
-        console.error("Kelime yükleme hatası:", error);
-        res.send("Hata: " + error.message);
-    }
-});
-// --- ESKİ İSİMLERİ DÜZELTME ROTASI ---
-app.get('/fix-stage-names', async (req, res) => {
-    try {
-        // "Vize Hazırlığı" yazan herkesi "Vize Ön Onay" yap
-        const result = await Candidate.updateMany(
-            { currentStage: 'Vize Hazırlığı' }, // Eski isim
-            { $set: { currentStage: 'Vize Ön Onay' } } // Yeni isim
-        );
-        res.send(`✅ İşlem Tamam: ${result.modifiedCount} adayın durumu güncellendi.`);
+        res.send('✅ Adaylar yüklendi!');
     } catch (error) {
         res.send("Hata: " + error.message);
     }
 });
-
-// --- PORT AYARI ---
+// --- PUANLARI DÜZELTME ROTASI ---
+app.get('/fix-scores', async (req, res) => {
+    try {
+        // Puanı olmayan veya düşük olan herkesi 90 yap
+        await Candidate.updateMany({}, { $set: { score: 90 } });
+        res.send('<h1>✅ Başarılı! Tüm adayların puanı 90 olarak güncellendi.</h1><a href="/admin">Panele Dön</a>');
+    } catch (error) {
+        res.send("Hata: " + error.message);
+    }
+});
+// --- PORT ---
 const PORT = process.env.PORT || 3000;
 app.listen(PORT, () => {
     console.log(`🚀 Sunucu ${PORT} portunda çalışıyor`);
