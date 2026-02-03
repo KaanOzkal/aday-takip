@@ -1,9 +1,14 @@
 const mongoose = require('mongoose');
 
+
+const mongoose = require('mongoose');
+
 // --- 1. DOKÜMAN ALT ŞEMASI ---
 const documentSchema = new mongoose.Schema({
     name: String,
     filename: String,
+    driveLink: String, // Drive linki eklendi
+    fileId: String,    // Drive dosya ID'si
     status: { 
         type: String, 
         enum: ['İnceleniyor', 'Onaylandı', 'Reddedildi'], 
@@ -12,11 +17,11 @@ const documentSchema = new mongoose.Schema({
     date: { type: Date, default: Date.now }
 });
 
-// --- 2. RANDEVU ALT ŞEMASI (Hatanın Çözümü) ---
+// --- 2. RANDEVU ALT ŞEMASI ---
 const appointmentSchema = new mongoose.Schema({
-    date: String,      // Örn: "2024-05-20"
-    time: String,      // Örn: "14:30"
-    type: String,      // Örn: "Genel Görüşme"
+    date: String,
+    time: String,
+    type: String,
     status: { 
         type: String, 
         enum: ['Beklemede', 'Onaylandı', 'Reddedildi'], 
@@ -25,7 +30,14 @@ const appointmentSchema = new mongoose.Schema({
     createdAt: { type: Date, default: Date.now }
 });
 
-// --- 3. ANA ADAY ŞEMASI ---
+// --- 3. NOTLAR ALT ŞEMASI (YENİ EKLENEN) ---
+const noteSchema = new mongoose.Schema({
+    content: String,
+    author: { type: String, default: 'Admin' },
+    date: { type: Date, default: Date.now }
+});
+
+// --- 4. ANA ADAY ŞEMASI ---
 const candidateSchema = new mongoose.Schema({
     firstName: String,
     lastName: String,
@@ -33,10 +45,7 @@ const candidateSchema = new mongoose.Schema({
     phone: String,
     job: String,
     location: String,
-    
-    // Hedef Eyalet (Admin Paneli İçin)
     targetState: { type: String, default: 'Belirtilmedi' }, 
-
     passportNo: String,
     applicationNo: String,
     applicationDate: { type: Date, default: Date.now },
@@ -47,9 +56,10 @@ const candidateSchema = new mongoose.Schema({
         default: 'Başvuru Alındı' 
     },
 
-    // Alt şemaları burada dizi ([]) içine koyuyoruz
+    // Alt şemalar
     documents: [documentSchema],
-    appointments: [appointmentSchema]
+    appointments: [appointmentSchema],
+    notes: [noteSchema] // 👈 BURASI KRİTİK: Notları buraya kaydediyoruz
 });
 
 module.exports = mongoose.model('Candidate', candidateSchema);

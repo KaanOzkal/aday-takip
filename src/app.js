@@ -321,6 +321,62 @@ app.post('/admin/candidate/update', adminAuthCheck, async (req, res) => {
     await Candidate.findByIdAndUpdate(req.body.candidateId, { currentStage: req.body.newStage });
     res.redirect('/admin');
 });
+// ============================================
+// 📝 NOT SİSTEMİ ROTALARI (BUNLARI EKLE)
+// ============================================
+
+// 1. Not Ekleme
+app.post('/admin/candidate/add-note', adminAuthCheck, async (req, res) => {
+    try {
+        const { candidateId, noteContent } = req.body;
+        
+        // Boş not eklenmesini engelle
+        if (!noteContent.trim()) return res.redirect('/admin');
+
+        await Candidate.findByIdAndUpdate(candidateId, {
+            $push: { 
+                notes: { 
+                    content: noteContent, 
+                    date: new Date(),
+                    author: 'Admin' 
+                } 
+            }
+        });
+
+        console.log(`✅ Not eklendi: ${candidateId}`);
+        res.redirect('/admin?status=note_added');
+    } catch (error) {
+        console.error("Not ekleme hatası:", error);
+        res.redirect('/admin?error=note_failed');
+    }
+});
+
+// 2. Not Silme
+app.get('/admin/candidate/delete-note/:candidateId/:noteId', adminAuthCheck, async (req, res) => {
+    try {
+        await Candidate.findByIdAndUpdate(req.params.candidateId, {
+            $pull: { notes: { _id: req.params.noteId } }
+        });
+        
+        console.log(`🗑️ Not silindi: ${req.params.noteId}`);
+        res.redirect('/admin?status=note_deleted');
+    } catch (error) {
+        console.error("Not silme hatası:", error);
+        res.redirect('/admin?error=delete_failed');
+    }
+});
+
+// --- NOT SİLME ROTASI (Opsiyonel ama gerekli olur) ---
+app.get('/admin/candidate/delete-note/:candidateId/:noteId', adminAuthCheck, async (req, res) => {
+    try {
+        await Candidate.findByIdAndUpdate(req.params.candidateId, {
+            $pull: { notes: { _id: req.params.noteId } }
+        });
+        res.redirect('/admin?status=note_deleted');
+    } catch (error) {
+        res.redirect('/admin?error=delete_failed');
+    }
+});
 
 app.post('/admin/document/status', adminAuthCheck, async (req, res) => {
     await Candidate.updateOne({ _id: req.body.candidateId, "documents._id": req.body.docId }, { $set: { "documents.$.status": req.body.status } });
