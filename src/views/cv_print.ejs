@@ -1,0 +1,362 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+    <meta charset="UTF-8">
+    <title>CV - <%= user.firstName %> <%= user.lastName %></title>
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    
+    <style>
+        :root {
+            --sidebar-bg: #1e293b; /* Koyu Slate */
+            --text-main: #334155;
+            --text-muted: #64748b;
+            --accent: #3b82f6; /* Modern Mavi */
+            --bg-page: #ffffff;
+        }
+
+        body { 
+            background: #e2e8f0; 
+            font-family: 'Inter', sans-serif; 
+            margin: 0; 
+            padding: 40px 0; 
+            -webkit-print-color-adjust: exact; 
+        }
+
+        .page { 
+            background: var(--bg-page); 
+            width: 210mm; 
+            min-height: 297mm; 
+            margin: 0 auto; 
+            display: flex; 
+            box-shadow: 0 10px 30px rgba(0,0,0,0.1); 
+            overflow: hidden; /* Taşmaları önle */
+        }
+
+        /* --- SOL SÜTUN (SİYAH/KOYU) --- */
+        .left-col { 
+            width: 32%; 
+            background: var(--sidebar-bg); 
+            color: #f1f5f9; 
+            padding: 50px 25px; 
+            display: flex;
+            flex-direction: column;
+        }
+
+        /* Profil Fotoğrafı */
+        .profile-wrapper {
+            text-align: center;
+            margin-bottom: 40px;
+        }
+        .profile-img { 
+            width: 140px; height: 140px; 
+            border-radius: 50%; 
+            object-fit: cover; 
+            border: 4px solid rgba(255,255,255,0.1); 
+            margin-bottom: 15px;
+        }
+        .profile-placeholder {
+            width: 140px; height: 140px; 
+            border-radius: 50%; 
+            background: #334155; 
+            color: white; 
+            display: flex; align-items: center; justify-content: center; 
+            font-size: 40px; font-weight: 600;
+            border: 4px solid rgba(255,255,255,0.1); 
+            margin: 0 auto 15px;
+        }
+
+        /* Sol Başlıklar */
+        .sidebar-title {
+            font-size: 12px;
+            text-transform: uppercase;
+            letter-spacing: 2px;
+            font-weight: 700;
+            color: rgba(255,255,255,0.4);
+            border-bottom: 1px solid rgba(255,255,255,0.1);
+            padding-bottom: 8px;
+            margin-bottom: 20px;
+            margin-top: 30px;
+        }
+
+        /* İletişim Bilgileri */
+        .contact-item {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            font-size: 13px;
+            color: #e2e8f0;
+            margin-bottom: 15px;
+            line-height: 1.4;
+        }
+        .contact-icon {
+            width: 28px; height: 28px;
+            background: rgba(255,255,255,0.1);
+            border-radius: 6px;
+            display: flex; align-items: center; justify-content: center;
+            font-size: 12px;
+            flex-shrink: 0;
+            color: var(--accent);
+        }
+
+        /* Özel Ehliyet Kartı Tasarımı */
+        .license-card {
+            background: linear-gradient(135deg, rgba(255,255,255,0.1), rgba(255,255,255,0.05));
+            border: 1px solid rgba(255,255,255,0.1);
+            border-radius: 10px;
+            padding: 15px;
+            margin-top: 25px;
+            position: relative;
+            overflow: hidden;
+        }
+        .license-card::before {
+            content: '\f1b9'; /* FontAwesome Car Icon */
+            font-family: 'Font Awesome 6 Free';
+            font-weight: 900;
+            position: absolute;
+            right: -10px; bottom: -10px;
+            font-size: 60px;
+            color: rgba(255,255,255,0.05);
+            transform: rotate(-15deg);
+        }
+        .license-header { font-size: 10px; text-transform: uppercase; color: rgba(255,255,255,0.5); letter-spacing: 1px; }
+        .license-classes { font-size: 18px; font-weight: 700; color: #fff; margin-top: 5px; }
+
+        /* Yetenekler ve Diller */
+        .skill-tag {
+            display: inline-block;
+            background: rgba(255,255,255,0.08);
+            color: #f1f5f9;
+            padding: 6px 12px;
+            border-radius: 20px;
+            font-size: 12px;
+            margin: 0 5px 8px 0;
+            font-weight: 500;
+        }
+
+        /* --- SAĞ SÜTUN (BEYAZ/İÇERİK) --- */
+        .right-col { 
+            width: 68%; 
+            padding: 50px 40px; 
+            color: var(--text-main);
+        }
+
+        .header-name {
+            font-size: 38px;
+            font-weight: 800;
+            color: #0f172a;
+            line-height: 1;
+            text-transform: uppercase;
+            letter-spacing: -1px;
+            margin: 0;
+        }
+        .header-job {
+            font-size: 18px;
+            color: var(--accent);
+            font-weight: 600;
+            text-transform: uppercase;
+            margin-top: 8px;
+            letter-spacing: 2px;
+            margin-bottom: 30px;
+        }
+
+        .summary {
+            font-size: 14px;
+            line-height: 1.7;
+            color: var(--text-muted);
+            margin-bottom: 40px;
+        }
+
+        /* Bölüm Başlıkları */
+        .section-header {
+            display: flex;
+            align-items: center;
+            gap: 15px;
+            margin-bottom: 25px;
+        }
+        .section-icon {
+            width: 35px; height: 35px;
+            background: #eff6ff; /* Light Blue */
+            color: var(--accent);
+            border-radius: 50%;
+            display: flex; align-items: center; justify-content: center;
+            font-size: 16px;
+        }
+        .section-title {
+            font-size: 16px;
+            font-weight: 700;
+            text-transform: uppercase;
+            color: #0f172a;
+            letter-spacing: 1px;
+        }
+
+        /* Timeline Deneyim */
+        .timeline {
+            border-left: 2px solid #e2e8f0;
+            padding-left: 25px;
+            margin-left: 17px;
+        }
+        .timeline-item {
+            position: relative;
+            margin-bottom: 30px;
+        }
+        .timeline-dot {
+            position: absolute;
+            left: -32px;
+            top: 0;
+            width: 12px; height: 12px;
+            background: var(--bg-page);
+            border: 3px solid var(--accent);
+            border-radius: 50%;
+        }
+        .job-title { font-size: 16px; font-weight: 700; color: #1e293b; }
+        .job-company { font-size: 14px; font-weight: 600; color: var(--accent); margin-bottom: 5px; }
+        .job-date { font-size: 12px; color: #94a3b8; font-style: italic; display: block; margin-bottom: 10px; }
+        .job-desc { font-size: 14px; color: #475569; line-height: 1.6; }
+
+        /* Print Butonu */
+        .btn-print {
+            position: fixed; bottom: 30px; right: 30px;
+            background: #0f172a; color: white;
+            padding: 15px 30px; border-radius: 50px;
+            font-weight: 600; border: none; cursor: pointer;
+            box-shadow: 0 10px 25px rgba(0,0,0,0.2);
+            transition: all 0.3s; z-index: 1000;
+            display: flex; align-items: center; gap: 10px;
+        }
+        .btn-print:hover { transform: translateY(-3px); background: var(--accent); }
+
+        @media print {
+            body { background: white; margin: 0; padding: 0; }
+            .page { box-shadow: none; width: 100%; height: 100%; margin: 0; }
+            .btn-print { display: none !important; }
+            /* Arkaplan renklerini zorla yazdır */
+            .left-col { -webkit-print-color-adjust: exact; background-color: #1e293b !important; }
+            .contact-icon { -webkit-print-color-adjust: exact; background-color: rgba(255,255,255,0.1) !important; }
+            .section-icon { -webkit-print-color-adjust: exact; background-color: #eff6ff !important; }
+        }
+    </style>
+</head>
+<body>
+
+    <button onclick="window.print()" class="btn-print">
+        <i class="fa-solid fa-file-pdf"></i> PDF Olarak İndir
+    </button>
+
+    <div class="page">
+        <div class="left-col">
+            <div class="profile-wrapper">
+                <% if(user.cvDetails?.profilePhoto) { %>
+                    <img src="<%= user.cvDetails.profilePhoto %>" class="profile-img">
+                <% } else { %>
+                    <div class="profile-placeholder">
+                        <%= user.firstName.charAt(0) %><%= user.lastName.charAt(0) %>
+                    </div>
+                <% } %>
+            </div>
+
+            <div class="sidebar-title">İLETİŞİM</div>
+            
+            <div class="contact-item">
+                <div class="contact-icon"><i class="fas fa-phone"></i></div>
+                <div><%= user.cvDetails?.phone || user.phone || 'Girilmedi' %></div>
+            </div>
+
+            <div class="contact-item">
+                <div class="contact-icon"><i class="fas fa-envelope"></i></div>
+                <div style="word-break: break-all;"><%= user.cvDetails?.email || user.email %></div>
+            </div>
+
+            <div class="contact-item">
+                <div class="contact-icon"><i class="fas fa-map-marker-alt"></i></div>
+                <div><%= user.location || 'Türkiye' %></div>
+            </div>
+
+            <% if(user.cvDetails?.drivingLicense && user.cvDetails.drivingLicense.trim() !== "") { %>
+                <div class="license-card">
+                    <div class="license-header">SÜRÜCÜ BELGESİ</div>
+                    <div class="license-classes"><%= user.cvDetails.drivingLicense %></div>
+                </div>
+            <% } %>
+
+            <div class="sidebar-title">DİLLER</div>
+            <div class="skill-tag"><%= user.cvDetails?.languages || 'Türkçe' %></div>
+
+            <div class="sidebar-title">YETENEKLER</div>
+            <div>
+                <% if(user.cvDetails?.skills) { %>
+                    <% user.cvDetails.skills.split(',').forEach(skill => { %>
+                        <span class="skill-tag"><%= skill.trim() %></span>
+                    <% }) %>
+                <% } else { %>
+                    <span class="skill-tag">Genel Başvuru</span>
+                <% } %>
+            </div>
+        </div>
+
+        <div class="right-col">
+            <h1 class="header-name"><%= user.firstName %> <%= user.lastName %></h1>
+            <div class="header-job">
+                <%= user.cvDetails?.experience1?.title || 'Aday' %>
+            </div>
+
+            <% if(user.cvDetails?.summary) { %>
+                <p class="summary">
+                    <%= user.cvDetails.summary %>
+                </p>
+            <% } %>
+
+            <div class="section-header">
+                <div class="section-icon"><i class="fas fa-briefcase"></i></div>
+                <div class="section-title">İş Deneyimi</div>
+            </div>
+
+            <div class="timeline">
+                <% if(user.cvDetails?.experience1?.title) { %>
+                    <div class="timeline-item">
+                        <div class="timeline-dot"></div>
+                        <div class="job-title"><%= user.cvDetails.experience1.title %></div>
+                        <div class="job-company"><%= user.cvDetails.experience1.company %></div>
+                        <span class="job-date"><i class="far fa-calendar-alt me-1"></i> <%= user.cvDetails.experience1.date %></span>
+                        <div class="job-desc"><%= user.cvDetails.experience1.desc %></div>
+                    </div>
+                <% } %>
+
+                <% if(user.cvDetails?.experience2?.title) { %>
+                    <div class="timeline-item">
+                        <div class="timeline-dot"></div>
+                        <div class="job-title"><%= user.cvDetails.experience2.title %></div>
+                        <div class="job-company"><%= user.cvDetails.experience2.company %></div>
+                        <span class="job-date"><i class="far fa-calendar-alt me-1"></i> <%= user.cvDetails.experience2.date %></span>
+                        <div class="job-desc"><%= user.cvDetails.experience2.desc %></div>
+                    </div>
+                <% } %>
+
+                <% if(!user.cvDetails?.experience1?.title && !user.cvDetails?.experience2?.title) { %>
+                    <p style="color:#94a3b8; font-style:italic; font-size:14px;">Henüz iş deneyimi bilgisi girilmedi.</p>
+                <% } %>
+            </div>
+
+            <div class="section-header" style="margin-top: 20px;">
+                <div class="section-icon"><i class="fas fa-graduation-cap"></i></div>
+                <div class="section-title">Eğitim</div>
+            </div>
+
+            <div class="timeline" style="border-left: none;">
+                <% if(user.cvDetails?.education1?.school) { %>
+                    <div class="timeline-item">
+                        <div class="timeline-dot"></div>
+                        <div class="job-title"><%= user.cvDetails.education1.school %></div>
+                        <div class="job-company"><%= user.cvDetails.education1.degree %></div>
+                        <span class="job-date"><i class="far fa-calendar-alt me-1"></i> <%= user.cvDetails.education1.date %></span>
+                    </div>
+                <% } else { %>
+                    <p style="color:#94a3b8; font-style:italic; font-size:14px;">Eğitim bilgisi girilmedi.</p>
+                <% } %>
+            </div>
+
+        </div>
+    </div>
+
+</body>
+</html>

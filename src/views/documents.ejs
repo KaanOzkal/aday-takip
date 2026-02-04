@@ -114,6 +114,7 @@
                             class="fas fa-comments"></i> Mesajlar</a>
                     <a href="/german" class="nav-link <%= page === 'german' ? 'active' : '' %>"><i
                             class="fas fa-graduation-cap"></i> Almanca</a>
+                            <a href="/cv-builder" class="nav-link"><i class="fas fa-file-contract"></i> Akıllı CV oluşturucu </a>
                     <a href="/appointments" class="nav-link <%= page === 'appointments' ? 'active' : '' %>"><i
                             class="fas fa-calendar-alt"></i> Randevular</a>
                     <a href="/settings" class="nav-link <%= page === 'settings' ? 'active' : '' %>"><i
@@ -156,12 +157,28 @@
 
                         <div class="col-md-4">
                             <label class="form-label small fw-bold text-muted">Belge Türü</label>
-                            <select name="docType" class="form-select bg-light border-0">
+                            <select name="docType" class="form-select bg-light border-0" required>
+                                <option value="" selected disabled>Yüklenecek belge türünü seçiniz...</option>
+
                                 <option value="Pasaport">Pasaport</option>
-                                <option value="Diploma">Diploma / Mezuniyet Belgesi</option>
+                                <option value="Kimlik Kartı">Kimlik Kartı / Nüfus Cüzdanı</option>
+                                <option value="Ehliyet">Sürücü Belgesi (Ehliyet)</option>
+                                <option value="Biyometrik Fotoğraf">Biyometrik Fotoğraf</option>
+
                                 <option value="Adli Sicil">Adli Sicil Kaydı</option>
+                                <option value="Nüfus Kayıt Örneği">Nüfus Kayıt Örneği (Vukuatlı)</option>
+                                <option value="İkametgah">İkametgah (Yerleşim Yeri Belgesi)</option>
+                                <option value="SGK Hizmet Dökümü">SGK Hizmet Dökümü</option>
                                 <option value="Sağlık Raporu">Sağlık Raporu</option>
-                                <option value="Sertifika">Sertifika (SRC, Psikoteknik vb.)</option>
+
+                                <option value="Diploma">Diploma</option>
+                                <option value="Cv">CV</option>
+                                <option value="Mezuniyet Belgesi"> Mezuniyet Belgesi</option>
+                                <option value="Transkript">Transkript (Not Dökümü)</option>
+                                <option value="Diploma Eki">Diploma Eki (Supplement)</option>
+                                <option value="form">Form Belgesi</option>
+                                <option value="Sertifika">Sertifika (Dil, Mesleki Yeterlilik , SRC vb.)</option>
+
                                 <option value="Diğer">Diğer</option>
                             </select>
                         </div>
@@ -192,11 +209,23 @@
                                     <div class="d-flex align-items-center mb-3">
                                         <% let icon='fa-file-alt' ; let color='text-secondary' ; let bg='bg-secondary' ;
                                             if(doc.name==='Pasaport' ) { icon='fa-passport' ; color='text-danger' ;
-                                            bg='bg-danger' ; } else if(doc.name==='Diploma' ) { icon='fa-graduation-cap'
-                                            ; color='text-warning' ; bg='bg-warning' ; } else if(doc.name==='Adli Sicil'
-                                            ) { icon='fa-gavel' ; color='text-dark' ; bg='bg-dark' ; } else
-                                            if(doc.name==='Sağlık Raporu' ) { icon='fa-file-medical' ; color='text-info'
-                                            ; bg='bg-info' ; } %>
+                                            bg='bg-danger' ; } else if(doc.name.includes('Kimlik') ||
+                                            doc.name.includes('Ehliyet')) { icon='fa-id-card' ; color='text-primary' ;
+                                            bg='bg-primary' ; } else if(doc.name==='Biyometrik Fotoğraf' ) {
+                                            icon='fa-camera' ; color='text-dark' ; bg='bg-dark' ; } else
+                                            if(doc.name==='İkametgah' ) { icon='fa-home' ; color='text-info' ;
+                                            bg='bg-info' ; } else if(doc.name.includes('Nüfus')) { icon='fa-users' ;
+                                            color='text-danger' ; bg='bg-danger' ; } else
+                                            if(doc.name==='SGK Hizmet Dökümü' ) { icon='fa-briefcase' ;
+                                            color='text-warning' ; bg='bg-warning' ; } else if(doc.name==='Diploma' ||
+                                            doc.name==='Mezuniyet Belgesi' ) { icon='fa-graduation-cap' ;
+                                            color='text-success' ; bg='bg-success' ; } else if(doc.name==='Transkript'
+                                            || doc.name==='Diploma Eki' ) { icon='fa-list-ol' ; color='text-success' ;
+                                            bg='bg-success' ; } else if(doc.name==='Adli Sicil' ) { icon='fa-gavel' ;
+                                            color='text-dark' ; bg='bg-dark' ; } else if(doc.name==='Sağlık Raporu' ) {
+                                            icon='fa-file-medical' ; color='text-danger' ; bg='bg-danger' ; } else
+                                            if(doc.name==='Sertifika' ) { icon='fa-award' ; color='text-warning' ;
+                                            bg='bg-warning' ; } %>
 
                                             <div
                                                 class="<%= bg %> bg-opacity-10 p-3 rounded-3 me-3 <%= color %> shadow-sm">
@@ -272,6 +301,8 @@
                 <a href="/processes" class="nav-link"><i class="fas fa-tasks"></i> Süreçler</a>
                 <a href="/documents" class="nav-link active"><i class="fas fa-file-alt"></i> Dokümanlar</a>
                 <a href="/messages" class="nav-link"><i class="fas fa-comments"></i> Mesajlar</a>
+                <a href="/cv-builder" class="nav-link"><i class="fas fa-file-contract"></i> Akıllı CV oluşturucu </a>
+                <a href="/application-form" class="nav-link"><i class="fas fa-file-signature"></i>Form</a>
                 <a href="/german" class="nav-link"><i class="fas fa-graduation-cap"></i> Almanca</a>
                 <a href="/appointments" class="nav-link"><i class="fas fa-calendar-alt"></i> Randevular</a>
                 <a href="/settings" class="nav-link"><i class="fas fa-cog"></i> Ayarlar</a>

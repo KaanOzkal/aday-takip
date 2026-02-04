@@ -124,7 +124,8 @@
                             </span>
                         <% } %>
                     </a>
-
+                    <a href="/cv-builder" class="nav-link"><i class="fas fa-file-contract"></i> Akıllı CV oluşturucu </a>
+                    <a href="/application-form" class="nav-link"><i class="fas fa-file-signature"></i>Form</a>
                     <a href="/german" class="nav-link"><i class="fas fa-graduation-cap"></i> Almanca</a>
                     <a href="/appointments" class="nav-link"><i class="fas fa-calendar-alt"></i> Randevular</a>
                     <a href="/settings" class="nav-link"><i class="fas fa-cog"></i> Ayarlar</a>
@@ -278,34 +279,35 @@
                         </div>
                     </div>
                 </div>
+
                 <div class="card border-0 shadow-sm mb-4 overflow-hidden">
-    <div class="card-body p-0">
-        <div class="d-flex flex-column flex-md-row align-items-center">
-            
-            <div class="bg-primary bg-opacity-10 p-4 d-flex align-items-center justify-content-center w-100 w-md-auto" 
-                 style="min-width: 120px; min-height: 100px;">
-                <i class="fas fa-file-pdf fa-3x text-primary"></i>
-            </div>
+                    <div class="card-body p-0">
+                        <div class="d-flex flex-column flex-md-row align-items-center">
+                            
+                            <div class="bg-primary bg-opacity-10 p-4 d-flex align-items-center justify-content-center w-100 w-md-auto" 
+                                 style="min-width: 120px; min-height: 100px;">
+                                <i class="fas fa-file-pdf fa-3x text-primary"></i>
+                            </div>
 
-            <div class="p-4 flex-grow-1 text-center text-md-start">
-                <h5 class="fw-bold text-dark mb-2">
-                    🇩🇪 Lojistik Bilgilendirme Kılavuzu
-                </h5>
-                <p class="text-muted mb-0 small">
-                    Almanya'daki lojistik süreçleri, çalışma koşulları ve vize adımları hakkında 
-                    bilmeniz gereken her şey bu dosyada. Lütfen indirip dikkatlice okuyunuz.
-                </p>
-            </div>
+                            <div class="p-4 flex-grow-1 text-center text-md-start">
+                                <h5 class="fw-bold text-dark mb-2">
+                                    🇩🇪 Lojistik Bilgilendirme Kılavuzu
+                                </h5>
+                                <p class="text-muted mb-0 small">
+                                    Almanya'daki lojistik süreçleri, çalışma koşulları ve vize adımları hakkında 
+                                    bilmeniz gereken her şey bu dosyada. Lütfen indirip dikkatlice okuyunuz.
+                                </p>
+                            </div>
 
-            <div class="p-4 w-100 w-md-auto text-center">
-                <a href="/100_26_LOJISTIK_BILGILENDIRME.pdf" download class="btn btn-primary fw-bold px-4 py-2 rounded-pill shadow-sm w-100 w-md-auto">
-                    <i class="fas fa-download me-2"></i> <span class="d-md-none">Dosyayı </span>İndir
-                </a>
-            </div>
+                            <div class="p-4 w-100 w-md-auto text-center">
+                                <a href="/100_26_LOJISTIK_BILGILENDIRME.pdf" download class="btn btn-primary fw-bold px-4 py-2 rounded-pill shadow-sm w-100 w-md-auto">
+                                    <i class="fas fa-download me-2"></i> <span class="d-md-none">Dosyayı </span>İndir
+                                </a>
+                            </div>
 
-        </div>
-    </div>
-</div>
+                        </div>
+                    </div>
+                </div>
 
                 <div class="row g-3 mb-4">
                     <div class="col-6 col-md-3">
@@ -346,6 +348,27 @@
                                 <a href="/processes" class="btn btn-sm btn-light rounded-pill">Detaylı Gör</a>
                             </div>
                             <div class="card-body p-4">
+                                
+                                <div class="mb-4">
+                                    <div class="d-flex justify-content-between align-items-center mb-2">
+                                        <span class="text-muted small fw-bold">GENEL İLERLEME</span>
+                                        <span class="badge bg-primary rounded-pill">%<%= typeof progress !== 'undefined' ? progress : 0 %> Tamamlandı</span>
+                                    </div>
+                                    <div class="progress" style="height: 20px; background-color: #f1f5f9; border-radius: 10px;">
+                                        <div class="progress-bar progress-bar-striped progress-bar-animated bg-gradient-primary" 
+                                             role="progressbar" 
+                                             style="width: <%= typeof progress !== 'undefined' ? progress : 0 %>%; border-radius: 10px;" 
+                                             aria-valuenow="<%= typeof progress !== 'undefined' ? progress : 0 %>" 
+                                             aria-valuemin="0" 
+                                             aria-valuemax="100">
+                                        </div>
+                                    </div>
+                                    <p class="text-center mt-2 small text-muted">
+                                        Şu anki aşama: <strong class="text-primary"><%= user.currentStage %></strong>
+                                    </p>
+                                </div>
+                                <hr class="my-4 border-light">
+
                                 <div class="timeline-wrapper">
                                     <% 
                                         const currentIndex = stages.indexOf(user.currentStage);
@@ -444,7 +467,8 @@
                         </span>
                     <% } %>
                 </a>
-
+                <a href="/cv-builder" class="nav-link"><i class="fas fa-file-contract"></i> Akıllı CV oluşturucu </a>
+                <a href="/application-form" class="nav-link"><i class="fas fa-file-signature"></i>Form</a>
                 <a href="/german" class="nav-link"><i class="fas fa-graduation-cap"></i> Almanca</a>
                 <a href="/appointments" class="nav-link"><i class="fas fa-calendar-alt"></i> Randevular</a>
                 <a href="/settings" class="nav-link"><i class="fas fa-cog"></i> Ayarlar</a>
@@ -475,9 +499,8 @@
                     showConfirmButton: false,
                     background: '#fff',
                     backdrop: `rgba(0,0,123,0.1) left top no-repeat`
-                }).then(() => {
-                    window.history.replaceState(null, null, window.location.pathname);
                 });
+                window.history.replaceState(null, null, window.location.pathname);
             }
 
             // POPUP UYARI (MESAJ VARSA)

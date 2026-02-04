@@ -8,6 +8,17 @@ const { google } = require('googleapis');
 const stream = require('stream');
 const multer = require('multer');
 require('dotenv').config(); 
+const PDFDocument = require('pdfkit'); 
+const fs = require('fs');
+
+// --- YENİ MODEL: ORTAK DOSYALAR ---
+const GlobalFileSchema = new mongoose.Schema({
+    name: String,       // Dosya adı (Örn: Vize Rehberi)
+    filename: String,   // Sunucudaki adı
+    date: { type: Date, default: Date.now }
+});
+const GlobalFile = mongoose.model('GlobalFile', GlobalFileSchema);
+
 
 // --- MODELLER ---
 const Candidate = require('./models/Candidate');
@@ -120,10 +131,17 @@ app.use(session({
 }));
 
 // --- SABİT VERİLER ---
+// --- SABİT VERİLER (GÜNCELLENDİ) ---
 const STAGES = [
-    'Başvuru Alındı', 'Evrak Kontrolü', 'Tercüme Süreci', 
-    'İşveren Onayı', 'Vize Ön Onay', 'Vize Başvurusu', 
-    'Seyahat Planı', 'Almanya\'da'
+    'Başvuru Alındı', 
+    'Evrak Kontrolü', 
+    'Tercüme Süreci', 
+    'İşveren Onayı', 
+    'Vize Hazırlığı',  // <--- İŞTE EKSİK OLAN BUYDU! EKLENDİ.
+    'Vize Ön Onay', 
+    'Vize Başvurusu', 
+    'Seyahat Planı', 
+    'Almanya\'da'
 ];
 
 const STATE_DATA = {
@@ -204,14 +222,32 @@ app.get('/admin/logout', (req, res) => {
     req.session.destroy(() => res.redirect('/admin/login'));
 });
 
-// --- PANEL ---
 app.get('/panel', authCheck, async (req, res) => {
     const dailyWords = await LogisticsWord.aggregate([{ $sample: { size: 5 } }]);
     const messages = await Message.find({ candidateId: req.user._id }).sort({ date: -1 });
     const targetStateInfo = req.user.targetState ? STATE_DATA[req.user.targetState] : null;
-    res.render('dashboard', { user: req.user, stages: STAGES, dailyWords, messages, targetStateInfo, page: 'panel' });
-});
 
+    // 👇 BU SATIRI EKLE (Dosyaları Çekiyoruz)
+    const globalFiles = await GlobalFile.find().sort({ date: -1 });
+
+    // İlerleme Hesabı... (Mevcut kodların)
+    const currentIndex = STAGES.indexOf(req.user.currentStage);
+    let progress = 0;
+    if (currentIndex !== -1) {
+        progress = Math.round(((currentIndex + 1) / STAGES.length) * 100);
+    }
+
+    res.render('dashboard', { 
+        user: req.user, 
+        stages: STAGES, 
+        dailyWords, 
+        messages, 
+        targetStateInfo, 
+        progress,
+        globalFiles, // 👈 BUNU DA RENDER İÇİNE EKLE
+        page: 'panel' 
+    });
+});
 app.get('/profile', authCheck, (req, res) => res.render('profile', { user: req.user, page: 'profile' }));
 
 app.post('/profile/update', authCheck, async (req, res) => {
@@ -507,7 +543,11 @@ app.get('/admin/sync-drive-files', adminAuthCheck, async (req, res) => {
 
 // --- SEED (TOHUMLAMA) ---
 app.get('/seed-candidates-full', async (req, res) => {
-      const rawData = [
+         const rawData = [
+
+
+
+
 
 
 
@@ -515,7 +555,15 @@ app.get('/seed-candidates-full', async (req, res) => {
 
 
 
+
+
+
+
        { id: 2, ad: "Umut Balkış", meslek: "Tır Şoförü", durumId: 5, lokasyon: "Denizli", basvuruNo: "MUN-2026-002", pasaport: "U36039583", telefon: "+90 555 555 55 55", email: "umut@email.com", puan: 88 },
+
+
+
+
 
 
 
@@ -523,7 +571,15 @@ app.get('/seed-candidates-full', async (req, res) => {
 
 
 
+
+
+
+
        { id: 4, ad: "Mücahit Dinçer", meslek: "Tır Şoförü", durumId: 5, lokasyon: "istanbul", basvuruNo: "KOL-2026-004", pasaport: "U28059476", telefon: "+90 555 555 55 55", email: "mucahit@email.com", puan: 82 },
+
+
+
+
 
 
 
@@ -531,7 +587,15 @@ app.get('/seed-candidates-full', async (req, res) => {
 
 
 
+
+
+
+
        { id: 6, ad: "Mehmet Ozan Özmen", meslek: "Kurye", durumId: 5, lokasyon: "Ankara", basvuruNo: "STU-2026-006", pasaport: "U22433028", telefon: "+90 555 555 55 55", email: "mehmet.ozan@email.com", puan: 95 },
+
+
+
+
 
 
 
@@ -539,7 +603,15 @@ app.get('/seed-candidates-full', async (req, res) => {
 
 
 
+
+
+
+
        { id: 8, ad: "Mahmut Sürhan Karadal", meslek: "Kurye", durumId: 5, lokasyon: "Adana", basvuruNo: "DOR-2026-008", pasaport: "U23636576", telefon: "+90 555 555 55 55", email:"surhankaradal27@gmail.com", puan: 90 },
+
+
+
+
 
 
 
@@ -547,7 +619,15 @@ app.get('/seed-candidates-full', async (req, res) => {
 
 
 
+
+
+
+
        { id: 10, ad: "İsrafil Yılmaz", meslek: "Tır Şoförü", durumId: 5, lokasyon: "Mersin", basvuruNo: "LEI-2026-010", pasaport: "U88050133", telefon: "+90 555 555 55 55", email: "israfil@email.com", puan: 89 },
+
+
+
+
 
 
 
@@ -555,7 +635,15 @@ app.get('/seed-candidates-full', async (req, res) => {
 
 
 
+
+
+
+
        { id: 12, ad: "Halil İbrahim Aras", meslek: "Tır Şoförü", durumId: 5, lokasyon: "Diyarbakır", basvuruNo: "DRE-2026-012", pasaport: "U37493231", telefon: "+90 555 555 55 55", email: "halil@email.com", puan: 81 },
+
+
+
+
 
 
 
@@ -563,7 +651,15 @@ app.get('/seed-candidates-full', async (req, res) => {
 
 
 
+
+
+
+
        { id: 14, ad: "Fatih Mustafa Alıravcı", meslek: "Kurye", durumId: 5, lokasyon: "İstanbul", basvuruNo: "NUR-2026-014", pasaport: "U23981375", telefon: "+90 555 555 55 55", email: "fatih@email.com", puan: 86 },
+
+
+
+
 
 
 
@@ -571,7 +667,15 @@ app.get('/seed-candidates-full', async (req, res) => {
 
 
 
+
+
+
+
        { id: 16, ad: "Doğan Bozkurt", meslek: "Tır Şoförü", durumId: 5, lokasyon: "Antalya", basvuruNo: "BOC-2026-016", pasaport: "U26435423", telefon: "+90 555 555 55 55", email: "dogan@email.com", puan: 91 },
+
+
+
+
 
 
 
@@ -579,7 +683,15 @@ app.get('/seed-candidates-full', async (req, res) => {
 
 
 
+
+
+
+
        { id: 18, ad: "Ali Yılmaz", meslek: "Tır Şoförü", durumId: 5, lokasyon: "Gaziantep", basvuruNo: "BIE-2026-018", pasaport: "U32781709", telefon: "+90 555 555 55 55", email: "aliyl14531453@gmail.com", puan: 92 },
+
+
+
+
 
 
 
@@ -587,7 +699,15 @@ app.get('/seed-candidates-full', async (req, res) => {
 
 
 
+
+
+
+
        { id: 20, ad: "Murat Koçcu", meslek: "Tır Şoförü", durumId: 4, lokasyon: "Konya", basvuruNo: "MUN-2026-020", pasaport: "U29925245", telefon: "+90 555 555 55 55", email: "muratkoccuu@gmail.com", puan: 86 },
+
+
+
+
 
 
 
@@ -595,7 +715,15 @@ app.get('/seed-candidates-full', async (req, res) => {
 
 
 
+
+
+
+
        { id: 22, ad: "Can Yiğit Deveci", meslek: "Kurye", durumId: 5, lokasyon: "Ankara", basvuruNo: "MAN-2026-022", pasaport: "U35459456", telefon: "+90 555 555 55 55", email: "canyigitdeveci@gmail.com", puan: 87 },
+
+
+
+
 
 
 
@@ -603,7 +731,15 @@ app.get('/seed-candidates-full', async (req, res) => {
 
 
 
+
+
+
+
        { id: 24, ad: "Turgay Yiğit", meslek: "Tır Şoförü", durumId: 5, lokasyon: "İzmir", basvuruNo: "WIE-2026-024", pasaport: "U88024920", telefon: "+90 555 555 55 55", email: "turgayygt35@gmail.com", puan: 93 },
+
+
+
+
 
 
 
@@ -611,7 +747,15 @@ app.get('/seed-candidates-full', async (req, res) => {
 
 
 
+
+
+
+
        { id: 26, ad: "Enes Uzun", meslek: "Tır Şoförü", durumId: 5, lokasyon: "İstabul", basvuruNo: "MON-2026-026", pasaport: "U24465019", telefon: "+90 555 555 55 55", email: "muhammedhamza5555@gmail.com", puan: 82 },
+
+
+
+
 
 
 
@@ -619,7 +763,15 @@ app.get('/seed-candidates-full', async (req, res) => {
 
 
 
+
+
+
+
        { id: 28, ad: "Cabbar Balkır", meslek: "Tır Şoförü", durumId: 5, lokasyon: "İzmir", basvuruNo: "CHE-2026-028", pasaport: "U88277528", telefon: "+90 555 555 55 55", email: "cabbarbalkir01@gmail.com", puan: 86 },
+
+
+
+
 
 
 
@@ -627,7 +779,15 @@ app.get('/seed-candidates-full', async (req, res) => {
 
 
 
+
+
+
+
        { id: 30, ad: "Yılmaz Akdeniz", meslek: "Tır Şoförü", durumId: 5, lokasyon: "İstanbul", basvuruNo: "MAG-2026-030", pasaport: "U29596300", telefon: "+90 555 555 55 55", email: "akdenizyilmaz1@gmail.com", puan: 90 },
+
+
+
+
 
 
 
@@ -635,7 +795,15 @@ app.get('/seed-candidates-full', async (req, res) => {
 
 
 
+
+
+
+
        { id: 32, ad: "Onur Orhan", meslek: "Tır Şoförü", durumId: 5, lokasyon: "Kocaeli", basvuruNo: "LUB-2026-032", pasaport: "U88013159", telefon: "+90 555 555 55 55", email: "okyanustabirdamla34@gmail.com", puan: 86 },
+
+
+
+
 
 
 
@@ -643,7 +811,15 @@ app.get('/seed-candidates-full', async (req, res) => {
 
 
 
+
+
+
+
        { id: 34, ad: "Ferhat Konuk", meslek: "Kurye", durumId: 5, lokasyon: "İzmir", basvuruNo: "HAG-2026-034", pasaport: "U34437396", telefon: "+90 555 555 55 55", email: "ferhatkonuk35@hotmail.com", puan: 86 },
+
+
+
+
 
 
 
@@ -651,7 +827,15 @@ app.get('/seed-candidates-full', async (req, res) => {
 
 
 
+
+
+
+
        { id: 36, ad: "Ahmet Adın", meslek: "Kurye", durumId: 5, lokasyon: "Niğde", basvuruNo: "KAS-2026-036", pasaport: "U37396044", telefon: "+90 555 555 55 55", email: "ahmetadin62@gmail.com", puan: 91 },
+
+
+
+
 
 
 
@@ -659,7 +843,15 @@ app.get('/seed-candidates-full', async (req, res) => {
 
 
 
+
+
+
+
        { id: 38, ad: "Ramazan Gökhan Kına", meslek: "Kurye", durumId: 5, lokasyon: "Ankara", basvuruNo: "HAM-2026-038", pasaport: "U36187035", telefon: "+90 555 555 55 55", email: "kina.gokhann@hotmail.com", puan: 87 },
+
+
+
+
 
 
 
@@ -667,11 +859,23 @@ app.get('/seed-candidates-full', async (req, res) => {
 
 
 
+
+
+
+
        { id: 40, ad: "Kaan Özkal", meslek: "Kurye", durumId: 4, lokasyon: "Ankara", basvuruNo: "MUL-2026-040", pasaport: "U12345678", telefon: "+90 555 555 55 55", email: "ozkalkaan490@gmail.com", puan: 100 }
 
 
 
+
+
+
+
        
+
+
+
+
 
 
 
@@ -708,6 +912,7 @@ app.get('/seed-candidates-full', async (req, res) => {
         res.send("Hata: " + error.message);
     }
 });
+
 // --- PUANLARI GÜNCELLEME ROTASI ---
 app.get('/puanlari-duzelt', async (req, res) => {
     try {
@@ -718,6 +923,259 @@ app.get('/puanlari-duzelt', async (req, res) => {
         res.send("Hata: " + error.message);
     }
 });
+// --- CV OLUŞTURUCU ROTALARI (GÜNCELLENDİ) ---
+
+app.get('/cv-builder', authCheck, (req, res) => {
+    res.render('cv_builder', { user: req.user, page: 'cv-builder' });
+});
+
+// src/app.js içinde ilgili rotayı bul ve güncelle:
+
+// --- CV KAYDETME ROTASI (GÜNCELLENDİ) ---
+app.post('/cv-builder/save', authCheck, upload.single('photo'), async (req, res) => {
+    // Formdan gelen tüm verileri alıyoruz
+    const { 
+        summary, skills, languages, 
+        email, phone, drivingLicense, // 👈 BURASI ÇOK ÖNEMLİ, EHLİYETİ ALIYORUZ
+        exp1_title, exp1_company, exp1_date, exp1_desc, 
+        exp2_title, exp2_company, exp2_date, exp2_desc, 
+        edu1_school, edu1_degree, edu1_date 
+    } = req.body;
+
+    let profilePhoto = req.user.cvDetails?.profilePhoto || "";
+
+    if (req.file) {
+        const b64 = Buffer.from(req.file.buffer).toString('base64');
+        profilePhoto = `data:${req.file.mimetype};base64,${b64}`;
+    }
+
+    const cvData = {
+        profilePhoto,
+        email,
+        phone,
+        drivingLicense, // 👈 VE BURADA VERİTABANINA YAZIYORUZ
+        summary,
+        skills,
+        languages,
+        experience1: { title: exp1_title, company: exp1_company, date: exp1_date, desc: exp1_desc },
+        experience2: { title: exp2_title, company: exp2_company, date: exp2_date, desc: exp2_desc },
+        education1: { school: edu1_school, degree: edu1_degree, date: edu1_date }
+    };
+
+    // Veritabanını güncelle
+    await Candidate.findByIdAndUpdate(req.user._id, { cvDetails: cvData });
+    
+    // Sayfaya geri dön
+    res.redirect('/cv-builder?status=saved');
+});
+
+app.get('/cv-print', authCheck, (req, res) => {
+    res.render('cv_print', { user: req.user });
+});
+app.get('/application-form', authCheck, (req, res) => {
+    res.render('application_form', { user: req.user });
+});
+// --- BAŞVURU FORMU KAYDET & İNDİR (MODERN TASARIM v2) ---
+app.post('/application-form/save', authCheck, async (req, res) => {
+    try {
+        const formData = req.body;
+
+        // 1. Veritabanını Güncelle
+        await Candidate.findByIdAndUpdate(req.user._id, { applicationForm: formData });
+
+        // 2. PDF Ayarları
+        const doc = new PDFDocument({ margin: 0, size: 'A4', bufferPages: true });
+        const fileName = `Basvuru_${req.user.firstName}_${req.user.lastName}.pdf`;
+        const filePath = path.join(__dirname, '../public/uploads', fileName);
+
+        if (!fs.existsSync(path.join(__dirname, '../public/uploads'))) {
+            fs.mkdirSync(path.join(__dirname, '../public/uploads'), { recursive: true });
+        }
+
+        // Akışları Başlat
+        const fileStream = fs.createWriteStream(filePath);
+        doc.pipe(fileStream);
+
+        res.setHeader('Content-Type', 'application/pdf');
+        res.setHeader('Content-Disposition', `attachment; filename="${fileName}"`);
+        doc.pipe(res);
+
+        // --- TASARIM FONKSİYONLARI ---
+
+        // Renk Paleti
+        const colors = {
+            primary: '#4f46e5',   // Ana Mavi
+            secondary: '#1e293b', // Koyu Gri (Yazı)
+            lightBg: '#f8fafc',   // Açık Gri (Kutu Arkaplanı)
+            border: '#e2e8f0',    // Çizgi Rengi
+            white: '#ffffff'
+        };
+
+        // Türkçe Karakter Düzeltici
+        const cleanText = (text) => {
+            if (!text) return 'Belirtilmedi';
+            return text.trim()
+                .replace(/ğ/g, 'g').replace(/Ğ/g, 'G')
+                .replace(/ş/g, 's').replace(/Ş/g, 'S')
+                .replace(/ı/g, 'i').replace(/İ/g, 'I')
+                .replace(/ö/g, 'o').replace(/Ö/g, 'O')
+                .replace(/ç/g, 'c').replace(/Ç/g, 'C')
+                .replace(/ü/g, 'u').replace(/Ü/g, 'U');
+        };
+
+        // Header (Her Sayfa İçin)
+        const drawHeader = () => {
+            // Mavi Şerit
+            doc.rect(0, 0, 595.28, 100).fill(colors.primary);
+            
+            // Başlık
+            doc.font('Helvetica-Bold').fontSize(22).fill(colors.white)
+               .text('BASVURU VE MOTIVASYON FORMU', 50, 35);
+            
+            // Alt Başlık (Aday İsmi)
+            doc.font('Helvetica').fontSize(12).fill(colors.white)
+               .text(`Aday: ${cleanText(req.user.firstName)} ${cleanText(req.user.lastName)}`, 50, 65);
+            
+            doc.text(`Tarih: ${new Date().toLocaleDateString('tr-TR')}`, 450, 65, { align: 'right' });
+        };
+
+        // Footer (Sayfa Altı)
+        const drawFooter = (pageNumber) => {
+            const bottom = 800;
+            doc.moveTo(50, bottom).lineTo(545, bottom).strokeColor(colors.border).stroke();
+            doc.fontSize(8).fill(colors.secondary)
+               .text('Berliner Akademie - Resmi Basvuru Belgesidir', 50, bottom + 10);
+            doc.text(`Sayfa ${pageNumber}`, 500, bottom + 10, { align: 'right' });
+        };
+
+        // Bölüm Başlığı
+        const drawSectionTitle = (title) => {
+            doc.moveDown(1.5);
+            const y = doc.y;
+            // Sol tarafa mavi çizgi
+            doc.rect(50, y, 5, 20).fill(colors.primary);
+            doc.fontSize(14).font('Helvetica-Bold').fill(colors.primary)
+               .text(title.toUpperCase(), 65, y + 2);
+            doc.moveDown(0.5);
+        };
+
+        // Soru - Cevap Kartı
+        const drawField = (label, value) => {
+            // Sayfa sonuna geldik mi kontrolü
+            if (doc.y > 720) {
+                doc.addPage();
+                drawHeader();
+                doc.y = 120; // Header'ın altından başla
+            }
+
+            const startY = doc.y;
+            const content = cleanText(value);
+            
+            // Soru Başlığı (Label)
+            doc.fontSize(9).font('Helvetica-Bold').fill('#64748b').text(label, 50, startY);
+            
+            // Cevap Kutusu
+            const boxTop = doc.y + 5;
+            
+            // Cevabın uzunluğunu hesapla
+            doc.fontSize(11).font('Helvetica');
+            const textHeight = doc.heightOfString(content, { width: 470 });
+            const boxHeight = textHeight + 20;
+
+            // Arka plan kutusu
+            doc.roundedRect(50, boxTop, 495, boxHeight, 5).fill(colors.lightBg);
+            
+            // Cevap Metni
+            doc.fill(colors.secondary).text(content, 62, boxTop + 10, { width: 470 });
+            
+            // Boşluk bırak
+            doc.y = boxTop + boxHeight + 15;
+        };
+
+        // --- PDF İÇERİĞİ OLUŞTURMA ---
+        
+        // İlk Sayfa Header
+        drawHeader();
+        doc.y = 120; // İçeriğe başlama noktası
+
+        // BÖLÜM A
+        drawSectionTitle('A. Kisisel Bilgiler');
+        drawField('Dogum Yeri ve Tarihi', formData.birthPlace);
+        drawField('Medeni Hali', formData.maritalStatus);
+        drawField('Adres / Iletisim', formData.address);
+        drawField('Askerlik Durumu', formData.militaryService);
+        drawField('Surucu Belgesi Sinifi', formData.drivingLicenseClass);
+
+        // BÖLÜM B
+        drawSectionTitle('B. Egitim ve Is Gecmisi');
+        drawField('Mezun Olunan Lise', formData.highSchool);
+        drawField('Mezun Olunan Yuksekokul', formData.university);
+        drawField('Gecmis Is Tecrubeleri', formData.workHistory);
+
+        // BÖLÜM C
+        drawSectionTitle('C. Mesleki Motivasyon');
+        drawField('Meslegin Anlami', formData.meaningOfJob);
+        drawField('Bir Calisma Gunu', formData.dailyRoutine);
+        drawField('Almanya Istegi', formData.germanyDesire);
+        drawField('Turkiye-Almanya Farklari', formData.definitionDiff);
+        drawField('Karsilasilacak Zorluklar', formData.challenges);
+        drawField('Dilin Onemi', formData.languageImportance);
+        drawField('Almanya\'daki Tanidiklar', formData.friendsInGermany);
+
+        // BÖLÜM D
+        drawSectionTitle('D. Almanca Dil Bilgisi');
+        drawField('Mevcut Seviye', formData.germanLevel);
+        drawField('Egitim Yeri', formData.germanEducationPlace);
+        drawField('Seviye Farkindaligi', formData.levelAwareness);
+        drawField('Ogrenme Plani', formData.languagePlan);
+        drawField('Kurs Butcesi', formData.budgetForCourse);
+        drawField('Aile Dil Durumu', formData.familyLanguage);
+
+        // BÖLÜM E
+        drawSectionTitle('E. Almanya Vizyonu');
+        drawField('Goc Dusuncesi', formData.migrationTime);
+        drawField('Sehir Tercihi', formData.cityChoice);
+        drawField('Sehir Esnekligi', formData.cityFlexibility);
+        drawField('Uzmanlik Alani', formData.expertiseArea);
+        drawField('Almanya Bilgisi', formData.germanyKnowledge);
+        drawField('Aile Plani', formData.familyBring);
+        drawField('Konaklama', formData.accommodation);
+        drawField('Goc Butcesi', formData.migrationBudget);
+        drawField('Ziyaret Gecmisi', formData.visitHistory);
+
+        // BÖLÜM F
+        drawSectionTitle('F. Berliner Akademie');
+        drawField('Tanisma Hikayesi', formData.berlinerMeet);
+        drawField('Guven Dusuncesi', formData.berlinerTrust);
+
+        // Footerları ekle (Tüm sayfalara)
+        const range = doc.bufferedPageRange();
+        for (let i = 0; i < range.count; i++) {
+            doc.switchToPage(i);
+            drawFooter(i + 1);
+        }
+
+        doc.end();
+
+        // Veritabanına Kayıt (Arka Planda)
+        fileStream.on('finish', async () => {
+            await Candidate.findByIdAndUpdate(req.user._id, {
+                $push: { 
+                    uploadedDocuments: { 
+                        name: 'Resmi Başvuru Formu', 
+                        path: fileName, 
+                        date: new Date() 
+                    } 
+                }
+            });
+        });
+
+    } catch (error) {
+        console.error('PDF Hatası:', error);
+        res.redirect('/application-form?error=pdf_failed');
+    }
+});
+
 // --- PORT ---
 const PORT = process.env.PORT || 3000;
 app.listen(PORT, () => {

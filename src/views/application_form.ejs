@@ -1,0 +1,314 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Resmi Başvuru Formu | Almanya Kariyer</title>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    
+    <style>
+        body { background: #f8fafc; font-family: 'Inter', sans-serif; color: #334155; padding-bottom: 80px; }
+        .top-bar { background: white; border-bottom: 1px solid #e2e8f0; padding: 15px 0; position: sticky; top: 0; z-index: 1000; }
+        .form-section { background: white; border-radius: 16px; padding: 30px; margin-bottom: 25px; box-shadow: 0 4px 6px -1px rgba(0,0,0,0.05); border: 1px solid #e2e8f0; }
+        .section-header { border-bottom: 2px solid #f1f5f9; padding-bottom: 15px; margin-bottom: 25px; display: flex; align-items: center; gap: 10px; }
+        .section-title { font-weight: 700; font-size: 1.1rem; color: #1e293b; margin: 0; text-transform: uppercase; letter-spacing: 0.5px; }
+        .section-icon { width: 32px; height: 32px; background: #eff6ff; color: #4f46e5; border-radius: 8px; display: flex; align-items: center; justify-content: center; }
+        
+        label { font-weight: 600; font-size: 0.9rem; margin-bottom: 8px; color: #475569; }
+        .form-control, .form-select { border-radius: 10px; border: 1px solid #cbd5e1; padding: 12px; font-size: 0.95rem; }
+        .form-control:focus { border-color: #4f46e5; box-shadow: 0 0 0 4px rgba(79, 70, 229, 0.1); }
+        .form-text { font-size: 0.8rem; color: #94a3b8; margin-top: 5px; }
+        
+        .save-bar { position: fixed; bottom: 0; left: 0; width: 100%; background: white; padding: 15px 0; border-top: 1px solid #e2e8f0; box-shadow: 0 -4px 20px rgba(0,0,0,0.05); z-index: 1000; }
+    </style>
+</head>
+<body>
+
+    <div class="top-bar">
+        <div class="container d-flex justify-content-between align-items-center">
+            <div class="d-flex align-items-center gap-3">
+                <a href="/panel" class="btn btn-light rounded-circle border"><i class="fas fa-arrow-left"></i></a>
+                <div>
+                    <h5 class="fw-bold mb-0">Resmi Başvuru Formu</h5>
+                    <small class="text-muted">Bu form Almanya vize süreci için temel teşkil eder.</small>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="container mt-4">
+        <form action="/application-form/save" method="POST" id="appForm">
+            
+            <div class="form-section">
+                <div class="section-header">
+                    <div class="section-icon"><i class="fas fa-user"></i></div>
+                    <h3 class="section-title">A. Kişisel Bilgiler</h3>
+                </div>
+                <div class="row g-3">
+                    <div class="col-md-6">
+                        <label>Adı Soyadı</label>
+                        <input type="text" class="form-control" value="<%= user.firstName %> <%= user.lastName %>" disabled>
+                    </div>
+                    <div class="col-md-6">
+                        <label>Doğum Tarihi ve Yeri</label>
+                        <input type="text" name="birthPlace" class="form-control" placeholder="Örn: 01.01.1990 - İstanbul" value="<%= user.applicationForm?.birthPlace %>">
+                    </div>
+                    <div class="col-md-6">
+                        <label>Medeni Hali</label>
+                        <input type="text" name="maritalStatus" class="form-control" placeholder="Evli / Bekar / 2 Çocuklu" value="<%= user.applicationForm?.maritalStatus %>">
+                    </div>
+                    <div class="col-md-6">
+                        <label>Askerlik Durumu</label>
+                        <select name="militaryService" class="form-select">
+                            <option value="">Seçiniz</option>
+                            <option value="Yapıldı" <%= user.applicationForm?.militaryService === 'Yapıldı' ? 'selected' : '' %>>Yapıldı</option>
+                            <option value="Tecilli" <%= user.applicationForm?.militaryService === 'Tecilli' ? 'selected' : '' %>>Tecilli</option>
+                            <option value="Muaf" <%= user.applicationForm?.militaryService === 'Muaf' ? 'selected' : '' %>>Muaf</option>
+                        </select>
+                    </div>
+                    <div class="col-12">
+                        <label>Adres / Telefon / E-Mail</label>
+                        <textarea name="address" class="form-control" rows="2"><%= user.applicationForm?.address %></textarea>
+                    </div>
+                    <div class="col-12 bg-warning bg-opacity-10 p-3 rounded">
+                        <label class="text-dark"><i class="fas fa-steering-wheel me-2"></i>Sürücü Belgesi Sınıfı</label>
+                        <input type="text" name="drivingLicenseClass" class="form-control border-warning" placeholder="Örn: B, C, CE, SRC3, Psikoteknik var" value="<%= user.applicationForm?.drivingLicenseClass %>">
+                        <div class="form-text text-dark">Bu soru şoförler için en kritik sorudur. Lütfen tüm sınıfları yazınız.</div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="form-section">
+                <div class="section-header">
+                    <div class="section-icon"><i class="fas fa-briefcase"></i></div>
+                    <h3 class="section-title">B. Eğitim ve İş Geçmişi</h3>
+                </div>
+                <div class="row g-3">
+                    <div class="col-md-6">
+                        <label>Mezun Olduğunuz Lise (Başlangıç - Bitiş)</label>
+                        <input type="text" name="highSchool" class="form-control" placeholder="Atatürk Lisesi (2004-2008)" value="<%= user.applicationForm?.highSchool %>">
+                    </div>
+                    <div class="col-md-6">
+                        <label>Mezun Olduğunuz Yüksekokul (Varsa)</label>
+                        <input type="text" name="university" class="form-control" value="<%= user.applicationForm?.university %>">
+                    </div>
+                    <div class="col-12">
+                        <label>Geçmiş İş Tecrübeleri</label>
+                        <textarea name="workHistory" class="form-control" rows="5" placeholder="Ünvan - İşveren - Süre - Çıkış Sebebi şeklinde listeleyiniz."><%= user.applicationForm?.workHistory %></textarea>
+                        <div class="form-text">Vize başvurularında mesleki geçmiş zorunludur. Boşluk bırakmayınız.</div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="form-section">
+                <div class="section-header">
+                    <div class="section-icon"><i class="fas fa-truck-moving"></i></div>
+                    <h3 class="section-title">C. Mesleki Motivasyon (Şoförlük)</h3>
+                </div>
+                <div class="row g-3">
+                    <div class="col-12">
+                        <label>Mesleğiniz (Şoförlük/Kuryelik) sizin için ne anlam ifade ediyor?</label>
+                        <textarea name="meaningOfJob" class="form-control" rows="3"><%= user.applicationForm?.meaningOfJob %></textarea>
+                    </div>
+                    <div class="col-12">
+                        <label>Mesleğinizin bir çalışma gününü anlatın.</label>
+                        <textarea name="dailyRoutine" class="form-control" rows="3"><%= user.applicationForm?.dailyRoutine %></textarea>
+                    </div>
+                    <div class="col-12">
+                        <label>Almanya'da mesleğinizi icra etme arzunuzu gerekçeleriyle açıklayın.</label>
+                        <textarea name="germanyDesire" class="form-control" rows="3"><%= user.applicationForm?.germanyDesire %></textarea>
+                    </div>
+                    <div class="col-12">
+                        <label>Mesleğinizin Almanya ve Türkiye arasındaki tanım farkları nelerdir?</label>
+                        <textarea name="definitionDiff" class="form-control" rows="3"><%= user.applicationForm?.definitionDiff %></textarea>
+                    </div>
+                    <div class="col-12">
+                        <label>Almanya'da mesleğinizi icra etmek için sizi ne gibi zorluklar bekliyor?</label>
+                        <textarea name="challenges" class="form-control" rows="3"><%= user.applicationForm?.challenges %></textarea>
+                    </div>
+                    <div class="col-12">
+                        <label>Almanca dili mesleğiniz için ne kadar önem taşıyor?</label>
+                        <textarea name="languageImportance" class="form-control" rows="3"><%= user.applicationForm?.languageImportance %></textarea>
+                    </div>
+                    <div class="col-12">
+                        <label>Almanya'da bu meslekte çalışan arkadaşlarınız var mı?</label>
+                        <input type="text" name="friendsInGermany" class="form-control" value="<%= user.applicationForm?.friendsInGermany %>">
+                    </div>
+                </div>
+            </div>
+
+            <div class="form-section">
+                <div class="section-header">
+                    <div class="section-icon"><i class="fas fa-language"></i></div>
+                    <h3 class="section-title">D. Almanca Dil Bilgisi</h3>
+                </div>
+                <div class="row g-3">
+                    <div class="col-md-6">
+                        <label>Mevcut Almanca Seviyeniz</label>
+                        <select name="germanLevel" class="form-select">
+                            <option value="Hiç Yok" <%= user.applicationForm?.germanLevel === 'Hiç Yok' ? 'selected' : '' %>>Hiç Yok</option>
+                            <option value="A1" <%= user.applicationForm?.germanLevel === 'A1' ? 'selected' : '' %>>A1</option>
+                            <option value="A2" <%= user.applicationForm?.germanLevel === 'A2' ? 'selected' : '' %>>A2</option>
+                            <option value="B1" <%= user.applicationForm?.germanLevel === 'B1' ? 'selected' : '' %>>B1</option>
+                        </select>
+                    </div>
+                    <div class="col-md-6">
+                        <label>Dil eğitimi aldıysanız, nerede aldınız?</label>
+                        <input type="text" name="germanEducationPlace" class="form-control" value="<%= user.applicationForm?.germanEducationPlace %>">
+                    </div>
+                    <div class="col-12">
+                        <label>Almanya'da çalışabilmek için A2 veya B1 seviyesinde Almanca gerektiğini biliyor musunuz?</label>
+                        <select name="levelAwareness" class="form-select">
+                            <option value="Evet" <%= user.applicationForm?.levelAwareness === 'Evet' ? 'selected' : '' %>>Evet, biliyorum</option>
+                            <option value="Hayır" <%= user.applicationForm?.levelAwareness === 'Hayır' ? 'selected' : '' %>>Hayır, bilmiyordum</option>
+                        </select>
+                    </div>
+                    <div class="col-12">
+                        <label>Hedeflediğiniz dil seviyesine nasıl ulaşmayı düşünüyorsunuz?</label>
+                        <textarea name="languagePlan" class="form-control" rows="2"><%= user.applicationForm?.languagePlan %></textarea>
+                    </div>
+                    <div class="col-12">
+                        <label>Almanca kursları için kendinize bütçe ayırdınız mı?</label>
+                        <textarea name="budgetForCourse" class="form-control" rows="2"><%= user.applicationForm?.budgetForCourse %></textarea>
+                    </div>
+                    <div class="col-12">
+                        <label>Aile fertleriniz de Almanca öğrenecek mi?</label>
+                        <input type="text" name="familyLanguage" class="form-control" value="<%= user.applicationForm?.familyLanguage %>">
+                    </div>
+                </div>
+            </div>
+
+            <div class="form-section">
+                <div class="section-header">
+                    <div class="section-icon"><i class="fas fa-globe-europe"></i></div>
+                    <h3 class="section-title">E. Almanya Motivasyonu</h3>
+                </div>
+                <div class="row g-3">
+                    <div class="col-md-6">
+                        <label>Almanya'ya göç etmeyi ne zamandır düşünüyorsunuz?</label>
+                        <input type="text" name="migrationTime" class="form-control" value="<%= user.applicationForm?.migrationTime %>">
+                    </div>
+                    <div class="col-md-6">
+                        <label>Nereye gitmek istiyorsunuz ve neden?</label>
+                        <input type="text" name="cityChoice" class="form-control" value="<%= user.applicationForm?.cityChoice %>">
+                    </div>
+                    <div class="col-12">
+                        <label>Sizin istediğiniz şehirde iş bulamazsak farklı bir yeri tercih eder misiniz?</label>
+                         <select name="cityFlexibility" class="form-select">
+                            <option value="Evet" <%= user.applicationForm?.cityFlexibility === 'Evet' ? 'selected' : '' %>>Evet, fark etmez</option>
+                            <option value="Hayır" <%= user.applicationForm?.cityFlexibility === 'Hayır' ? 'selected' : '' %>>Hayır, sadece istediğim yer</option>
+                        </select>
+                    </div>
+                    <div class="col-12">
+                        <label>Hangi uzmanlık alanında (Uzun yol, şehir içi vb.) çalışmak istiyorsunuz?</label>
+                        <input type="text" name="expertiseArea" class="form-control" value="<%= user.applicationForm?.expertiseArea %>">
+                    </div>
+                    <div class="col-12">
+                        <label>Almanya hakkında neler biliyorsunuz? Beklentileriniz neler?</label>
+                        <textarea name="germanyKnowledge" class="form-control" rows="3"><%= user.applicationForm?.germanyKnowledge %></textarea>
+                    </div>
+                    <div class="col-12">
+                        <label>İlk gidişinizde ailenizi de yanınızda götürmek ister misiniz?</label>
+                        <textarea name="familyBring" class="form-control" rows="2"><%= user.applicationForm?.familyBring %></textarea>
+                    </div>
+                    <div class="col-md-6">
+                        <label>Nasıl bir yerde ikamet etmek istersiniz?</label>
+                        <input type="text" name="accommodation" class="form-control" value="<%= user.applicationForm?.accommodation %>">
+                    </div>
+                    <div class="col-md-6">
+                        <label>Almanya'ya gidiş için bir bütçe ayırdınız mı?</label>
+                        <input type="text" name="migrationBudget" class="form-control" value="<%= user.applicationForm?.migrationBudget %>">
+                    </div>
+                </div>
+            </div>
+
+            <div class="form-section">
+                <div class="section-header">
+                    <div class="section-icon"><i class="fas fa-handshake"></i></div>
+                    <h3 class="section-title">F. Berliner ile İlişki</h3>
+                </div>
+                <div class="row g-3">
+                    <div class="col-12">
+                        <label>BERLINER ile yolunuz ne zaman ve nasıl kesişti?</label>
+                        <textarea name="berlinerMeet" class="form-control" rows="2"><%= user.applicationForm?.berlinerMeet %></textarea>
+                    </div>
+                    <div class="col-12">
+                        <label>BERLINER ile yolculuğunuzun daha güvenli olabileceğini düşünüyor musunuz?</label>
+                        <textarea name="berlinerTrust" class="form-control" rows="2"><%= user.applicationForm?.berlinerTrust %></textarea>
+                    </div>
+                </div>
+            </div>
+
+        </form>
+    </div>
+
+   <div class="save-bar">
+        <div class="container d-flex justify-content-between align-items-center">
+            <div class="text-muted small d-none d-md-block">
+                <i class="fas fa-check-circle text-success me-1"></i> Form otomatik yedeklenir ve cihazınıza iner.
+            </div>
+            <button type="button" onclick="submitForm()" class="btn btn-primary fw-bold px-5 rounded-pill shadow-sm">
+                <i class="fas fa-download me-2"></i>Kaydet ve İndir
+            </button>
+        </div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+    <script>
+        // SAYFA YÜKLENDİĞİNDE UYARI VER
+        document.addEventListener('DOMContentLoaded', function() {
+            Swal.fire({
+                title: '📝 Başvuru Formu Hakkında',
+                html: `
+                    <div class="text-start fs-6">
+                        <p>Lütfen bu formu eksiksiz doldurunuz.</p>
+                        <ul class="mb-0">
+                            <li>Kaydettiğinizde PDF otomatik olarak <b>cihazınıza inecektir.</b></li>
+                            <li>İndirilen belgeyi <b>Dokümanlar</b> sayfanıza yükleyiniz.</li>
+                        </ul>
+                    </div>
+                `,
+                icon: 'info',
+                confirmButtonText: 'Anladım, Başlıyorum',
+                confirmButtonColor: '#4f46e5',
+                backdrop: `rgba(0,0,123,0.1)`
+            });
+        });
+
+        // FORM GÖNDERME İŞLEMİ
+        function submitForm() {
+            // 1. Kullanıcıyı uyar (İşlem başladı)
+            Swal.fire({
+                title: 'PDF Oluşturuluyor...',
+                text: 'Lütfen bekleyin, dosya birazdan inmeye başlayacak.',
+                icon: 'success',
+                showConfirmButton: false,
+                didOpen: () => {
+                    Swal.showLoading();
+                }
+            });
+
+            // 2. Formu gönder (Bu işlem indirmeyi tetikler)
+            document.getElementById('appForm').submit();
+
+            // 3. İndirme başladığında (tahmini 2-3 saniye sonra) başarı mesajı göster
+            setTimeout(() => {
+                Swal.fire({
+                    title: 'İşlem Başarılı! 🎉',
+                    html: `
+                        <p>PDF dosyanız iniyor...</p>
+                        <small class='text-muted'>Dosyanın bir kopyası "Dokümanlar" sayfasına yüklendi.</small>
+                        <br><br>
+                        <a href='/documents' class='btn btn-sm btn-outline-primary'>Dokümanlara Git</a>
+                        <button onclick='Swal.close()' class='btn btn-sm btn-secondary'>Formda Kal</button>
+                    `,
+                    icon: 'success',
+                    showConfirmButton: false
+                });
+            }, 3000); // 3 saniye sonra başarı ekranı gelir
+        }
+    </script>
+</body>
+</html>
