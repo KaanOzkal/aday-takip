@@ -424,34 +424,42 @@ app.post('/admin/document/status', adminAuthCheck, async (req, res) => {
     res.redirect('/admin');
 });
 
-// --- RANDEVU DURUMU GÜNCELLEME (HEM ADMIN HEM ADAY İÇİN) ---
-// --- RANDEVU DURUMU GÜNCELLEME ---
+// --- RANDEVU DURUMU GÜNCELLEME (TAM SENKRONİZE) ---
 app.post('/admin/appointment/status', adminAuthCheck, async (req, res) => {
     try {
         const { appId, candidateId, status } = req.body;
 
-        // 1. Adminin Gördüğü Ortak Listeyi Güncelle
-        const appointment = await Appointment.findByIdAndUpdate(appId, { status: status });
+        console.log(`🔄 Güncelleme Başladı: ID: ${appId} -> Yeni Durum: ${status}`);
 
-        // 2. Adayın Kendi Profilini (Gömülü Veriyi) Güncelle
-        if (appointment) {
-            // Adayın içindeki 'appointments' dizisinde tarihi ve saati eşleşen kaydı bulup durumunu değiştiriyoruz
-            await Candidate.updateOne(
-                { 
-                    _id: candidateId, 
-                    "appointments.date": appointment.date, 
-                    "appointments.time": appointment.time 
-                },
-                { 
-                    $set: { "appointments.$.status": status } 
-                }
-            );
+        // 1. Önce Adminin Listesindeki (Ortak) Randevuyu Bul ve Güncelle
+        // 'new: true' diyerek güncellenmiş halini elimize alıyoruz.
+        const appointment = await Appointment.findByIdAndUpdate(appId, { status: status }, { new: true });
+
+        if (!appointment) {
+            console.log("❌ Admin tablosunda randevu bulunamadı!");
+            return res.redirect('/admin?error=not_found');
         }
 
+        // 2. Şimdi Adayın Kendi İçindeki (Gömülü) Randevuyu Bul ve Güncelle
+        // Tarih ve Saat bilgisini referans alarak adayın içindeki doğru kaydı buluyoruz.
+        const updateResult = await Candidate.updateOne(
+            { 
+                _id: candidateId, 
+                "appointments.date": appointment.date, 
+                "appointments.time": appointment.time 
+            },
+            { 
+                $set: { "appointments.$.status": status } 
+            }
+        );
+
+        console.log("✅ Aday Profili Güncellendi:", updateResult.modifiedCount > 0 ? "Başarılı" : "Değişiklik Yok");
+
+        // İşlem tamam, panele dön
         res.redirect('/admin?status=appointment_updated');
 
     } catch (error) {
-        console.error("Randevu Güncelleme Hatası:", error);
+        console.error("❌ Randevu Güncelleme Hatası:", error);
         res.redirect('/admin?error=update_failed');
     }
 });
