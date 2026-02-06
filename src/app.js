@@ -1289,13 +1289,13 @@ app.post('/application-form/save', authCheck, async (req, res) => {
         res.redirect('/application-form?error=pdf_failed');
     }
 });
-// --- ALMANCA CÜMLELERİ YÜKLEME ROTASI (DÜZELTİLDİ) ---
+// --- ALMANCA KELİME VE CÜMLELERİ YÜKLEME (TOHUMLAMA) ---
 app.get('/seed-german', async (req, res) => {
     try {
         const sentences = [
             { 
-                german: "Fracht",   // 'word' yerine 'german' yaptık
-                turkish: "Yük",     // 'meaning' yerine 'turkish' yaptık
+                german: "Fracht", 
+                turkish: "Yük / Kargo", 
                 category: "Lojistik",
                 exampleGerman: "Die Fracht muss pünktlich sein.", 
                 exampleTurkish: "Yük zamanında olmalı." 
@@ -1306,6 +1306,13 @@ app.get('/seed-german', async (req, res) => {
                 category: "Depo",
                 exampleGerman: "Der Gabelstapler hebt die schwere Palette.", 
                 exampleTurkish: "Forklift ağır paleti kaldırıyor." 
+            },
+            { 
+                german: "Spiegel einstellen", 
+                turkish: "Aynaları ayarlamak", 
+                category: "Araç",
+                exampleGerman: "Stellen Sie die Spiegel vor der Fahrt ein.", 
+                exampleTurkish: "Sürüşten önce aynaları ayarlayın." 
             },
             { 
                 german: "Polizei", 
@@ -1330,21 +1337,24 @@ app.get('/seed-german', async (req, res) => {
             }
         ];
 
-        // İsteğe bağlı: Önce eski örnekli olanları temizle ki çift kayıt olmasın
-        // await LogisticsWord.deleteMany({ exampleGerman: { $exists: true } });
-
-        await LogisticsWord.insertMany(sentences);
+        // Önce temizle, sonra ekle (Çift kayıt olmasın diye)
+        if (mongoose.models.LogisticsWord) {
+            await mongoose.model('LogisticsWord').deleteMany({});
+            await mongoose.model('LogisticsWord').insertMany(sentences);
+        }
 
         res.send(`
             <div style="text-align:center; padding:50px; font-family:sans-serif;">
-                <h1 style="color:green;">✅ Düzeltildi ve Yüklendi!</h1>
-                <p>Kelimeler ve Cümleler veritabanına başarıyla işlendi.</p>
-                <a href="/panel" style="background:#333; color:white; padding:10px 20px; text-decoration:none; border-radius:5px;">Panele Dön</a>
+                <h1 style="color:green;">✅ Almanca Veriler Güncellendi!</h1>
+                <p>Eklenen Cümle Sayısı: ${sentences.length}</p>
+                <p style="color:gray;">"Stellen Sie die Spiegel..." cümlesi eklendi.</p>
+                <br>
+                <a href="/german" style="background:#333; color:white; padding:10px 20px; text-decoration:none; border-radius:5px;">Sayfaya Dön</a>
             </div>
         `);
 
     } catch (error) {
-        res.send("Yine Hata Oldu: " + error.message);
+        res.send("Hata: " + error.message);
     }
 });
 // --- ALMANYA'DA YAŞAM ROTASI (YEREL RESİMLİ) ---
