@@ -302,9 +302,24 @@ app.get('/german/category/:catName', authCheck, async (req, res) => {
     res.render('german_list', { user: req.user, words, categoryTitle: req.params.catName, page: 'german' });
 });
 
-app.get('/appointments', authCheck, (req, res) => {
-    const sortedApps = (req.user.appointments || []).sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
-    res.render('appointments', { user: req.user, page: 'appointments', appointments: sortedApps });
+// --- ADAY RANDEVU SAYFASI (CANLI İÇİN KESİN ÇÖZÜM) ---
+app.get('/appointments', authCheck, async (req, res) => {
+    try {
+        // 1. Adayın ID'sine ait randevuları 'Appointment' (Ortak) tablosundan çekiyoruz.
+        // Bu sayede Admin'in yaptığı değişiklik ANINDA buraya yansır.
+        const myAppointments = await Appointment.find({ candidateId: req.user._id })
+                                                .sort({ createdAt: -1 }); // En yenisi en üstte
+
+        // 2. Sayfayı aç
+        res.render('appointments', { 
+            user: req.user, 
+            page: 'appointments', // Sidebar'da 'active' olması için gerekli
+            appointments: myAppointments 
+        });
+    } catch (error) {
+        console.error("Randevu Sayfası Hatası:", error);
+        res.redirect('/panel');
+    }
 });
 
 // --- RANDEVU OLUŞTURMA (DÜZELTİLMİŞ) ---
