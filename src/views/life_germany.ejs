@@ -1,0 +1,242 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Almanya'da Hayat Rehberi</title>
+    
+    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    
+    <style>
+        body { background-color: #f8fafc; font-family: 'Plus Jakarta Sans', sans-serif; color: #334155; }
+        
+        .info-card {
+            background: white; border-radius: 16px; border: 1px solid #e2e8f0;
+            padding: 24px; height: 100%; transition: transform 0.2s;
+        }
+        .info-card:hover { transform: translateY(-5px); box-shadow: 0 10px 15px -3px rgba(0,0,0,0.05); }
+
+        /* Resim Kutusu Ayarları */
+        .traffic-img-container {
+            height: 140px; 
+            display: flex; align-items: center; justify-content: center; 
+            margin-bottom: 1.5rem;
+            background: #f8fafc; 
+            border-radius: 12px;
+            padding: 10px;
+        }
+        .traffic-img {
+            max-height: 100%; max-width: 100%; 
+            object-fit: contain; 
+            filter: drop-shadow(0px 4px 6px rgba(0,0,0,0.1));
+        }
+
+        .rule-item {
+            background: #fff; border-left: 4px solid #4F46E5;
+            padding: 20px; border-radius: 12px; margin-bottom: 16px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.02); transition: all 0.2s;
+        }
+        .rule-item:hover { background: #fdfdfe; transform: translateX(5px); }
+
+        .nav-pills .nav-link {
+            color: #64748b; font-weight: 600; border-radius: 10px; padding: 12px 25px; margin-right: 10px;
+        }
+        .nav-pills .nav-link.active {
+            background-color: #4F46E5; color: white; box-shadow: 0 4px 6px -1px rgba(79, 70, 229, 0.3);
+        }
+        
+        .practical-icon {
+            width: 50px; height: 50px; flex-shrink: 0;
+            background: #EFF6FF; color: #4F46E5;
+            border-radius: 12px; display: flex; align-items: center; justify-content: center;
+            font-size: 1.25rem;
+        }
+        
+        /* Menü Linkleri İçin */
+        .nav-link { 
+            color: #64748b; font-weight: 500; padding: 0.75rem 1rem; border-radius: 10px; margin-bottom: 2px;
+        }
+        .nav-link:hover { background-color: #f1f5f9; color: #0f172a; }
+        .nav-link.active { background-color: #e0f2fe; color: #0284c7; font-weight: 600; }
+        .nav-link i { width: 24px; text-align: center; }
+    </style>
+</head>
+<body>
+
+    <nav class="navbar navbar-dark bg-dark d-lg-none sticky-top shadow-sm">
+        <div class="container-fluid">
+            <span class="navbar-brand fw-bold"><i class="fas fa-flag me-2"></i>Almanya Rehberi</span>
+            <button class="navbar-toggler" type="button" data-bs-toggle="offcanvas" data-bs-target="#mobileSidebar">
+                <span class="navbar-toggler-icon"></span>
+            </button>
+        </div>
+    </nav>
+
+    <div class="container-fluid">
+        <div class="row">
+            
+            <div class="col-lg-2 d-none d-lg-block bg-white border-end min-vh-100 p-4 sticky-top" style="top:0;">
+                <div class="d-flex align-items-center gap-2 mb-5">
+                    <div class="bg-primary text-white rounded p-2"><i class="fas fa-flag"></i></div>
+                    <span class="fw-bold fs-5 text-dark">AlmanyaKariyer</span>
+                </div>
+                
+                <nav class="nav flex-column gap-1">
+                    <a href="/panel" class="nav-link"><i class="fas fa-home me-2"></i> Ana Sayfa</a>
+                    <a href="/profile" class="nav-link"><i class="fas fa-user-circle me-2"></i> Profilim</a>
+                    <a href="/processes" class="nav-link"><i class="fas fa-tasks me-2"></i> Süreçler</a>
+                    <a href="/documents" class="nav-link"><i class="fas fa-file-alt me-2"></i> Dokümanlar</a>
+                    <a href="/messages" class="nav-link"><i class="fas fa-comments me-2"></i> Mesajlar</a>
+                    <a href="/cv-builder" class="nav-link"><i class="fas fa-file-contract me-2"></i> Akıllı CV oluşturucu </a>
+                    <a href="/application-form" class="nav-link"><i class="fas fa-file-signature me-2"></i> Form</a>
+                    
+                    <a href="/life-in-germany" class="nav-link active bg-primary bg-opacity-10 text-primary">
+                        <i class="fas fa-city me-2"></i> Almanya'da Hayat
+                    </a>
+                    
+                    <a href="/german" class="nav-link"><i class="fas fa-graduation-cap me-2"></i> Almanca</a>
+                    <a href="/appointments" class="nav-link"><i class="fas fa-calendar-alt me-2"></i> Randevular</a>
+                    <a href="/settings" class="nav-link"><i class="fas fa-cog me-2"></i> Ayarlar</a>
+                    <a href="/game" class="nav-link"><i class="fas fa-gamepad me-2"></i> Oyun Alanı</a>
+                    <hr>
+                    <a href="/logout" class="nav-link text-danger"><i class="fas fa-sign-out-alt me-2"></i> Çıkış Yap</a>
+                </nav>
+            </div>
+
+            <div class="col-12 col-lg-10 p-4">
+                
+                <div class="mb-5">
+                    <h2 class="fw-bold text-dark display-6">Almanya'da Yaşam Rehberi</h2>
+                    <p class="text-muted fs-5">Adaptasyon sürecinizi hızlandıracak altın değerinde bilgiler.</p>
+                </div>
+
+                <ul class="nav nav-pills mb-4" id="pills-tab" role="tablist">
+                    <li class="nav-item">
+                        <button class="nav-link active" data-bs-toggle="pill" data-bs-target="#pills-rules">
+                            <i class="fas fa-book-reader me-2"></i>Yazılı Olmayan Kurallar
+                        </button>
+                    </li>
+                    <li class="nav-item">
+                        <button class="nav-link" data-bs-toggle="pill" data-bs-target="#pills-traffic">
+                            <i class="fas fa-traffic-light me-2"></i>Trafik Levhaları
+                        </button>
+                    </li>
+                    <li class="nav-item">
+                        <button class="nav-link" data-bs-toggle="pill" data-bs-target="#pills-practical">
+                            <i class="fas fa-info-circle me-2"></i>Pratik Bilgiler
+                        </button>
+                    </li>
+                </ul>
+
+                <div class="tab-content" id="pills-tabContent">
+                    
+                    <div class="tab-pane fade show active" id="pills-rules">
+                        <div class="row g-4">
+                            <div class="col-lg-8">
+                                <div class="d-flex flex-column gap-3">
+                                    <% unwrittenRules.forEach((rule, index) => { %>
+                                        <div class="rule-item">
+                                            <div class="d-flex gap-3 align-items-start">
+                                                <div class="fw-bold fs-3 text-primary opacity-25" style="line-height: 1;">
+                                                    <%= (index + 1).toString().padStart(2, '0') %>
+                                                </div>
+                                                <div>
+                                                    <h5 class="fw-bold text-dark mb-2"><%= rule.title %></h5>
+                                                    <p class="mb-0 text-secondary"><%= rule.desc %></p>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    <% }) %>
+                                </div>
+                            </div>
+                            <div class="col-lg-4">
+                                <div class="alert alert-danger border-0 shadow-sm rounded-4 p-4 sticky-top" style="top: 20px;">
+                                    <h5 class="fw-bold mb-3"><i class="fas fa-ban me-2"></i>Asla Yapmayın!</h5>
+                                    <ul class="mb-0 ps-3 gap-2 d-flex flex-column">
+                                        <li><strong>Bisiklet Yolunda Yürümek:</strong> En çok tepki alacağınız harekettir.</li>
+                                        <li><strong>Kırmızı Işıkta Geçmek:</strong> Gece olsa bile bekleyin.</li>
+                                        <li><strong>Pazar Günü Gürültü:</strong> Cam şişe atmak bile yasaktır.</li>
+                                        <li><strong>Erken Kutlama:</strong> Doğum gününü önceden kutlamak uğursuzluk sayılır.</li>
+                                        <li><strong>Geç Kalmak:</strong> Almanlar için saygısızlıktır.</li>
+                                        <li><strong>Nazi Şakası:</strong> Kesinlikle yasaktır, suçtur.</li>
+                                        <li><strong>Hitap Hatası:</strong> Tanımadığınız kişiye "Siz" (Sie) deyin.</li>
+                                    </ul>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="tab-pane fade" id="pills-traffic">
+                        <div class="row g-4">
+                            <% trafficSigns.forEach(sign => { %>
+                                <div class="col-6 col-md-4 col-xl-3">
+                                    <div class="info-card text-center">
+                                        <div class="traffic-img-container">
+                                            <img src="<%= sign.image %>" alt="<%= sign.title %>" class="traffic-img" onerror="this.onerror=null; this.src='https://via.placeholder.com/150?text=Resim+Yok'">
+                                        </div>
+                                        <h6 class="fw-bold text-dark mb-2"><%= sign.title %></h6>
+                                        <p class="text-muted small mb-0 lh-sm"><%= sign.desc %></p>
+                                    </div>
+                                </div>
+                            <% }) %>
+                        </div>
+                    </div>
+
+                    <div class="tab-pane fade" id="pills-practical">
+                        <div class="row g-4">
+                            <% practicalInfo.forEach(info => { %>
+                                <div class="col-md-6">
+                                    <div class="info-card d-flex align-items-start gap-3">
+                                        <div class="practical-icon">
+                                            <i class="fas fa-<%= info.icon %>"></i>
+                                        </div>
+                                        <div>
+                                            <h5 class="fw-bold text-dark"><%= info.title %></h5>
+                                            <p class="text-secondary mb-0 small"><%= info.desc %></p>
+                                        </div>
+                                    </div>
+                                </div>
+                            <% }) %>
+                        </div>
+                    </div>
+
+                </div>
+
+            </div>
+        </div>
+    </div>
+
+    <div class="offcanvas offcanvas-start" tabindex="-1" id="mobileSidebar">
+        <div class="offcanvas-header bg-dark text-white">
+            <h5 class="offcanvas-title">Menü</h5>
+            <button type="button" class="btn-close btn-close-white" data-bs-dismiss="offcanvas"></button>
+        </div>
+        <div class="offcanvas-body">
+            <nav class="nav flex-column gap-2">
+                <a href="/panel" class="nav-link"><i class="fas fa-home me-2"></i> Ana Sayfa</a>
+                <a href="/profile" class="nav-link"><i class="fas fa-user-circle me-2"></i> Profilim</a>
+                <a href="/processes" class="nav-link"><i class="fas fa-tasks me-2"></i> Süreçler</a>
+                <a href="/documents" class="nav-link"><i class="fas fa-file-alt me-2"></i> Dokümanlar</a>
+                <a href="/messages" class="nav-link"><i class="fas fa-comments me-2"></i> Mesajlar</a>
+                <a href="/cv-builder" class="nav-link"><i class="fas fa-file-contract me-2"></i> Akıllı CV oluşturucu </a>
+                <a href="/application-form" class="nav-link"><i class="fas fa-file-signature me-2"></i> Form</a>
+                
+                <a href="/life-in-germany" class="nav-link active bg-primary bg-opacity-10 text-primary">
+                    <i class="fas fa-city me-2"></i> Almanya'da Hayat
+                </a>
+                
+                <a href="/german" class="nav-link"><i class="fas fa-graduation-cap me-2"></i> Almanca</a>
+                <a href="/appointments" class="nav-link"><i class="fas fa-calendar-alt me-2"></i> Randevular</a>
+                <a href="/settings" class="nav-link"><i class="fas fa-cog me-2"></i> Ayarlar</a>
+                <a href="/game" class="nav-link"><i class="fas fa-gamepad me-2"></i> Oyun Alanı</a>
+                <hr>
+                <a href="/logout" class="nav-link text-danger"><i class="fas fa-sign-out-alt me-2"></i> Çıkış Yap</a>
+            </nav>
+        </div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+</body>
+</html>

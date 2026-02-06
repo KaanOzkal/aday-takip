@@ -1347,6 +1347,101 @@ app.get('/seed-german', async (req, res) => {
         res.send("Yine Hata Oldu: " + error.message);
     }
 });
+// --- ALMANYA'DA YAŞAM ROTASI (YEREL RESİMLİ) ---
+app.get('/life-in-germany', authCheck, (req, res) => {
+    
+    // 1. TRAFİK LEVHALARI (Dosyalar: public/images/traffic/ içinde olmalı)
+    const trafficSigns = [
+        { 
+            title: "Vorfahrt gewähren", 
+            desc: "Yol Ver! Ana yoldan gelen araca kesinlikle yol vermelisiniz.", 
+            image: "/images/traffic/yolver.jpg" 
+        },
+        { 
+            title: "Vorfahrtstraße", 
+            desc: "Geçiş Üstünlüğü. Bu sarı baklava dilimini görüyorsan yol senindir.", 
+            image: "/images/traffic/gecisustunlugu.jpg" 
+        },
+        { 
+            title: "Einbahnstraße", 
+            desc: "Tek Yön. Ok yönünün tersine girmek yasaktır.", 
+            image: "/images/traffic/tekyon.jpg" 
+        },
+        { 
+            title: "Stop", 
+            desc: "DUR! Tekerlekler tam olarak durmalı (3 saniye kuralı).", 
+            image: "/images/traffic/stop.jpg" 
+        },
+        { 
+            title: "Absolutes Halteverbot", 
+            desc: "Duraklamak ve Park Etmek Yasaktır.", 
+            image: "/images/traffic/yasak.png" 
+        },
+        { 
+            title: "Umweltzone", 
+            desc: "Çevre Bölgesi. Yeşil etiketi olmayan araç giremez.", 
+            image: "/images/traffic/cevrebolgesi.webp" 
+        },
+        { 
+            title: "Autobahn", 
+            desc: "Otoban. Hız sınırı genelde yoktur ama önerilen hız 130 km/s'dir.", 
+            image: "/images/traffic/hiz.jpeg" 
+        },
+        { 
+            title: "Spielstraße", 
+            desc: "Oyun Sokağı. Araçlar adım hızında (7 km/s) gitmek zorundadır.", 
+            image: "/images/traffic/oyun.png" 
+        },
+        { 
+            title: "Ende aller Streckenverbote", 
+            desc: "Tüm kısıtlamaların sonu (tüm önceki hız ve yasaklar sona erer)", 
+            image: "/images/traffic/nolimit.webp" 
+        },
+        { 
+            title: "Mindestgeschwindigkeit", 
+            desc: "Asgari hız limiti – belirlenen minimum hız zorunluluğu (örneğin mavi daire içinde sayı)", 
+            image: "/images/traffic/asgerihiz.png" 
+        },
+        { 
+            title: "Umleitung", 
+            desc: "Alternatif/kaçış yolu (özellikle otoyolda, “U” ile numaralı geçici ya da kalıcı sapma rotası).", 
+            image: "/images/traffic/kacis.jpg" 
+        },
+    ];
+
+    // 2. YAZILI OLMAYAN KURALLAR
+   // 2. YAZILI OLMAYAN KURALLAR (ADAC ve Selektör Eklendi)
+    const unwrittenRules = [
+        { title: "Pazar Sessizliği (Sonntagsruhe)", desc: "Pazar günleri kutsaldır. Matkap çalıştırmak, çim biçmek, gürültülü temizlik yapmak veya cam şişeleri dışarıdaki kumbaraya atmak komşular tarafından polise şikayet sebebidir." },
+        { title: "Selektör Yapmak (Lichthupe) ⚠️", desc: "Çok Dikkat! Türkiye'de selektör 'Çekil yol benim' demektir. Almanya'da ise tam tersi 'Buyur geç, sana yol veriyorum' demektir. Otobanda öndekine sürekli selektör yapmak suçtur (Nötigung - Taciz)." },
+        { title: "Sarı Melekler (ADAC)", desc: "Almanya'da yolda kalırsanız çekici masrafı çok yüksektir. Bu yüzden neredeyse herkes 'Sarı Melekler' olarak bilinen ADAC'a üyedir. Arıza durumunda her yere gelirler." },
+        { title: "Kavşak İçi Boş Kalmalı (Kreuzung freihalten) 🚦", desc: "Çok Önemli! Size yeşil ışık yansa bile, eğer gideceğiniz yol tıkalıysa kavşağın ortasına asla girmeyin. Trafik açılana kadar çizginin gerisinde bekleyin. Kavşağı tıkamak büyük saygısızlıktır." },
+        { title: "Kırmızı Işık Kuralı", desc: "Gece saat 03:00 olsa ve hiç araba geçmese bile yaya kırmızı ışığında BEKLENİR. Özellikle yanınızda çocuk varsa geçmek büyük ayıptır." },
+        { title: "Nakit Kraldır (Nur Bares)", desc: "Her yerde kredi kartı geçmez. Fırınlar, büfeler (Imbiss) ve bazı restoranlar sadece nakit (Bargeld) kabul eder. Yanınızda hep Euro taşıyın." },
+        { title: "Dakiklik (Pünktlichkeit)", desc: "Almanya'da '5 dakika geç kalmak' diye bir şey yoktur. Randevu 10:00'da ise 09:55'te orada olmalısınız." },
+        { title: "Doğum Günü Pastası", desc: "Türkiye'nin aksine, Almanya'da doğum günü olan kişi arkadaşlarına pasta veya yemek ısmarlar. " },
+        { title: "Havalandırma (Stoßlüften)", desc: "Almanlar temiz havaya takıntılıdır. Kışın ortasında bile pencereleri sonuna kadar açıp 5-10 dakika evi havalandırırlar (Stoßlüften)." },
+        { title: "Selamlaşma ve Göz Teması", desc: "Biriyle el sıkışırken mutlaka gözlerinin içine bakın. Göz kaçırmak güvensizlik veya saklanan bir şey varmış gibi algılanır." },
+    ];
+
+    // 3. PRATİK BİLGİLER
+    const practicalInfo = [
+        { title: "Pfand (Depozito)", desc: "Şişeleri atmayın! Marketlerdeki makinelere atıp para fişi alın.", icon: "recycle" },
+        { title: "Posta Kutusu İsmi", desc: "Posta kutusuna soyadınızı yapıştırmazsanız banka kartınız dahil hiçbir mektup gelmez.", icon: "mail-bulk" },
+        { title: "Çöp Ayrıştırma", desc: "Sarı (Plastik), Mavi (Kağıt), Kahverengi (Bio). Yanlış atarsanız ceza yiyebilirsiniz.", icon: "trash-alt" },
+        { title: "Radyo Vergisi", desc: "Eve taşınınca TV'niz olmasa bile aylık Radyo Vergisi (GEZ) ödemek zorundasınız.", icon: "tv" },
+        { title: "Musluk Suyu", desc: "Musluk suyu içilebilir. Restoranda su paralıdır ve genelde gazlı (Sprudel) gelir.", icon: "faucet" },
+        { title: "Bisiklet Yolları", desc: "Kaldırımdaki kırmızı alana basmayın, bisiklet yolu yayalar için değildir.", icon: "bicycle" }
+    ];
+
+    res.render('life_germany', {
+        user: req.user,
+        page: 'life_germany',
+        trafficSigns,
+        unwrittenRules,
+        practicalInfo
+    });
+});
 // --- PORT ---
 const PORT = process.env.PORT || 3000;
 app.listen(PORT, () => {
