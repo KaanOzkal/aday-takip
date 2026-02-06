@@ -220,99 +220,120 @@
         </div>
     </div>
 
-    <div class="main-card">
-        <div class="p-4 border-bottom d-flex flex-column flex-md-row justify-content-between align-items-start align-items-md-center gap-3">
-            <div>
-                <h5 class="fw-bold text-dark mb-1">Aday Listesi</h5>
-                <p class="text-secondary small mb-0">Tüm başvuruları buradan yönetebilirsiniz.</p>
+    <div class="row g-4">
+        
+        <div class="col-lg-9">
+            <div class="main-card">
+                <div class="p-4 border-bottom d-flex flex-column flex-md-row justify-content-between align-items-start align-items-md-center gap-3">
+                    <div>
+                        <h5 class="fw-bold text-dark mb-1">Aday Listesi</h5>
+                        <p class="text-secondary small mb-0">Tüm başvuruları buradan yönetebilirsiniz.</p>
+                    </div>
+                    <button class="btn btn-primary fw-semibold rounded-pill px-4" data-bs-toggle="modal" data-bs-target="#addCandidateModal">
+                        <i class="fas fa-plus me-2"></i> Yeni Aday
+                    </button>
+                </div>
+
+                <div class="table-responsive">
+                    <table class="table table-hover mb-0">
+                        <thead>
+                            <tr>
+                                <th class="ps-4">Aday Bilgisi</th>
+                                <th>Hedef</th>
+                                <th class="d-none d-md-table-cell">Aşama</th>
+                                <th>Durum</th>
+                                <th class="text-end pe-4">İşlemler</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <% candidates.forEach(candidate => { %>
+                            <tr>
+                                <td class="ps-4">
+                                    <div class="d-flex align-items-center">
+                                        <div class="avatar-circle me-3">
+                                            <%= candidate.firstName.charAt(0) %>
+                                        </div>
+                                        <div>
+                                            <div class="fw-bold text-dark"><%= candidate.firstName %> <%= candidate.lastName %></div>
+                                            <div class="small text-secondary"><%= candidate.email || 'Mail Yok' %></div>
+                                        </div>
+                                    </div>
+                                </td>
+                                <td><span class="badge bg-soft-primary"><%= candidate.targetState || '-' %></span></td>
+                                <td class="d-none d-md-table-cell"><span class="badge bg-light text-dark border"><%= candidate.currentStage %></span></td>
+                                <td>
+                                    <% const pendingApps = candidate.appointments ? candidate.appointments.filter(a => a.status === 'Beklemede').length : 0; %>
+                                    <% if(pendingApps > 0) { %>
+                                        <span class="badge bg-danger"><%= pendingApps %> Randevu</span>
+                                    <% } else { %>
+                                        <span class="text-muted small">-</span>
+                                    <% } %>
+                                </td>
+                                <td class="text-end pe-4">
+                                    <button class="btn-action me-1" data-bs-toggle="modal" data-bs-target="#detailModal<%= candidate._id %>"><i class="fas fa-sliders-h"></i></button>
+                                    <button class="btn-action" data-bs-toggle="modal" data-bs-target="#msgModal<%= candidate._id %>"><i class="far fa-comment-dots"></i></button>
+                                </td>
+                            </tr>
+                            <% }) %>
+                        </tbody>
+                    </table>
+                </div>
             </div>
-            <button class="btn btn-primary fw-semibold rounded-pill px-4" data-bs-toggle="modal" data-bs-target="#addCandidateModal">
-                <i class="fas fa-plus me-2"></i> Yeni Aday
-            </button>
         </div>
 
-        <div class="table-responsive">
-            <table class="table table-hover mb-0">
-                <thead>
-                    <tr>
-                        <th class="ps-4">Aday Bilgisi</th>
-                        <th>Hedef Eyalet</th>
-                        <th class="d-none d-md-table-cell">Aşama</th>
-                        <th>Bekleyenler</th>
-                        <th class="text-end pe-4">İşlemler</th>
-                    </tr>
-                </thead>
-                <tbody>
-                    <% candidates.forEach(candidate => { %>
-                    <tr>
-                        <td class="ps-4">
-                            <div class="d-flex align-items-center">
-                                <div class="avatar-circle me-3">
-                                    <%= candidate.firstName.charAt(0) %><%= candidate.lastName.charAt(0) %>
+        <div class="col-lg-3">
+            <div class="main-card h-100">
+                <div class="p-3 border-bottom bg-light">
+                    <h6 class="fw-bold mb-0 text-dark"><i class="fas fa-calendar-alt me-2 text-primary"></i>Yaklaşan Randevular</h6>
+                </div>
+                <div class="p-0">
+                    <% if(appointments && appointments.length > 0) { %>
+                        <div class="list-group list-group-flush">
+                            <% appointments.forEach(app => { %>
+                                <div class="list-group-item p-3 border-bottom">
+                                    <div class="d-flex justify-content-between align-items-start mb-1">
+                                        <span class="badge bg-primary"><%= app.time %></span>
+                                        <small class="text-muted fw-bold"><%= new Date(app.date).toLocaleDateString('tr-TR') %></small>
+                                    </div>
+                                    
+                                    <h6 class="mb-1 fw-bold text-dark">
+                                        <% if(app.candidateId) { %>
+                                            <%= app.candidateId.firstName %> <%= app.candidateId.lastName %>
+                                        <% } else { %>
+                                            Bilinmeyen Aday
+                                        <% } %>
+                                    </h6>
+                                    
+                                    <p class="mb-2 small text-secondary"><%= app.type %></p>
+                                    
+                                    <div class="d-flex gap-2">
+                                        <form action="/admin/appointment/status" method="POST" class="w-50">
+                                            <input type="hidden" name="candidateId" value="<%= app.candidateId?._id %>">
+                                            <input type="hidden" name="appId" value="<%= app._id %>"> <input type="hidden" name="status" value="Onaylandı">
+                                            <button class="btn btn-success btn-sm w-100 py-0" style="font-size: 12px;">Onayla</button>
+                                        </form>
+                                        
+                                        <form action="/admin/appointment/status" method="POST" class="w-50">
+                                            <input type="hidden" name="candidateId" value="<%= app.candidateId?._id %>">
+                                            <input type="hidden" name="appId" value="<%= app._id %>">
+                                            <input type="hidden" name="status" value="İptal">
+                                            <button class="btn btn-outline-danger btn-sm w-100 py-0" style="font-size: 12px;">Red</button>
+                                        </form>
+                                    </div>
                                 </div>
-                                <div>
-                                    <div class="fw-bold text-dark"><%= candidate.firstName %> <%= candidate.lastName %></div>
-                                    <div class="small text-secondary"><%= candidate.email || 'E-posta yok' %></div>
-                                </div>
-                            </div>
-                        </td>
-
-                        <td>
-                            <% if(candidate.targetState && candidate.targetState !== 'Belirtilmedi') { %>
-                                <span class="status-badge bg-soft-primary"><%= candidate.targetState %></span>
-                            <% } else { %>
-                                <span class="text-muted small">-</span>
-                            <% } %>
-                        </td>
-
-                        <td class="d-none d-md-table-cell">
-                            <span class="status-badge bg-soft-success">
-                                <%= candidate.currentStage %>
-                            </span>
-                        </td>
-
-                        <td>
-                            <% const pendingDocs = candidate.documents.filter(d => d.status === 'İnceleniyor').length; %>
-                            <% const pendingApps = candidate.appointments ? candidate.appointments.filter(a => a.status === 'Beklemede').length : 0; %>
-                            
-                            <div class="d-flex flex-column gap-1">
-                                <% if(pendingDocs > 0) { %>
-                                    <span class="status-badge bg-soft-warning border border-warning">
-                                        <i class="fas fa-file-alt me-1"></i> <%= pendingDocs %> Belge
-                                    </span>
-                                <% } %>
-                                <% if(pendingApps > 0) { %>
-                                    <span class="status-badge bg-soft-danger border border-danger">
-                                        <i class="fas fa-calendar-check me-1"></i> <%= pendingApps %> Randevu
-                                    </span>
-                                <% } %>
-                                <% if(pendingDocs === 0 && pendingApps === 0) { %>
-                                    <span class="text-muted small"><i class="fas fa-check text-success me-1"></i> Temiz</span>
-                                <% } %>
-                            </div>
-                        </td>
-
-                        <td class="text-end pe-4">
-                            <button class="btn-action me-1 position-relative" data-bs-toggle="modal" data-bs-target="#detailModal<%= candidate._id %>" title="Yönet">
-                                <i class="fas fa-sliders-h"></i>
-                                <% if(candidate.notes && candidate.notes.length > 0) { %>
-                                    <span class="position-absolute top-0 start-100 translate-middle p-1 bg-danger border border-light rounded-circle">
-                                        <span class="visually-hidden">Not Var</span>
-                                    </span>
-                                <% } %>
-                            </button>
-                            <button class="btn-action" data-bs-toggle="modal" data-bs-target="#msgModal<%= candidate._id %>" title="Mesaj">
-                                <i class="far fa-comment-dots"></i>
-                            </button>
-                        </td>
-                    </tr>
-                    <% }) %>
-                </tbody>
-            </table>
+                            <% }) %>
+                        </div>
+                    <% } else { %>
+                        <div class="text-center py-5">
+                            <i class="fas fa-calendar-check fa-3x text-muted opacity-25 mb-3"></i>
+                            <p class="text-muted small">Bekleyen randevu yok.</p>
+                        </div>
+                    <% } %>
+                </div>
+            </div>
         </div>
+
     </div>
-</div>
-
 <% candidates.forEach(candidate => { %>
 
     <div class="modal fade" id="detailModal<%= candidate._id %>" tabindex="-1">

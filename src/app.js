@@ -10,6 +10,7 @@ const multer = require('multer');
 require('dotenv').config(); 
 const PDFDocument = require('pdfkit'); 
 const fs = require('fs');
+const Appointment = require('./models/Appointment');
 
 // --- YENİ MODEL: ORTAK DOSYALAR ---
 const GlobalFileSchema = new mongoose.Schema({
@@ -306,9 +307,38 @@ app.get('/appointments', authCheck, (req, res) => {
     res.render('appointments', { user: req.user, page: 'appointments', appointments: sortedApps });
 });
 
+// --- RANDEVU OLUŞTURMA (DÜZELTİLMİŞ) ---
 app.post('/appointments/create', authCheck, async (req, res) => {
-    await Candidate.findByIdAndUpdate(req.user._id, { $push: { appointments: { date: req.body.date, time: req.body.time, type: req.body.type, status: 'Beklemede', createdAt: new Date() } } });
-    res.redirect('/appointments');
+    try {
+        console.log("Randevu oluşturuluyor...", req.body);
+
+        // 1. ORTAK KUTUYA EKLE (Admin görsün diye)
+        await Appointment.create({
+            candidateId: req.user._id,
+            date: req.body.date,
+            time: req.body.time,
+            type: req.body.type,
+            status: 'Beklemede'
+        });
+
+        // 2. ADAYIN CEBİNE EKLE (Kendi panelinde görsün diye)
+        await Candidate.findByIdAndUpdate(req.user._id, { 
+            $push: { 
+                appointments: { 
+                    date: req.body.date, 
+                    time: req.body.time, 
+                    type: req.body.type, 
+                    status: 'Beklemede', 
+                    createdAt: new Date() 
+                } 
+            } 
+        });
+
+        res.redirect('/appointments?status=success');
+    } catch (error) {
+        console.error("Randevu Hatası:", error);
+        res.redirect('/appointments?error=failed');
+    }
 });
 
 app.get('/processes', authCheck, (req, res) => {
@@ -339,10 +369,27 @@ app.get('/messages', authCheck, async (req, res) => {
 
 app.get('/help', authCheck, (req, res) => res.render('generic_page', { user: req.user, pageTitle: 'Yardım', page: 'help', icon: 'fa-question-circle' }));
 
-// --- ADMIN YOLLARI ---
+// --- ADMIN PANELİ (GÜNCELLENDİ) ---
+// --- ADMIN PANELİ ---
 app.get('/admin', adminAuthCheck, async (req, res) => {
-    const candidates = await Candidate.find().sort({ applicationDate: -1 });
-    res.render('admin', { candidates, stages: STAGES });
+    try {
+        const candidates = await Candidate.find().sort({ createdAt: -1 });
+        
+        // Randevuları ORTAK KUTUDAN (Appointment) çekiyoruz
+        const appointments = await Appointment.find({ status: 'Beklemede' })
+                                              .populate('candidateId')
+                                              .sort({ date: 1 });
+
+        res.render('admin', { 
+            candidates, 
+            stages: STAGES, 
+            appointments, // EJS'ye gönderiyoruz
+            user: { firstName: 'Admin' } 
+        });
+    } catch (error) {
+        console.error(error);
+        res.render('admin_login');
+    }
 });
 
 // --- ADMIN İŞLEMLERİ ---
@@ -377,11 +424,37 @@ app.post('/admin/document/status', adminAuthCheck, async (req, res) => {
     res.redirect('/admin');
 });
 
+// --- RANDEVU DURUMU GÜNCELLEME (HEM ADMIN HEM ADAY İÇİN) ---
+// --- RANDEVU DURUMU GÜNCELLEME ---
 app.post('/admin/appointment/status', adminAuthCheck, async (req, res) => {
-    await Candidate.updateOne({ _id: req.body.candidateId, "appointments._id": req.body.appId }, { $set: { "appointments.$.status": req.body.status } });
-    res.redirect('/admin');
-});
+    try {
+        const { appId, candidateId, status } = req.body;
 
+        // 1. Adminin Gördüğü Ortak Listeyi Güncelle
+        const appointment = await Appointment.findByIdAndUpdate(appId, { status: status });
+
+        // 2. Adayın Kendi Profilini (Gömülü Veriyi) Güncelle
+        if (appointment) {
+            // Adayın içindeki 'appointments' dizisinde tarihi ve saati eşleşen kaydı bulup durumunu değiştiriyoruz
+            await Candidate.updateOne(
+                { 
+                    _id: candidateId, 
+                    "appointments.date": appointment.date, 
+                    "appointments.time": appointment.time 
+                },
+                { 
+                    $set: { "appointments.$.status": status } 
+                }
+            );
+        }
+
+        res.redirect('/admin?status=appointment_updated');
+
+    } catch (error) {
+        console.error("Randevu Güncelleme Hatası:", error);
+        res.redirect('/admin?error=update_failed');
+    }
+});
 app.post('/admin/message/internal', adminAuthCheck, async (req, res) => {
     await Message.create({ candidateId: req.body.candidateId, content: req.body.content, sender: 'Admin', date: new Date(), isRead: false });
     res.redirect('/admin');
@@ -448,14 +521,32 @@ app.post('/admin/candidate/add-note', adminAuthCheck, async (req, res) => {
     }
 });
 
-app.get('/admin/candidate/delete-note/:candidateId/:noteId', adminAuthCheck, async (req, res) => {
+// 2. Aday Detay Sayfası (DÜZELTİLDİ)
+// authCheck YERİNE adminAuthCheck KULLANIYORUZ
+app.get('/admin/candidate/:id', adminAuthCheck, async (req, res) => {
     try {
-        await Candidate.findByIdAndUpdate(req.params.candidateId, {
-            $pull: { notes: { _id: req.params.noteId } }
+        const candidateId = req.params.id;
+        const candidate = await Candidate.findById(candidateId);
+        
+        if (!candidate) return res.send("Aday bulunamadı.");
+
+        // Bu adaya ait randevular
+        let candidateAppointments = [];
+        try {
+            candidateAppointments = await Appointment.find({ candidateId: candidateId }).sort({ date: 1 });
+        } catch (err) {
+            console.log("Randevu çekilemedi:", err.message);
+        }
+
+        // Admin olduğu için user objesini sahte gönderiyoruz (View hatası olmasın diye)
+        res.render('admin_candidate_detail', { 
+            user: { firstName: 'Admin', lastName: 'Panel' }, 
+            candidate, 
+            appointments: candidateAppointments 
         });
-        res.redirect('/admin?status=note_deleted');
     } catch (error) {
-        res.redirect('/admin?error=delete_failed');
+        console.error("Detay Sayfası Hatası:", error);
+        res.redirect('/admin');
     }
 });
 // ============================================
