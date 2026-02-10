@@ -5,189 +5,249 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title>CV Oluşturucu | Almanya Kariyer</title>
     
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700&display=swap" rel="stylesheet">
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/animate.css/4.1.1/animate.min.css">
+    <link href="https://cdn.jsdelivr.net/npm/@simonwep/pickr/dist/themes/nano.min.css" rel="stylesheet">
     
     <style>
         :root {
-            --primary: #4f46e5;
-            --bg-body: #f3f4f6;
+            /* Varsayılan veya Kayıtlı Renk */
+            --primary: <%= user.cvDetails?.cvColor || '#4f46e5' %>;
+            --bg-body: #f8fafc;
             --surface: #ffffff;
-            --border: #e5e7eb;
+            --border: #e2e8f0;
         }
 
         body {
             background-color: var(--bg-body);
-            font-family: 'Inter', sans-serif;
-            color: #1f2937;
-            padding-bottom: 100px; /* Alt bar için boşluk */
+            font-family: 'Plus Jakarta Sans', sans-serif;
+            color: #334155;
+            padding-bottom: 120px;
         }
 
-        /* -------------------------------------------
-           RESPONSIVE AYARLAR
-        ------------------------------------------- */
-        
-        /* 1. Navbar */
+        /* --- STİLLER --- */
         .top-bar {
             background: var(--surface);
             border-bottom: 1px solid var(--border);
-            padding: 10px 0;
-            position: sticky;
-            top: 0;
-            z-index: 1020;
+            padding: 15px 0;
+            position: sticky; top: 0; z-index: 1020;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.05);
         }
 
-        /* 2. Kartlar (Masaüstü vs Mobil) */
         .section-card {
             background: var(--surface);
             border: 1px solid var(--border);
-            border-radius: 16px;
-            padding: 30px; /* Masaüstü boşluk */
-            margin-bottom: 20px;
-            box-shadow: 0 2px 4px rgba(0,0,0,0.02);
-            scroll-margin-top: 90px;
+            border-radius: 20px;
+            padding: 35px;
+            margin-bottom: 30px;
+            box-shadow: 0 6px 15px rgba(0,0,0,0.03);
+            scroll-margin-top: 100px;
+            transition: transform 0.3s ease, box-shadow 0.3s ease;
+        }
+        .section-card:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 10px 25px rgba(0,0,0,0.08);
         }
 
-        /* MOBİL İÇİN ÖZEL AYARLAR (Ekran 992px'den küçükse) */
-        @media (max-width: 991.98px) {
-            .section-card {
-                padding: 20px; /* Mobilde daha dar boşluk */
-                border-radius: 12px;
-            }
-            .container {
-                padding-left: 15px;
-                padding-right: 15px;
-            }
-            /* Mobilde başlıklar küçülsün */
-            h4, h5 { font-size: 1.1rem; }
+        .section-header {
+            display: flex; align-items: center; gap: 15px;
+            margin-bottom: 30px; padding-bottom: 20px;
+            border-bottom: 2px solid var(--border);
+        }
+        .section-icon {
+            width: 50px; height: 50px;
+            background: linear-gradient(135deg, var(--primary), #6366f1);
+            color: white;
+            border-radius: 12px;
+            display: flex; align-items: center; justify-content: center;
+            font-size: 1.3rem;
+            box-shadow: 0 4px 10px rgba(79, 70, 229, 0.3);
         }
 
-        /* 3. Sol Menü (Sadece Masaüstünde Görünür) */
-        .sidebar-menu {
-            position: sticky;
-            top: 90px;
-        }
+        .sidebar-menu { position: sticky; top: 120px; }
         .menu-link {
-            display: block;
-            padding: 10px 15px;
-            color: #6b7280;
-            text-decoration: none;
-            border-radius: 8px;
-            font-weight: 500;
-            margin-bottom: 5px;
-            transition: 0.2s;
+            display: flex; align-items: center; gap: 12px;
+            padding: 14px 20px;
+            color: #64748b; text-decoration: none;
+            border-radius: 12px; font-weight: 500;
+            margin-bottom: 8px; transition: all 0.3s ease;
+            border-left: 4px solid transparent;
         }
         .menu-link:hover, .menu-link.active {
-            background: #eef2ff;
+            background: linear-gradient(to right, rgba(79, 70, 229, 0.05), transparent);
             color: var(--primary);
+            box-shadow: 0 4px 12px rgba(0,0,0,0.05);
+            border-left-color: var(--primary);
         }
-        .menu-link i { width: 20px; margin-right: 8px; }
 
-        /* 4. Fotoğraf Yükleme Alanı */
         .photo-uploader {
-            width: 120px;
-            height: 120px;
+            width: 160px; height: 160px;
             border-radius: 50%;
-            background: #f9fafb;
-            border: 2px dashed #cbd5e1;
+            background: linear-gradient(135deg, #f1f5f9, #e2e8f0);
+            border: 4px solid white;
+            box-shadow: 0 8px 25px rgba(0,0,0,0.1);
             display: flex; align-items: center; justify-content: center;
             cursor: pointer; overflow: hidden; position: relative;
-            margin: 0 auto 15px auto; /* Mobilde ortala */
+            margin: 0 auto 20px auto; transition: all 0.3s ease;
         }
-        @media (min-width: 992px) {
-            .photo-uploader { margin: 0 0 0 0; } /* Masaüstünde sola yasla */
-        }
+        .photo-uploader:hover { transform: scale(1.05); box-shadow: 0 12px 30px rgba(79, 70, 229, 0.2); }
         .photo-preview { width: 100%; height: 100%; object-fit: cover; }
 
-        /* 5. Alt Aksiyon Barı (Sticky Footer) */
-        .action-bar {
-            position: fixed;
-            bottom: 0; left: 0; right: 0;
-            background: var(--surface);
-            border-top: 1px solid var(--border);
-            padding: 12px 0;
-            z-index: 1030;
-            box-shadow: 0 -4px 10px rgba(0,0,0,0.05);
+        /* Renk Seçimi */
+        .color-option {
+            width: 40px; height: 40px; border-radius: 50%;
+            cursor: pointer; border: 3px solid white;
+            box-shadow: 0 0 0 2px #e2e8f0; transition: all 0.3s ease;
         }
-        
-        /* Floating Input Düzenlemesi */
-        .form-floating > .form-control { border-radius: 10px; border-color: #e5e7eb; }
-        .form-floating > .form-control:focus { border-color: var(--primary); box-shadow: 0 0 0 4px rgba(79, 70, 229, 0.1); }
+        .color-option.active { 
+            box-shadow: 0 0 0 3px var(--primary), 0 0 0 6px rgba(79, 70, 229, 0.1);
+            transform: scale(1.15); 
+        }
+
+        .action-bar {
+            position: fixed; bottom: 0; left: 0; right: 0;
+            background: rgba(255,255,255,0.95);
+            backdrop-filter: blur(20px);
+            border-top: 1px solid var(--border);
+            padding: 20px 0; z-index: 1030;
+            box-shadow: 0 -5px 20px rgba(0,0,0,0.05);
+        }
+
+        .form-floating > .form-control { border-radius: 12px; border: 2px solid #e2e8f0; }
+        .form-floating > .form-control:focus { border-color: var(--primary); box-shadow: 0 0 0 4px rgba(79, 70, 229, 0.15); }
+
+        .experience-card {
+            background: linear-gradient(135deg, #f8fafc, #f1f5f9);
+            border-radius: 15px; padding: 25px;
+            border: 2px solid transparent; position: relative; overflow: hidden;
+            margin-bottom: 20px;
+        }
+        .experience-card:hover { border-color: var(--primary); }
+        .experience-card::before {
+            content: ''; position: absolute; top: 0; left: 0; width: 4px; height: 100%;
+            background: linear-gradient(to bottom, var(--primary), #6366f1);
+        }
+
+        /* Progress Bar */
+        .completion-progress { position: fixed; top: 0; left: 0; width: 100%; height: 4px; background: #e2e8f0; z-index: 1040; }
+        .completion-progress-bar { height: 100%; background: linear-gradient(to right, var(--primary), #8b5cf6); transition: width 0.5s ease; }
+
+        @media (max-width: 768px) {
+            .section-card { padding: 20px; }
+            .photo-uploader { width: 140px; height: 140px; }
+        }
     </style>
 </head>
 <body>
 
+    <div class="completion-progress">
+        <div class="completion-progress-bar" id="progressBar" style="width: 0%"></div>
+    </div>
+
     <div class="top-bar">
         <div class="container d-flex justify-content-between align-items-center">
-            <div class="d-flex align-items-center gap-2">
-                <a href="/panel" class="text-dark text-decoration-none">
-                    <i class="fas fa-arrow-left bg-light p-2 rounded-circle border"></i>
+            <div class="d-flex align-items-center gap-3">
+                <a href="/panel" class="btn btn-light rounded-circle border shadow-sm" style="width: 44px; height: 44px; display:flex; align-items:center; justify-content:center;">
+                    <i class="fas fa-arrow-left"></i>
                 </a>
-                <h6 class="fw-bold mb-0">CV Oluşturucu</h6>
+                <div>
+                    <h5 class="fw-bold mb-0 text-dark">Profesyonel CV Oluşturucu</h5>
+                    <small class="text-muted">Bilgilerinizi eksiksiz doldurun</small>
+                </div>
             </div>
-            <span class="badge bg-success bg-opacity-10 text-success border border-success d-none d-sm-inline-block">Otomatik Taslak</span>
+            
+            <div class="d-none d-md-block">
+                <div class="dropdown">
+                    <button class="btn btn-outline-primary btn-sm dropdown-toggle d-flex align-items-center gap-2" type="button" data-bs-toggle="dropdown">
+                        <i class="fas fa-palette"></i> Renk Teması
+                    </button>
+                    <div class="dropdown-menu p-3 shadow-lg border-0" style="width: 320px;">
+                        <h6 class="fw-bold mb-3 small text-muted text-uppercase">Tema Rengi Seçin</h6>
+                        <div class="d-flex flex-wrap gap-2 mb-3">
+                            <div class="color-option" style="background: #0f172a;" onclick="selectColor(this, '#0f172a')"></div>
+                            <div class="color-option" style="background: #4f46e5;" onclick="selectColor(this, '#4f46e5')"></div>
+                            <div class="color-option" style="background: #059669;" onclick="selectColor(this, '#059669')"></div>
+                            <div class="color-option" style="background: #dc2626;" onclick="selectColor(this, '#dc2626')"></div>
+                            <div class="color-option" style="background: #7c3aed;" onclick="selectColor(this, '#7c3aed')"></div>
+                            <div class="color-option" style="background: #0891b2;" onclick="selectColor(this, '#0891b2')"></div>
+                        </div>
+                        <div class="input-group input-group-sm">
+                            <span class="input-group-text">Özel</span>
+                            <input type="color" class="form-control form-control-color" id="customColorPicker" value="<%= user.cvDetails?.cvColor || '#4f46e5' %>" onchange="selectCustomColor(this.value)">
+                        </div>
+                    </div>
+                </div>
+            </div>
         </div>
     </div>
 
-    <div class="container mt-4">
+    <div class="container mt-5">
         <form action="/cv-builder/save" method="POST" enctype="multipart/form-data" id="mainForm">
-            <div class="row">
+            <input type="hidden" name="cvColor" id="cvColorInput" value="<%= user.cvDetails?.cvColor || '#0f172a' %>">
+
+            <div class="row g-4">
                 
                 <div class="col-lg-3 d-none d-lg-block">
                     <div class="sidebar-menu">
                         <small class="text-uppercase text-muted fw-bold ps-3 mb-2 d-block" style="font-size: 0.7rem;">MENÜ</small>
-                        <a href="#sec-profile" class="menu-link active"><i class="fas fa-id-card"></i> Kimlik & İletişim</a>
-                        <a href="#sec-about" class="menu-link"><i class="fas fa-user"></i> Hakkımda</a>
-                        <a href="#sec-skills" class="menu-link"><i class="fas fa-star"></i> Yetenekler</a>
-                        <a href="#sec-experience" class="menu-link"><i class="fas fa-briefcase"></i> Deneyim</a>
+                        <a href="#sec-profile" class="menu-link active"><i class="fas fa-id-card"></i> Kişisel Bilgiler</a>
+                        <a href="#sec-about" class="menu-link"><i class="fas fa-user-edit"></i> Profesyonel Özet</a>
+                        <a href="#sec-skills" class="menu-link"><i class="fas fa-bolt"></i> Yetkinlikler</a>
+                        <a href="#sec-experience" class="menu-link"><i class="fas fa-briefcase"></i> İş Deneyimi</a>
                         <a href="#sec-education" class="menu-link"><i class="fas fa-graduation-cap"></i> Eğitim</a>
+                        <a href="#sec-certificates" class="menu-link"><i class="fas fa-award"></i> Sertifikalar</a>
+                        <a href="#sec-references" class="menu-link"><i class="fas fa-handshake"></i> Referanslar</a>
                     </div>
                 </div>
 
                 <div class="col-12 col-lg-9">
 
                     <div id="sec-profile" class="section-card">
-                        <div class="section-title fw-bold mb-4 border-bottom pb-2">
-                            <i class="fas fa-id-card text-primary me-2"></i> Kimlik & İletişim Bilgileri
+                        <div class="section-header">
+                            <div class="section-icon"><i class="fas fa-id-card"></i></div>
+                            <h5 class="fw-bold m-0">Kimlik & İletişim</h5>
                         </div>
                         
                         <div class="row">
-                            <div class="col-lg-auto text-center mb-4 mb-lg-0">
+                            <div class="col-md-4 text-center mb-4 border-end">
                                 <input type="file" id="photoInput" name="photo" accept="image/*" hidden onchange="previewImage(this)">
-                                <div class="photo-uploader shadow-sm" onclick="document.getElementById('photoInput').click()">
+                                <div class="photo-uploader" onclick="document.getElementById('photoInput').click()">
                                     <% if(user.cvDetails?.profilePhoto) { %>
                                         <img src="<%= user.cvDetails.profilePhoto %>" id="previewImg" class="photo-preview">
                                     <% } else { %>
                                         <div id="uploadPlaceholder" class="text-center text-muted">
-                                            <i class="fas fa-camera fa-2x"></i>
+                                            <i class="fas fa-camera fa-3x mb-2"></i><br>FOTOĞRAF
                                         </div>
                                         <img src="" id="previewImg" class="photo-preview d-none">
                                     <% } %>
                                 </div>
-                                <div class="small text-muted fw-bold mt-2">Profil Fotoğrafı</div>
+                                <div class="form-floating mb-2">
+                                    <input type="date" name="birthDate" class="form-control" value="<%= user.cvDetails?.birthDate %>">
+                                    <label>Doğum Tarihi</label>
+                                </div>
+                                <div class="form-floating">
+                                    <select name="nationality" class="form-select">
+                                        <option value="Türk" <%= user.cvDetails?.nationality === 'Türk' ? 'selected' : '' %>>Türk</option>
+                                        <option value="Alman" <%= user.cvDetails?.nationality === 'Alman' ? 'selected' : '' %>>Alman</option>
+                                        <option value="Çifte Vatandaş" <%= user.cvDetails?.nationality === 'Çifte Vatandaş' ? 'selected' : '' %>>Çifte Vatandaş</option>
+                                    </select>
+                                    <label>Uyruk</label>
+                                </div>
                             </div>
 
-                            <div class="col-lg ps-lg-4">
+                            <div class="col-md-8 ps-md-4">
                                 <div class="row g-3">
+                                    <div class="col-6"><div class="form-floating"><input type="text" class="form-control" value="<%= user.firstName %>" disabled><label>Ad</label></div></div>
+                                    <div class="col-6"><div class="form-floating"><input type="text" class="form-control" value="<%= user.lastName %>" disabled><label>Soyad</label></div></div>
+                                    <div class="col-6"><div class="form-floating"><input type="email" name="email" class="form-control" value="<%= user.cvDetails?.email || user.email %>"><label>Email</label></div></div>
+                                    <div class="col-6"><div class="form-floating"><input type="tel" name="phone" class="form-control" value="<%= user.cvDetails?.phone || user.phone %>"><label>Telefon</label></div></div>
+                                    <div class="col-12"><div class="form-floating"><input type="text" name="address" class="form-control" value="<%= user.cvDetails?.address || user.location %>"><label>Adres</label></div></div>
+                                    <div class="col-12"><div class="form-floating"><input type="text" name="linkedin" class="form-control" value="<%= user.cvDetails?.linkedin %>"><label>LinkedIn (Opsiyonel)</label></div></div>
                                     <div class="col-12">
                                         <div class="form-floating">
-                                            <input type="text" name="drivingLicense" class="form-control border-primary border-opacity-25" id="licenseInput" value="<%= user.cvDetails && user.cvDetails.drivingLicense ? user.cvDetails.drivingLicense : '' %>" placeholder="Ehliyet">
-                                            <label class="text-primary fw-bold"><i class="fas fa-car me-1"></i> Ehliyet Sınıfları (Örn: B, C, CE, SRC)</label>
-                                        </div>
-                                    </div>
-
-                                    <div class="col-md-6">
-                                        <div class="form-floating">
-                                            <input type="email" name="email" class="form-control" value="<%= user.cvDetails?.email || user.email %>" placeholder="Email">
-                                            <label>E-Posta Adresi</label>
-                                        </div>
-                                    </div>
-                                    <div class="col-md-6">
-                                        <div class="form-floating">
-                                            <input type="tel" name="phone" class="form-control" value="<%= user.cvDetails?.phone || user.phone %>" placeholder="Telefon">
-                                            <label>Telefon Numarası</label>
+                                            <input type="text" name="drivingLicense" class="form-control" value="<%= user.cvDetails?.drivingLicense %>" placeholder="B">
+                                            <label>Ehliyet (Örn: B, CE, SRC)</label>
                                         </div>
                                     </div>
                                 </div>
@@ -196,116 +256,162 @@
                     </div>
 
                     <div id="sec-about" class="section-card">
-                        <div class="section-title fw-bold mb-3"><i class="fas fa-user-edit text-primary me-2"></i> Kişisel Özet</div>
+                        <div class="section-header"><div class="section-icon"><i class="fas fa-user-edit"></i></div><h5 class="fw-bold m-0">Profesyonel Özet</h5></div>
                         <div class="form-floating">
-                            <textarea name="summary" class="form-control" placeholder="Özet" id="summaryBox" style="height: 120px"><%= user.cvDetails?.summary %></textarea>
-                            <label for="summaryBox">Kendinizi kısaca tanıtın...</label>
+                            <textarea name="summary" class="form-control" style="height: 120px" id="summaryTextarea"><%= user.cvDetails?.summary %></textarea>
+                            <label>Kariyer hedefiniz ve özetiniz...</label>
                         </div>
+                        <div class="text-end text-muted small mt-1" id="summaryCounter">0 Karakter</div>
                     </div>
 
                     <div id="sec-skills" class="section-card">
-                        <div class="section-title fw-bold mb-3"><i class="fas fa-bolt text-warning me-2"></i> Yetkinlikler</div>
+                        <div class="section-header"><div class="section-icon"><i class="fas fa-bolt"></i></div><h5 class="fw-bold m-0">Yetkinlikler</h5></div>
                         <div class="row g-3">
-                            <div class="col-12 col-md-6">
-                                <div class="form-floating">
-                                    <input type="text" name="skills" class="form-control" id="skillsInput" value="<%= user.cvDetails?.skills %>" placeholder="Yetenekler">
-                                    <label>Yetenekler (Virgülle ayırın)</label>
-                                </div>
+                            <div class="col-md-6">
+                                <label class="fw-bold small mb-2">Mesleki Yetenekler</label>
+                                <textarea name="skills" class="form-control" rows="4" placeholder="Virgülle ayırarak yazın (Örn: Kaynak, Forklift)"><%= user.cvDetails?.skills %></textarea>
                             </div>
-                            <div class="col-12 col-md-6">
-                                <div class="form-floating">
-                                    <input type="text" name="languages" class="form-control" id="langInput" value="<%= user.cvDetails?.languages %>" placeholder="Diller">
-                                    <label>Diller (Örn: Türkçe, Almanca)</label>
-                                </div>
+                            <div class="col-md-6">
+                                <label class="fw-bold small mb-2">Yabancı Diller</label>
+                                <% 
+                                    let langs = user.cvDetails?.languages;
+                                    if(Array.isArray(langs)) langs = langs.join(', ');
+                                %>
+                                <textarea name="languages" class="form-control" rows="4" placeholder="Örn: Türkçe (Anadil), Almanca (B1)"><%= langs %></textarea>
+                            </div>
+                            <div class="col-12">
+                                <label class="fw-bold small mb-2">Teknik / Bilgisayar Becerileri</label>
+                                <input type="text" name="technicalSkills" class="form-control" value="<%= user.cvDetails?.technicalSkills %>" placeholder="Örn: MS Office, SAP, AutoCAD">
+                            </div>
+                            <div class="col-12">
+                                <label class="fw-bold small mb-2">Sosyal Beceriler (Soft Skills)</label>
+                                <input type="text" name="softSkills" class="form-control" value="<%= user.cvDetails?.softSkills %>" placeholder="Örn: Takım çalışması, İletişim">
                             </div>
                         </div>
                     </div>
 
                     <div id="sec-experience" class="section-card">
-                        <div class="section-title fw-bold mb-3"><i class="fas fa-briefcase text-success me-2"></i> İş Deneyimi</div>
+                        <div class="section-header"><div class="section-icon"><i class="fas fa-briefcase"></i></div><h5 class="fw-bold m-0">İş Deneyimi</h5></div>
                         
-                        <div class="bg-light p-3 rounded-3 mb-3 border">
-                            <h6 class="fw-bold small text-muted mb-2">SON İŞYERİ</h6>
-                            <div class="row g-2">
-                                <div class="col-12 col-md-6">
-                                    <div class="form-floating">
-                                        <input type="text" name="exp1_title" class="form-control" value="<%= user.cvDetails?.experience1?.title %>" placeholder="Pozisyon">
-                                        <label>Pozisyon Adı</label>
-                                    </div>
-                                </div>
-                                <div class="col-12 col-md-6">
-                                    <div class="form-floating">
-                                        <input type="text" name="exp1_company" class="form-control" value="<%= user.cvDetails?.experience1?.company %>" placeholder="Şirket">
-                                        <label>Şirket Adı</label>
-                                    </div>
-                                </div>
-                                <div class="col-12">
-                                    <div class="form-floating">
-                                        <input type="text" name="exp1_date" class="form-control" value="<%= user.cvDetails?.experience1?.date %>" placeholder="Tarih">
-                                        <label>Tarih (Yıl)</label>
-                                    </div>
-                                </div>
-                                <div class="col-12">
-                                    <div class="form-floating">
-                                        <textarea name="exp1_desc" class="form-control" style="height: 80px" placeholder="Açıklama"><%= user.cvDetails?.experience1?.desc %></textarea>
-                                        <label>İş Tanımı</label>
-                                    </div>
-                                </div>
+                        <div class="experience-card">
+                            <h6 class="text-primary fw-bold mb-3">Son İşyeri</h6>
+                            <div class="row g-3">
+                                <div class="col-md-6"><div class="form-floating"><input type="text" name="exp1_title" class="form-control" value="<%= user.cvDetails?.experience1?.title %>"><label>Pozisyon</label></div></div>
+                                <div class="col-md-6"><div class="form-floating"><input type="text" name="exp1_company" class="form-control" value="<%= user.cvDetails?.experience1?.company %>"><label>Şirket</label></div></div>
+                                <div class="col-md-6"><div class="form-floating"><input type="text" name="exp1_date" class="form-control" value="<%= user.cvDetails?.experience1?.date %>"><label>Tarih</label></div></div>
+                                <div class="col-md-6"><div class="form-floating"><input type="text" name="exp1_location" class="form-control" value="<%= user.cvDetails?.experience1?.location %>"><label>Şehir</label></div></div>
+                                <div class="col-12"><div class="form-floating"><textarea name="exp1_desc" class="form-control" style="height:100px"><%= user.cvDetails?.experience1?.desc %></textarea><label>Görev Tanımı</label></div></div>
                             </div>
                         </div>
 
-                        <div class="bg-light p-3 rounded-3 border">
-                            <h6 class="fw-bold small text-muted mb-2">ÖNCEKİ İŞYERİ (OPSİYONEL)</h6>
-                            <div class="row g-2">
-                                <div class="col-12 col-md-6">
-                                    <div class="form-floating">
-                                        <input type="text" name="exp2_title" class="form-control" value="<%= user.cvDetails?.experience2?.title %>" placeholder="Pozisyon">
-                                        <label>Pozisyon Adı</label>
-                                    </div>
-                                </div>
-                                <div class="col-12 col-md-6">
-                                    <div class="form-floating">
-                                        <input type="text" name="exp2_company" class="form-control" value="<%= user.cvDetails?.experience2?.company %>" placeholder="Şirket">
-                                        <label>Şirket Adı</label>
-                                    </div>
-                                </div>
-                                <div class="col-12">
-                                    <div class="form-floating">
-                                        <input type="text" name="exp2_date" class="form-control" value="<%= user.cvDetails?.experience2?.date %>" placeholder="Tarih">
-                                        <label>Tarih (Yıl)</label>
-                                    </div>
-                                </div>
-                                <div class="col-12">
-                                    <div class="form-floating">
-                                        <textarea name="exp2_desc" class="form-control" style="height: 80px" placeholder="Açıklama"><%= user.cvDetails?.experience2?.desc %></textarea>
-                                        <label>İş Tanımı</label>
-                                    </div>
-                                </div>
+                        <div class="experience-card">
+                            <h6 class="text-muted fw-bold mb-3">Önceki İşyeri</h6>
+                            <div class="row g-3">
+                                <div class="col-md-6"><div class="form-floating"><input type="text" name="exp2_title" class="form-control" value="<%= user.cvDetails?.experience2?.title %>"><label>Pozisyon</label></div></div>
+                                <div class="col-md-6"><div class="form-floating"><input type="text" name="exp2_company" class="form-control" value="<%= user.cvDetails?.experience2?.company %>"><label>Şirket</label></div></div>
+                                <div class="col-md-6"><div class="form-floating"><input type="text" name="exp2_date" class="form-control" value="<%= user.cvDetails?.experience2?.date %>"><label>Tarih</label></div></div>
+                                <div class="col-md-6"><div class="form-floating"><input type="text" name="exp2_location" class="form-control" value="<%= user.cvDetails?.experience2?.location %>"><label>Şehir</label></div></div>
+                                <div class="col-12"><div class="form-floating"><textarea name="exp2_desc" class="form-control" style="height:80px"><%= user.cvDetails?.experience2?.desc %></textarea><label>Görev Tanımı</label></div></div>
                             </div>
                         </div>
+
+                        <% if(user.cvDetails?.exp_additional_title && Array.isArray(user.cvDetails.exp_additional_title)) { %>
+                            <% user.cvDetails.exp_additional_title.forEach((title, i) => { if(title) { %>
+                                <div class="experience-card mt-3">
+                                    <div class="d-flex justify-content-between align-items-center mb-3">
+                                        <h6 class="fw-bold mb-0 text-muted">Ek İş Deneyimi</h6>
+                                        <button type="button" class="btn btn-sm btn-outline-danger" onclick="this.parentElement.parentElement.remove()"><i class="fas fa-trash"></i></button>
+                                    </div>
+                                    <div class="row g-3">
+                                        <div class="col-md-6"><input type="text" name="exp_additional_title[]" class="form-control" value="<%= title %>" placeholder="Pozisyon"></div>
+                                        <div class="col-md-6"><input type="text" name="exp_additional_company[]" class="form-control" value="<%= user.cvDetails.exp_additional_company[i] %>" placeholder="Şirket"></div>
+                                        <div class="col-md-6"><input type="text" name="exp_additional_date[]" class="form-control" value="<%= user.cvDetails.exp_additional_date[i] %>" placeholder="Tarih"></div>
+                                        <div class="col-md-6"><input type="text" name="exp_additional_location[]" class="form-control" value="<%= user.cvDetails.exp_additional_location[i] %>" placeholder="Konum"></div>
+                                        <div class="col-12"><textarea name="exp_additional_desc[]" class="form-control" rows="2" placeholder="Görevler"><%= user.cvDetails.exp_additional_desc[i] %></textarea></div>
+                                    </div>
+                                </div>
+                            <% } }) %>
+                        <% } %>
+
+                        <button type="button" class="btn btn-outline-primary w-100 mt-3" onclick="addExperienceField()">
+                            <i class="fas fa-plus-circle me-2"></i>Ek İş Deneyimi Ekle
+                        </button>
                     </div>
 
                     <div id="sec-education" class="section-card">
-                        <div class="section-title fw-bold mb-3"><i class="fas fa-graduation-cap text-danger me-2"></i> Eğitim</div>
-                        <div class="row g-2">
-                            <div class="col-12">
-                                <div class="form-floating">
-                                    <input type="text" name="edu1_school" class="form-control" value="<%= user.cvDetails?.education1?.school %>" placeholder="Okul">
-                                    <label>Okul Adı</label>
-                                </div>
+                        <div class="section-header"><div class="section-icon"><i class="fas fa-graduation-cap"></i></div><h5 class="fw-bold m-0">Eğitim</h5></div>
+                        
+                        <div class="experience-card">
+                            <div class="row g-3">
+                                <div class="col-12"><div class="form-floating"><input type="text" name="edu1_school" class="form-control" value="<%= user.cvDetails?.education1?.school %>"><label>Okul Adı</label></div></div>
+                                <div class="col-md-6"><div class="form-floating"><input type="text" name="edu1_degree" class="form-control" value="<%= user.cvDetails?.education1?.degree %>"><label>Bölüm</label></div></div>
+                                <div class="col-md-6"><div class="form-floating"><input type="text" name="edu1_date" class="form-control" value="<%= user.cvDetails?.education1?.date %>"><label>Mezuniyet Yılı</label></div></div>
+                                <div class="col-12"><div class="form-floating"><textarea name="edu1_achievements" class="form-control" style="height:80px"><%= user.cvDetails?.education1?.achievements %></textarea><label>Başarılar (Opsiyonel)</label></div></div>
                             </div>
-                            <div class="col-6">
-                                <div class="form-floating">
-                                    <input type="text" name="edu1_degree" class="form-control" value="<%= user.cvDetails?.education1?.degree %>" placeholder="Bölüm">
-                                    <label>Bölüm/Derece</label>
+                        </div>
+
+                        <% if(user.cvDetails?.edu_additional_school && Array.isArray(user.cvDetails.edu_additional_school)) { %>
+                            <% user.cvDetails.edu_additional_school.forEach((school, i) => { if(school) { %>
+                                <div class="experience-card mt-3">
+                                    <div class="d-flex justify-content-between align-items-center mb-3">
+                                        <h6 class="fw-bold mb-0 text-muted">Ek Eğitim</h6>
+                                        <button type="button" class="btn btn-sm btn-outline-danger" onclick="this.parentElement.parentElement.remove()"><i class="fas fa-trash"></i></button>
+                                    </div>
+                                    <div class="row g-3">
+                                        <div class="col-md-6"><input type="text" name="edu_additional_school[]" class="form-control" value="<%= school %>" placeholder="Okul"></div>
+                                        <div class="col-md-6"><input type="text" name="edu_additional_degree[]" class="form-control" value="<%= user.cvDetails.edu_additional_degree[i] %>" placeholder="Bölüm"></div>
+                                        <div class="col-md-6"><input type="text" name="edu_additional_date[]" class="form-control" value="<%= user.cvDetails.edu_additional_date[i] %>" placeholder="Tarih"></div>
+                                        <div class="col-md-6"><input type="text" name="edu_additional_location[]" class="form-control" value="<%= user.cvDetails.edu_additional_location[i] %>" placeholder="Konum"></div>
+                                    </div>
                                 </div>
+                            <% } }) %>
+                        <% } %>
+
+                        <button type="button" class="btn btn-outline-primary w-100 mt-3" onclick="addEducationField()">
+                            <i class="fas fa-plus-circle me-2"></i>Ek Eğitim Ekle
+                        </button>
+                    </div>
+
+                    <div id="sec-certificates" class="section-card">
+                        <div class="section-header"><div class="section-icon"><i class="fas fa-award"></i></div><h5 class="fw-bold m-0">Sertifikalar</h5></div>
+                        
+                        <div class="experience-card">
+                            <div class="row g-3">
+                                <div class="col-md-6"><div class="form-floating"><input type="text" name="certificate1" class="form-control" value="<%= user.cvDetails?.certificate1 %>"><label>Sertifika Adı</label></div></div>
+                                <div class="col-md-6"><div class="form-floating"><input type="text" name="certificate1_issuer" class="form-control" value="<%= user.cvDetails?.certificate1_issuer %>"><label>Kurum</label></div></div>
+                                <div class="col-md-6"><div class="form-floating"><input type="text" name="certificate1_date" class="form-control" value="<%= user.cvDetails?.certificate1_date %>"><label>Tarih</label></div></div>
                             </div>
-                            <div class="col-6">
-                                <div class="form-floating">
-                                    <input type="text" name="edu1_date" class="form-control" value="<%= user.cvDetails?.education1?.date %>" placeholder="Yıl">
-                                    <label>Mezuniyet Yılı</label>
+                        </div>
+
+                        <% if(user.cvDetails?.cert_additional_name && Array.isArray(user.cvDetails.cert_additional_name)) { %>
+                            <% user.cvDetails.cert_additional_name.forEach((cert, i) => { if(cert) { %>
+                                <div class="experience-card mt-3">
+                                    <div class="d-flex justify-content-between align-items-center mb-3">
+                                        <h6 class="fw-bold mb-0 text-muted">Ek Sertifika</h6>
+                                        <button type="button" class="btn btn-sm btn-outline-danger" onclick="this.parentElement.parentElement.remove()"><i class="fas fa-trash"></i></button>
+                                    </div>
+                                    <div class="row g-3">
+                                        <div class="col-md-6"><input type="text" name="cert_additional_name[]" class="form-control" value="<%= cert %>" placeholder="Sertifika Adı"></div>
+                                        <div class="col-md-6"><input type="text" name="cert_additional_issuer[]" class="form-control" value="<%= user.cvDetails.cert_additional_issuer[i] %>" placeholder="Kurum"></div>
+                                        <div class="col-md-6"><input type="text" name="cert_additional_date[]" class="form-control" value="<%= user.cvDetails.cert_additional_date[i] %>" placeholder="Tarih"></div>
+                                        <div class="col-md-6"><input type="text" name="cert_additional_validity[]" class="form-control" value="<%= user.cvDetails.cert_additional_validity[i] %>" placeholder="Geçerlilik"></div>
+                                    </div>
                                 </div>
-                            </div>
+                            <% } }) %>
+                        <% } %>
+
+                        <button type="button" class="btn btn-outline-primary mt-3 w-100" onclick="addCertificateField()">
+                            <i class="fas fa-plus-circle me-2"></i>Ek Sertifika Ekle
+                        </button>
+                    </div>
+
+                    <div id="sec-references" class="section-card">
+                        <div class="section-header"><div class="section-icon"><i class="fas fa-handshake"></i></div><h5 class="fw-bold m-0">Referanslar</h5></div>
+                        <div class="row g-3">
+                            <div class="col-md-6"><div class="form-floating"><input type="text" name="reference1_name" class="form-control" value="<%= user.cvDetails?.reference1_name %>"><label>Ad Soyad</label></div></div>
+                            <div class="col-md-6"><div class="form-floating"><input type="text" name="reference1_company" class="form-control" value="<%= user.cvDetails?.reference1_company %>"><label>Şirket</label></div></div>
+                            <div class="col-md-6"><div class="form-floating"><input type="text" name="reference1_position" class="form-control" value="<%= user.cvDetails?.reference1_position %>"><label>Pozisyon</label></div></div>
+                            <div class="col-md-6"><div class="form-floating"><input type="text" name="reference1_contact" class="form-control" value="<%= user.cvDetails?.reference1_contact %>"><label>İletişim (Tel/Email)</label></div></div>
                         </div>
                     </div>
 
@@ -316,13 +422,18 @@
 
     <div class="action-bar">
         <div class="container">
-            <div class="d-flex gap-2">
-                <a href="/cv-print" target="_blank" class="btn btn-outline-dark fw-bold flex-grow-1">
-                    <i class="fas fa-eye me-1"></i> Önizle
-                </a>
-                <button type="button" onclick="submitForm()" class="btn btn-primary fw-bold flex-grow-1">
-                    <i class="fas fa-save me-1"></i> Kaydet
-                </button>
+            <div class="row align-items-center">
+                <div class="col-md-6 d-none d-md-block text-muted small">
+                    <i class="fas fa-info-circle me-1"></i> Tüm değişiklikler taslak olarak saklanır.
+                </div>
+                <div class="col-md-6 d-flex gap-3 justify-content-end">
+                    <a href="/cv-print" target="_blank" class="btn btn-outline-dark fw-bold px-4 rounded-pill">
+                        <i class="fas fa-eye me-2"></i> Önizle
+                    </a>
+                    <button type="button" onclick="submitForm()" class="btn btn-primary fw-bold px-5 rounded-pill shadow">
+                        <i class="fas fa-save me-2"></i> KAYDET
+                    </button>
+                </div>
             </div>
         </div>
     </div>
@@ -330,93 +441,134 @@
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
     <script>
-        // Fotoğraf Önizleme
+        // Renk Seçme Mantığı
+        function selectColor(el, color) {
+            document.querySelectorAll('.color-option').forEach(c => c.classList.remove('active'));
+            el.classList.add('active');
+            document.getElementById('cvColorInput').value = color;
+            document.documentElement.style.setProperty('--primary', color);
+        }
+
+        function selectCustomColor(color) {
+            document.getElementById('cvColorInput').value = color;
+            document.documentElement.style.setProperty('--primary', color);
+        }
+
+        // Resim Önizleme
         function previewImage(input) {
             if (input.files && input.files[0]) {
                 var reader = new FileReader();
                 reader.onload = function(e) {
                     document.getElementById('previewImg').src = e.target.result;
                     document.getElementById('previewImg').classList.remove('d-none');
-                    const placeholder = document.getElementById('uploadPlaceholder');
-                    if(placeholder) placeholder.classList.add('d-none');
+                    const ph = document.getElementById('uploadPlaceholder');
+                    if(ph) ph.classList.add('d-none');
                 }
                 reader.readAsDataURL(input.files[0]);
             }
         }
 
-        // Form Gönderme
+        // Form Gönderme ve SweetAlert
         function submitForm() {
             Swal.fire({
                 title: 'Kaydediliyor...',
-                text: 'Lütfen bekleyin.',
-                didOpen: () => { Swal.showLoading() },
-                background: '#fff',
-                color: '#333',
-                showConfirmButton: false
+                text: 'Lütfen bekleyin',
+                didOpen: () => Swal.showLoading(),
+                showConfirmButton: false,
+                background: '#fff'
             });
             document.getElementById('mainForm').submit();
         }
 
-        // Başarı Mesajı
+        // URL parametresi ile başarı mesajı
         const urlParams = new URLSearchParams(window.location.search);
         if(urlParams.get('status') === 'saved'){
             Swal.fire({
-                icon: 'success',
-                title: 'Kaydedildi!',
-                text: 'CV bilgileriniz güncellendi.',
-                timer: 1500,
-                showConfirmButton: false,
-                position: 'top-end',
-                toast: true
+                icon: 'success', title: 'Başarılı!', text: 'CV başarıyla kaydedildi.',
+                timer: 1500, showConfirmButton: false, position: 'top-end', toast: true
             });
             window.history.replaceState(null, null, window.location.pathname);
         }
 
-        // --- POPUP UYARI SCRIPT ---
-        document.addEventListener('DOMContentLoaded', function() {
-            if (!sessionStorage.getItem('cv_info_shown')) {
-                Swal.fire({
-                    title: '👋 Hoş Geldiniz!',
-                    html: `
-                        <div style="text-align: left; font-size: 0.9rem;">
-                            <p class="mb-2">Profesyonel CV'nizi buradan oluşturabilirsiniz.</p>
-                            <div class="alert alert-success py-2 px-3 mb-2 small">
-                                <strong>Adımlar:</strong>
-                            </div>
-                            <ol class="small mb-0 ps-3">
-                                <li>Bilgileri doldurup <b>Kaydet</b>'e basın.</li>
-                                <li><b>Önizle</b> ile PDF indirin.</li>
-                                <li><b>Dokümanlar</b> sayfasına yükleyin.</li>
-                            </ol>
-                        </div>
-                    `,
-                    icon: 'info',
-                    confirmButtonText: 'Tamamdır',
-                    confirmButtonColor: '#4f46e5',
-                    backdrop: `rgba(0,0,0,0.5)`
-                }).then(() => {
-                    sessionStorage.setItem('cv_info_shown', 'true');
-                });
-            }
+        // --- DİNAMİK ALAN EKLEME FONKSİYONLARI ---
+        
+        function addExperienceField() {
+            // Son deneyim kartını bul (butonun hemen öncesi)
+            const container = document.querySelector('#sec-experience');
+            const btn = container.querySelector('button.w-100'); // Ekleme butonu
+            
+            const div = document.createElement('div');
+            div.className = 'experience-card mt-3 animate__animated animate__fadeIn';
+            div.innerHTML = `
+                <div class="d-flex justify-content-between align-items-center mb-3">
+                    <h6 class="fw-bold mb-0 text-muted">Ek İş Deneyimi</h6>
+                    <button type="button" class="btn btn-sm btn-outline-danger" onclick="this.closest('.experience-card').remove()"><i class="fas fa-trash"></i></button>
+                </div>
+                <div class="row g-3">
+                    <div class="col-md-6"><input type="text" name="exp_additional_title[]" class="form-control" placeholder="Pozisyon"></div>
+                    <div class="col-md-6"><input type="text" name="exp_additional_company[]" class="form-control" placeholder="Şirket"></div>
+                    <div class="col-md-6"><input type="text" name="exp_additional_date[]" class="form-control" placeholder="Tarih"></div>
+                    <div class="col-md-6"><input type="text" name="exp_additional_location[]" class="form-control" placeholder="Konum"></div>
+                    <div class="col-12"><textarea name="exp_additional_desc[]" class="form-control" rows="2" placeholder="Görevler"></textarea></div>
+                </div>
+            `;
+            container.insertBefore(div, btn);
+        }
+
+        function addEducationField() {
+            const container = document.querySelector('#sec-education');
+            const btn = container.querySelector('button.w-100');
+            
+            const div = document.createElement('div');
+            div.className = 'experience-card mt-3 animate__animated animate__fadeIn';
+            div.innerHTML = `
+                <div class="d-flex justify-content-between align-items-center mb-3">
+                    <h6 class="fw-bold mb-0 text-muted">Ek Eğitim</h6>
+                    <button type="button" class="btn btn-sm btn-outline-danger" onclick="this.closest('.experience-card').remove()"><i class="fas fa-trash"></i></button>
+                </div>
+                <div class="row g-3">
+                    <div class="col-md-6"><input type="text" name="edu_additional_school[]" class="form-control" placeholder="Okul"></div>
+                    <div class="col-md-6"><input type="text" name="edu_additional_degree[]" class="form-control" placeholder="Bölüm"></div>
+                    <div class="col-md-6"><input type="text" name="edu_additional_date[]" class="form-control" placeholder="Tarih"></div>
+                    <div class="col-md-6"><input type="text" name="edu_additional_location[]" class="form-control" placeholder="Konum"></div>
+                </div>
+            `;
+            container.insertBefore(div, btn);
+        }
+
+        function addCertificateField() {
+            const container = document.querySelector('#sec-certificates');
+            const btn = container.querySelector('button.w-100');
+            
+            const div = document.createElement('div');
+            div.className = 'experience-card mt-3 animate__animated animate__fadeIn';
+            div.innerHTML = `
+                <div class="d-flex justify-content-between align-items-center mb-3">
+                    <h6 class="fw-bold mb-0 text-muted">Ek Sertifika</h6>
+                    <button type="button" class="btn btn-sm btn-outline-danger" onclick="this.closest('.experience-card').remove()"><i class="fas fa-trash"></i></button>
+                </div>
+                <div class="row g-3">
+                    <div class="col-md-6"><input type="text" name="cert_additional_name[]" class="form-control" placeholder="Sertifika Adı"></div>
+                    <div class="col-md-6"><input type="text" name="cert_additional_issuer[]" class="form-control" placeholder="Kurum"></div>
+                    <div class="col-md-6"><input type="text" name="cert_additional_date[]" class="form-control" placeholder="Tarih"></div>
+                    <div class="col-md-6"><input type="text" name="cert_additional_validity[]" class="form-control" placeholder="Geçerlilik"></div>
+                </div>
+            `;
+            container.insertBefore(div, btn);
+        }
+
+        // İlerleme Çubuğu ve Karakter Sayacı
+        document.addEventListener('input', function() {
+            const inputs = document.querySelectorAll('input, textarea, select');
+            let filled = 0;
+            inputs.forEach(i => { if(i.value.length > 0) filled++; });
+            const progress = Math.min(100, (filled / 20) * 100); // 20 zorunlu alan varsayımı
+            document.getElementById('progressBar').style.width = progress + '%';
         });
 
-        // Scroll Spy (Sadece Desktop)
-        window.addEventListener('scroll', () => {
-            if(window.innerWidth > 991) {
-                const sections = document.querySelectorAll('.section-card');
-                const navLi = document.querySelectorAll('.menu-link');
-                let current = '';
-                sections.forEach(section => {
-                    const sectionTop = section.offsetTop;
-                    if (pageYOffset >= sectionTop - 150) current = section.getAttribute('id');
-                });
-                navLi.forEach(li => {
-                    li.classList.remove('active');
-                    if (li.getAttribute('href').includes(current)) li.classList.add('active');
-                });
-            }
+        document.getElementById('summaryTextarea').addEventListener('input', function() {
+            document.getElementById('summaryCounter').innerText = this.value.length + " Karakter";
         });
     </script>
-
 </body>
 </html>

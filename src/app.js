@@ -493,7 +493,7 @@ app.post('/admin/message/email', adminAuthCheck, async (req, res) => {
             from: '"BERLINER" <proje@berliner.com.tr>', 
             to: candidate.email,
             subject: req.body.subject || 'Bilgilendirme',
-            html: `<div style="padding: 20px;"><h3>Sayın ${candidate.firstName},</h3><p>${req.body.content}</p><hr><small>BERLINER AKADEMIE</small></div>`
+            html: `<div style="padding: 20px;"><h3>Sayın ${candidate.firstName},</h3><p>${req.body.content}</p><hr><small>BERLINER </small></div>`
         });
         res.redirect('/admin?status=mail_success');
     } catch (error) {
@@ -512,7 +512,7 @@ app.post('/admin/message/email/bulk', adminAuthCheck, async (req, res) => {
                 from: '"BERLINER" <proje@berliner.com.tr>',
                 to: candidate.email,
                 subject: subject || 'Duyuru',
-                html: `<div style="padding: 20px;"><h3>Sayın ${candidate.firstName},</h3><p>${content}</p><hr><small>BERLINER AKADEMIE</small></div>`
+                html: `<div style="padding: 20px;"><h3>Sayın ${candidate.firstName},</h3><p>${content}</p><hr><small>BERLINER </small></div>`
             }).catch(err => console.error(err));
         });
 
@@ -1043,46 +1043,108 @@ app.get('/cv-builder', authCheck, (req, res) => {
     res.render('cv_builder', { user: req.user, page: 'cv-builder' });
 });
 
-// src/app.js içinde ilgili rotayı bul ve güncelle:
-
-// --- CV KAYDETME ROTASI (GÜNCELLENDİ) ---
 app.post('/cv-builder/save', authCheck, upload.single('photo'), async (req, res) => {
-    // Formdan gelen tüm verileri alıyoruz
-    const { 
-        summary, skills, languages, 
-        email, phone, drivingLicense, // 👈 BURASI ÇOK ÖNEMLİ, EHLİYETİ ALIYORUZ
-        exp1_title, exp1_company, exp1_date, exp1_desc, 
-        exp2_title, exp2_company, exp2_date, exp2_desc, 
-        edu1_school, edu1_degree, edu1_date 
-    } = req.body;
+    try {
+        const body = req.body;
 
-    let profilePhoto = req.user.cvDetails?.profilePhoto || "";
+        // Fotoğraf İşlemleri
+        let profilePhoto = req.user.cvDetails?.profilePhoto || "";
+        if (req.file) {
+            const b64 = Buffer.from(req.file.buffer).toString('base64');
+            profilePhoto = `data:${req.file.mimetype};base64,${b64}`;
+        }
 
-    if (req.file) {
-        const b64 = Buffer.from(req.file.buffer).toString('base64');
-        profilePhoto = `data:${req.file.mimetype};base64,${b64}`;
+        // Dilleri diziye veya stringe çevir
+        let processedLanguages = body.languages;
+        if (Array.isArray(body.languages)) {
+            processedLanguages = body.languages.join(', ');
+        }
+
+        // --- VERİTABANI OBJESİ ---
+        const cvData = {
+            // -- Kişisel --
+            profilePhoto,
+            email: body.email || req.user.email,
+            phone: body.phone || req.user.phone,
+            address: body.address || req.user.location,
+            birthDate: body.birthDate,
+            nationality: body.nationality,
+            drivingLicense: body.drivingLicense,
+            linkedin: body.linkedin,
+            
+            // -- Özet & Yetenekler --
+            summary: body.summary,
+            skills: body.skills,
+            languages: processedLanguages,
+            technicalSkills: body.technicalSkills,
+            softSkills: body.softSkills,
+
+            // -- Sabit Deneyimler --
+            experience1: { 
+                title: body.exp1_title, company: body.exp1_company, 
+                date: body.exp1_date, location: body.exp1_location, desc: body.exp1_desc 
+            },
+            experience2: { 
+                title: body.exp2_title, company: body.exp2_company, 
+                date: body.exp2_date, location: body.exp2_location, desc: body.exp2_desc 
+            },
+
+            // -- DİNAMİK EK İŞ DENEYİMLERİ (YENİ EKLENDİ) --
+            // Eğer tek veri gelirse string olur, çok gelirse array olur.
+            // Biz hepsini kaydediyoruz, EJS tarafında düzelteceğiz.
+            exp_additional_title: body.exp_additional_title,
+            exp_additional_company: body.exp_additional_company,
+            exp_additional_date: body.exp_additional_date,
+            exp_additional_location: body.exp_additional_location,
+            exp_additional_desc: body.exp_additional_desc,
+
+            // -- Sabit Eğitim --
+            education1: { 
+                school: body.edu1_school, degree: body.edu1_degree, 
+                date: body.edu1_date, location: body.edu1_location, achievements: body.edu1_achievements 
+            },
+
+            // -- DİNAMİK EK EĞİTİMLER (YENİ EKLENDİ) --
+            edu_additional_school: body.edu_additional_school,
+            edu_additional_degree: body.edu_additional_degree,
+            edu_additional_date: body.edu_additional_date,
+            edu_additional_location: body.edu_additional_location,
+
+            // -- Sertifikalar --
+            certificate1: body.certificate1,
+            certificate1_issuer: body.certificate1_issuer,
+            certificate1_date: body.certificate1_date,
+            certificate1_validity: body.certificate1_validity,
+
+            // -- DİNAMİK EK SERTİFİKALAR (YENİ EKLENDİ) --
+            cert_additional_name: body.cert_additional_name,
+            cert_additional_issuer: body.cert_additional_issuer,
+            cert_additional_date: body.cert_additional_date,
+            cert_additional_validity: body.cert_additional_validity,
+
+            // -- Referanslar (YENİ EKLENDİ) --
+            reference1_name: body.reference1_name,
+            reference1_position: body.reference1_position,
+            reference1_company: body.reference1_company,
+            reference1_contact: body.reference1_contact,
+
+            // -- Tema --
+            cvColor: body.cvColor || '#0f172a',
+            themeName: body.themeName || 'Koyu Profesyonel'
+        };
+
+        // Veritabanını Güncelle
+        await Candidate.findByIdAndUpdate(req.user._id, {
+            $set: { cvDetails: cvData }
+        });
+
+        res.redirect('/cv-builder?status=saved');
+        
+    } catch (error) {
+        console.error('CV kaydetme hatası:', error);
+        res.redirect('/cv-builder?status=error');
     }
-
-    const cvData = {
-        profilePhoto,
-        email,
-        phone,
-        drivingLicense, // 👈 VE BURADA VERİTABANINA YAZIYORUZ
-        summary,
-        skills,
-        languages,
-        experience1: { title: exp1_title, company: exp1_company, date: exp1_date, desc: exp1_desc },
-        experience2: { title: exp2_title, company: exp2_company, date: exp2_date, desc: exp2_desc },
-        education1: { school: edu1_school, degree: edu1_degree, date: edu1_date }
-    };
-
-    // Veritabanını güncelle
-    await Candidate.findByIdAndUpdate(req.user._id, { cvDetails: cvData });
-    
-    // Sayfaya geri dön
-    res.redirect('/cv-builder?status=saved');
 });
-
 app.get('/cv-print', authCheck, (req, res) => {
     res.render('cv_print', { user: req.user });
 });
@@ -1158,7 +1220,7 @@ app.post('/application-form/save', authCheck, async (req, res) => {
             const bottom = 800;
             doc.moveTo(50, bottom).lineTo(545, bottom).strokeColor(colors.border).stroke();
             doc.fontSize(8).fill(colors.secondary)
-               .text('Berliner Akademie - Resmi Basvuru Belgesidir', 50, bottom + 10);
+               .text('Berliner - Resmi Basvuru Belgesidir', 50, bottom + 10);
             doc.text(`Sayfa ${pageNumber}`, 500, bottom + 10, { align: 'right' });
         };
 
@@ -1258,7 +1320,7 @@ app.post('/application-form/save', authCheck, async (req, res) => {
         drawField('Ziyaret Gecmisi', formData.visitHistory);
 
         // BÖLÜM F
-        drawSectionTitle('F. Berliner Akademie');
+        drawSectionTitle('F. Berliner ');
         drawField('Tanisma Hikayesi', formData.berlinerMeet);
         drawField('Guven Dusuncesi', formData.berlinerTrust);
 
@@ -1357,10 +1419,8 @@ app.get('/seed-german', async (req, res) => {
         res.send("Hata: " + error.message);
     }
 });
-// --- ALMANYA'DA YAŞAM ROTASI (YEREL RESİMLİ) ---
 app.get('/life-in-germany', authCheck, (req, res) => {
     
-    // 1. TRAFİK LEVHALARI (Dosyalar: public/images/traffic/ içinde olmalı)
     const trafficSigns = [
         { 
             title: "Vorfahrt gewähren", 
