@@ -14,7 +14,69 @@
     
     <style>
         body { background-color: #f8fafc; font-family: 'Plus Jakarta Sans', sans-serif; color: #334155; }
+        .brandd-logo{
+            width: 70px;
+            height: 90px;
+        }
+        .brani-logo{
+            width: 90px;
+            height: 80px;
+            border-radius: 100%;
+            padding: 10px;
+            margin-right: 40px;
+        }
 
+        /* BERLINER Logo ve Marka Stilleri */
+.brand-logo-text {
+    font-family: 'Montserrat', sans-serif;
+    font-weight: 800;
+    font-size: 1.8rem;
+    background: linear-gradient(135deg, #4f46e5 0%, #7c3aed 100%);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+    text-shadow: 0 2px 4px rgba(79, 70, 229, 0.1);
+    letter-spacing: -0.5px;
+}
+
+.brand-logo-text-sm {
+    font-family: 'Montserrat', sans-serif;
+    font-weight: 700;
+    font-size: 1.4rem;
+    color: #1e293b;
+    letter-spacing: -0.3px;
+}
+
+/* Navbar'daki BERLINER */
+.navbar-brand {
+    font-family: 'Montserrat', sans-serif;
+    font-weight: 800;
+    font-size: 1.5rem;
+    background: linear-gradient(135deg, #ffffff 0%, #e2e8f0 100%);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+    letter-spacing: -0.5px;
+}
+
+/* Logo container için animasyon */
+.logo-container {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 8px 16px;
+    border-radius: 12px;
+    background: rgba(255, 255, 255, 0.9);
+    backdrop-filter: blur(10px);
+    border: 1px solid rgba(79, 70, 229, 0.1);
+    box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05);
+}
+
+.logo-container:hover {
+    transform: translateY(-2px);
+    transition: all 0.3s ease;
+    box-shadow: 0 10px 15px -3px rgba(79, 70, 229, 0.1);
+}
         /* Sidebar & Layout */
         .sidebar { min-height: 100vh; background: white; border-right: 1px solid #e2e8f0; }
         .nav-link, .menu-text { color: #64748b; font-weight: 500; padding: 0.75rem 1rem; border-radius: 10px; margin-bottom: 0.25rem; transition: all 0.2s; display: block; text-decoration: none; }
@@ -94,7 +156,7 @@
 
     <nav class="navbar navbar-dark bg-dark d-lg-none sticky-top shadow-sm">
         <div class="container-fluid">
-            <span class="navbar-brand fw-bold"><i class="fas fa-flag me-2"></i>BERLINER</span>
+            <span class="navbar-brand fw-bold"><img src="/images/BERLINERLOGO.webp" class="brani-logo" onerror="this.style.display='none'">BERLINER</span>
             <button class="navbar-toggler" type="button" data-bs-toggle="offcanvas" data-bs-target="#mobileSidebar">
                 <span class="navbar-toggler-icon"></span>
             </button>
@@ -106,8 +168,8 @@
             
             <div class="col-lg-2 d-none d-lg-block sidebar p-4 sticky-top">
                 <div class="d-flex align-items-center gap-2 mb-5">
-                    <div class="bg-primary text-white rounded p-2"><i class="fas fa-flag"></i></div>
-                    <span class="fw-bold fs-5 text-dark">BERLINER</span>
+              <img src="/images/BERLINERLOGO.webp" class="brandd-logo" onerror="this.style.display='none'">
+                <span class="fw-bold fs-5 text-dark">BERLINER</span>
                 </div>
                 
                 <nav class="nav flex-column gap-1">
