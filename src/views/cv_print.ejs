@@ -31,9 +31,13 @@
         .profile-placeholder { width: 100%; height: 100%; border-radius: 50%; background: rgba(255,255,255,0.15); color: white; display: flex; align-items: center; justify-content: center; font-size: 48px; font-weight: 700; border: 4px solid rgba(255,255,255,0.3); }
 
         .sidebar-heading { font-size: 11px; text-transform: uppercase; letter-spacing: 2px; font-weight: 800; color: rgba(255,255,255,0.7); border-bottom: 1px solid rgba(255,255,255,0.2); padding-bottom: 8px; margin: 30px 0 15px 0; position: relative; z-index: 2; }
-        .contact-item { display: flex; align-items: flex-start; gap: 12px; font-size: 12px; color: rgba(255,255,255,0.9); line-height: 1.4; margin-bottom: 12px; position: relative; z-index: 2; }
-        .contact-icon { width: 24px; height: 24px; background: rgba(255,255,255,0.15); border-radius: 6px; display: flex; align-items: center; justify-content: center; font-size: 11px; flex-shrink: 0; }
         
+        .contact-item { display: flex; align-items: flex-start; gap: 12px; font-size: 12px; color: rgba(255,255,255,0.9); line-height: 1.4; margin-bottom: 12px; position: relative; z-index: 2; }
+        .contact-icon { width: 24px; height: 24px; background: rgba(255,255,255,0.15); border-radius: 6px; display: flex; align-items: center; justify-content: center; font-size: 11px; flex-shrink: 0; margin-top: 2px; }
+        
+        /* ADRES İÇİN KRİTİK AYAR: PRE-LINE */
+        .contact-text { word-break: break-word; white-space: pre-line; } 
+
         .skill-container { display: flex; flex-wrap: wrap; gap: 6px; position: relative; z-index: 2; }
         .skill-tag { background: rgba(255,255,255,0.15); color: white; padding: 4px 10px; border-radius: 4px; font-size: 11px; font-weight: 500; }
 
@@ -46,7 +50,7 @@
         .header-section { margin-bottom: 35px; border-bottom: 2px solid var(--border-light); padding-bottom: 20px; }
         .full-name { font-size: 38px; font-weight: 800; text-transform: uppercase; line-height: 1; color: var(--primary-color); margin-bottom: 5px; }
         .job-title { font-size: 16px; text-transform: uppercase; letter-spacing: 3px; color: var(--text-muted); font-weight: 600; }
-        .summary-box { font-size: 13px; line-height: 1.6; color: var(--text-dark); margin-bottom: 30px; text-align: justify; }
+        .summary-box { font-size: 13px; line-height: 1.6; color: var(--text-dark); margin-bottom: 30px; text-align: justify; white-space: pre-line; }
 
         .section-title { font-size: 16px; font-weight: 700; text-transform: uppercase; color: var(--primary-color); display: flex; align-items: center; gap: 10px; margin-bottom: 20px; padding-bottom: 8px; border-bottom: 1px solid var(--border-light); margin-top: 30px; }
         .section-title i { background: var(--primary-color); color: white; width: 28px; height: 28px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 12px; }
@@ -94,7 +98,12 @@
                 <% if(user.cvDetails?.birthDate) { %>
                     <div class="contact-item"><div class="contact-icon"><i class="fas fa-birthday-cake"></i></div> <div><%= new Date(user.cvDetails.birthDate).toLocaleDateString('tr-TR') %></div></div>
                 <% } %>
-                <div class="contact-item"><div class="contact-icon"><i class="fas fa-map-marker-alt"></i></div> <div><%= user.cvDetails?.address || user.location %></div></div>
+                
+                <div class="contact-item">
+                    <div class="contact-icon"><i class="fas fa-map-marker-alt"></i></div>
+                    <div class="contact-text"><%= user.cvDetails?.address || user.location %></div>
+                </div>
+
                 <div class="contact-item"><div class="contact-icon"><i class="fas fa-phone"></i></div> <div><%= user.cvDetails?.phone || user.phone %></div></div>
                 <div class="contact-item"><div class="contact-icon"><i class="fas fa-envelope"></i></div> <div style="font-size:11px; word-break:break-all;"><%= user.cvDetails?.email || user.email %></div></div>
                 
@@ -103,7 +112,7 @@
                 <% } %>
                 
                 <% if(user.cvDetails?.linkedin) { %>
-                    <div class="contact-item"><div class="contact-icon"><i class="fab fa-linkedin-in"></i></div> <div><a href="<%= user.cvDetails.linkedin %>" target="_blank">LinkedIn Profil</a></div></div>
+                    <div class="contact-item"><div class="contact-icon"><i class="fab fa-linkedin-in"></i></div> <div><a href="<%= user.cvDetails.linkedin %>" target="_blank" style="color:white; text-decoration:none;">LinkedIn Profil</a></div></div>
                 <% } %>
             </div>
 
@@ -173,14 +182,11 @@
 
                 <% 
                     let addTitles = user.cvDetails?.exp_additional_title;
-                    // Eğer string ise diziye çevir, eğer dizi ise olduğu gibi al, eğer yoksa boş dizi yap
                     let titlesArray = Array.isArray(addTitles) ? addTitles : (addTitles ? [addTitles] : []);
-                    
                     let addCompanies = Array.isArray(user.cvDetails?.exp_additional_company) ? user.cvDetails.exp_additional_company : [user.cvDetails?.exp_additional_company];
                     let addDates = Array.isArray(user.cvDetails?.exp_additional_date) ? user.cvDetails.exp_additional_date : [user.cvDetails?.exp_additional_date];
                     let addDescs = Array.isArray(user.cvDetails?.exp_additional_desc) ? user.cvDetails.exp_additional_desc : [user.cvDetails?.exp_additional_desc];
                 %>
-
                 <% titlesArray.forEach((title, i) => { if(title) { %>
                     <div class="timeline-item">
                         <div class="timeline-dot"></div>
@@ -221,7 +227,6 @@
             </div>
 
             <div style="display: flex; gap: 30px; margin-top: 30px;">
-                
                 <% if(user.cvDetails?.certificate1 || user.cvDetails?.cert_additional_name) { %>
                     <div style="flex: 1;">
                         <div class="section-title" style="margin-top: 0;"><i class="fas fa-award"></i> Sertifikalar</div>

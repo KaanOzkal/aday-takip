@@ -9,6 +9,7 @@
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <link href="https://cdn.jsdelivr.net/npm/@simonwep/pickr/dist/themes/nano.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/animate.css/4.1.1/animate.min.css">
     
     <style>
         :root {
@@ -185,6 +186,7 @@
     <div class="container mt-5">
         <form action="/cv-builder/save" method="POST" enctype="multipart/form-data" id="mainForm">
             <input type="hidden" name="cvColor" id="cvColorInput" value="<%= user.cvDetails?.cvColor || '#0f172a' %>">
+            <input type="hidden" name="themeName" id="themeNameInput" value="Koyu Profesyonel">
 
             <div class="row g-4">
                 
@@ -203,7 +205,7 @@
 
                 <div class="col-12 col-lg-9">
 
-                    <div id="sec-profile" class="section-card">
+                    <div id="sec-profile" class="section-card animate__animated animate__fadeInUp">
                         <div class="section-header">
                             <div class="section-icon"><i class="fas fa-id-card"></i></div>
                             <h5 class="fw-bold m-0">Kimlik & İletişim</h5>
@@ -242,20 +244,22 @@
                                     <div class="col-6"><div class="form-floating"><input type="text" class="form-control" value="<%= user.lastName %>" disabled><label>Soyad</label></div></div>
                                     <div class="col-6"><div class="form-floating"><input type="email" name="email" class="form-control" value="<%= user.cvDetails?.email || user.email %>"><label>Email</label></div></div>
                                     <div class="col-6"><div class="form-floating"><input type="tel" name="phone" class="form-control" value="<%= user.cvDetails?.phone || user.phone %>"><label>Telefon</label></div></div>
-                                    <div class="col-12"><div class="form-floating"><input type="text" name="address" class="form-control" value="<%= user.cvDetails?.address || user.location %>"><label>Adres</label></div></div>
-                                    <div class="col-12"><div class="form-floating"><input type="text" name="linkedin" class="form-control" value="<%= user.cvDetails?.linkedin %>"><label>LinkedIn (Opsiyonel)</label></div></div>
+                                    
                                     <div class="col-12">
                                         <div class="form-floating">
-                                            <input type="text" name="drivingLicense" class="form-control" value="<%= user.cvDetails?.drivingLicense %>" placeholder="B">
-                                            <label>Ehliyet (Örn: B, CE, SRC)</label>
+                                            <textarea name="address" class="form-control" style="height: 100px" placeholder="Adres"><%= user.cvDetails?.address || user.location %></textarea>
+                                            <label>Açık Adres (Sokak, No, Posta Kodu, Şehir, Ülke)</label>
                                         </div>
                                     </div>
+
+                                    <div class="col-12"><div class="form-floating"><input type="text" name="linkedin" class="form-control" value="<%= user.cvDetails?.linkedin %>"><label>LinkedIn (Opsiyonel)</label></div></div>
+                                    <div class="col-12"><div class="form-floating"><input type="text" name="drivingLicense" class="form-control" value="<%= user.cvDetails?.drivingLicense %>" placeholder="B"><label>Ehliyet (Örn: B, CE, SRC)</label></div></div>
                                 </div>
                             </div>
                         </div>
                     </div>
 
-                    <div id="sec-about" class="section-card">
+                    <div id="sec-about" class="section-card animate__animated animate__fadeInUp">
                         <div class="section-header"><div class="section-icon"><i class="fas fa-user-edit"></i></div><h5 class="fw-bold m-0">Profesyonel Özet</h5></div>
                         <div class="form-floating">
                             <textarea name="summary" class="form-control" style="height: 120px" id="summaryTextarea"><%= user.cvDetails?.summary %></textarea>
@@ -264,7 +268,7 @@
                         <div class="text-end text-muted small mt-1" id="summaryCounter">0 Karakter</div>
                     </div>
 
-                    <div id="sec-skills" class="section-card">
+                    <div id="sec-skills" class="section-card animate__animated animate__fadeInUp">
                         <div class="section-header"><div class="section-icon"><i class="fas fa-bolt"></i></div><h5 class="fw-bold m-0">Yetkinlikler</h5></div>
                         <div class="row g-3">
                             <div class="col-md-6">
@@ -290,7 +294,7 @@
                         </div>
                     </div>
 
-                    <div id="sec-experience" class="section-card">
+                    <div id="sec-experience" class="section-card animate__animated animate__fadeInUp">
                         <div class="section-header"><div class="section-icon"><i class="fas fa-briefcase"></i></div><h5 class="fw-bold m-0">İş Deneyimi</h5></div>
                         
                         <div class="experience-card">
@@ -338,7 +342,7 @@
                         </button>
                     </div>
 
-                    <div id="sec-education" class="section-card">
+                    <div id="sec-education" class="section-card animate__animated animate__fadeInUp">
                         <div class="section-header"><div class="section-icon"><i class="fas fa-graduation-cap"></i></div><h5 class="fw-bold m-0">Eğitim</h5></div>
                         
                         <div class="experience-card">
@@ -372,7 +376,7 @@
                         </button>
                     </div>
 
-                    <div id="sec-certificates" class="section-card">
+                    <div id="sec-certificates" class="section-card animate__animated animate__fadeInUp">
                         <div class="section-header"><div class="section-icon"><i class="fas fa-award"></i></div><h5 class="fw-bold m-0">Sertifikalar</h5></div>
                         
                         <div class="experience-card">
@@ -405,7 +409,7 @@
                         </button>
                     </div>
 
-                    <div id="sec-references" class="section-card">
+                    <div id="sec-references" class="section-card animate__animated animate__fadeInUp">
                         <div class="section-header"><div class="section-icon"><i class="fas fa-handshake"></i></div><h5 class="fw-bold m-0">Referanslar</h5></div>
                         <div class="row g-3">
                             <div class="col-md-6"><div class="form-floating"><input type="text" name="reference1_name" class="form-control" value="<%= user.cvDetails?.reference1_name %>"><label>Ad Soyad</label></div></div>
