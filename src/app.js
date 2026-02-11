@@ -235,7 +235,7 @@ app.get('/panel', authCheck, async (req, res) => {
     const currentIndex = STAGES.indexOf(req.user.currentStage);
     let progress = 0;
     if (currentIndex !== -1) {
-        progress = Math.round(((currentIndex + 1) / STAGES.length) * 100);
+        progress = Math.round(((currentIndex + 1) / STAGES.length) * 110);
     }
 
     res.render('dashboard', { 
