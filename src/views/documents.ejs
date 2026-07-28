@@ -261,8 +261,7 @@
 
                                     <div class="d-flex gap-2">
                                         <% if (doc.driveLink) { %>
-                                            <a href="<%= doc.driveLink %>" target="_blank"
-                                                class="btn btn-sm btn-primary">Drive'da Aç</a>
+                                            <a href="/documents/view/<%= doc._id %>" target="_blank">Dosyayı Gör</a>
                                             <% } else { %>
                                                 <a href="/uploads/<%= doc.filename %>" target="_blank">Dosyayı Gör</a>
                                                 <% } %>
