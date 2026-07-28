@@ -757,7 +757,27 @@ app.get('/seed-candidates-full', async (req, res) => {
        { id: 37, ad: "Alper Koptur", meslek: "Kurye", durumId: 5, lokasyon: "Ankara", basvuruNo: "SAA-2026-037", pasaport: "U27276436", telefon: "+90 555 555 55 55", email: "alperkoptur06@gmail.com", puan: 88 },
        { id: 38, ad: "Ramazan Gökhan Kına", meslek: "Kurye", durumId: 5, lokasyon: "Ankara", basvuruNo: "HAM-2026-038", pasaport: "U36187035", telefon: "+90 555 555 55 55", email: "kina.gokhann@hotmail.com", puan: 87 },
        { id: 39, ad: "Yasin Kavak", meslek: "Kurye", durumId: 5, lokasyon: "Konya", basvuruNo: "MUL-2026-039", pasaport: "U37950988", telefon: "+90 555 555 55 55", email: "yasin1453442@gmail.com", puan: 84 },
-       { id: 40, ad: "Kaan Özkal", meslek: "Kurye", durumId: 4, lokasyon: "Ankara", basvuruNo: "MUL-2026-040", pasaport: "U12345678", telefon: "+90 555 555 55 55", email: "ozkalkaan490@gmail.com", puan: 100 }
+       { id: 40, ad: "Kaan Özkal", meslek: "Kurye", durumId: 4, lokasyon: "Ankara", basvuruNo: "MUL-2026-040", pasaport: "U12345678", telefon: "+90 555 555 55 55", email: "ozkalkaan490@gmail.com", puan: 100 },
+       { id: 41, ad: "Osman Çakmak", meslek: "Tır Şoförü", durumId: 7, lokasyon: "İzmir", basvuruNo: "BER-2026-041", pasaport: "U26401554", telefon: "+90 542 655 70 70", email: "cel130ce@gmail.com", puan: 89 },
+       { id: 42, ad: "Mehmet Hıdır Kılıç", meslek: "Tır Şoförü", durumId: 5, lokasyon: "İstanbul", basvuruNo: "BER-2026-042", pasaport: "U12345679", telefon: "+90 534 238 79 47", email: "kilicmehmethidir@gmail.com", puan: 88 },
+       { id: 43, ad: "Doğukan Yıldız", meslek: "Tır Şoförü", durumId: 5, lokasyon: "Ankara", basvuruNo: "BER-2026-043", pasaport: "U12345680", telefon: "+90 544 364 42 06", email: "dogukanyildizxii@gmail.com", puan: 87 },
+        { id: 44, ad: "Süheyl Selçuk Çakır", meslek: "Tır Şoförü", durumId: 5, lokasyon: "Ankara", basvuruNo: "BER-2026-044", pasaport: "U20165209", telefon: "+90 536 749 66 46", email: "selcuk3010@gmail.com", puan: 93 },
+        { id: 45, ad: "Gökhan Taçyıldız", meslek: "Tır Şoförü", durumId: 8, lokasyon: "Almanya", basvuruNo: "BER-2026-045", pasaport: "U36684821", telefon: "+90 545 717 28 85", email: "tacyildiz_31b0510@hotmail.com", puan: 88 },
+        { id: 46, ad: "Salih Atasoy", meslek: "Tır Şoförü", durumId: 5, lokasyon: "Almanya", basvuruNo: "BER-2026-046", pasaport: "U37558617", telefon: "+90 532 359 81 96", email: "slhatasoy84@gmail.com", puan: 87 },
+        { id: 47, ad: "Erçin Üzüm", meslek: "Tır Şoförü", durumId: 5, lokasyon: "Almanya", basvuruNo: "BER-2026-047", pasaport: "U31056981", telefon: "+90 536 212 03 02", email: "ercin_uzum@live.com", puan: 86 },
+        { id: 48, ad: "Celalettin Akselek", meslek: "Tır Şoförü", durumId: 5, lokasyon: "Almanya", basvuruNo: "BER-2026-048", pasaport: "U33998167", telefon: "+90 506 500 42 83", email: "celalnursah@gmail.com", puan: 85 },
+        { id: 49, ad: "Veysel Kadir Dayı", meslek: "Tır Şoförü", durumId: 5, lokasyon: "Elazığ", basvuruNo: "BER-2026-049", pasaport: "U25255845", telefon: " +90 532 695 69 99", email: "veysel.dayi@gmail.com", puan: 84 },
+        { id: 50, ad: "Mustafa Alyelken", meslek: "Tır Şoförü", durumId: 5, lokasyon: "Almanya", basvuruNo: "BER-2026-050", pasaport: "U33146095", telefon: "+90 507 331 48 24", email: "mustafaalyelkenn@gmail.com", puan: 83 },
+        { id: 51, ad: "Enver Öcal", meslek: "Tır Şoförü", durumId: 5, lokasyon: "Almanya", basvuruNo: "BER-2026-051", pasaport: "S36583645", telefon: "+90 541 549 98 28", email: "enverocal@hotmail.com", puan: 82 },
+        { id: 52, ad: "Şaban Ögel", meslek: "Tır Şoförü", durumId: 5, lokasyon: "Ankara", basvuruNo: "BER-2026-052", pasaport: "U31501597", telefon: "+90 541 791 34 47", email: "ogel_saban@hotmail.com", puan: 81 },
+        { id: 53, ad: "Mehmet Baran Konar", meslek: "Tır Şoförü", durumId: 5, lokasyon: "Elazığ", basvuruNo: "BER-2026-053", pasaport: "U39868578", telefon: "+90 535 774 2528", email: "barankonar23@icloud.com", puan: 81 },
+        { id: 54, ad: "Enuş Demir", meslek: "Tır Şoförü", durumId: 5, lokasyon: "Diyarbakır", basvuruNo: "BER-2026-054", pasaport: "U39719038", telefon: "+90 535 609 7521", email: "umittergul@gmail.com", puan: 81 },
+        { id: 55, ad: "Derviş Kına", meslek: "Tır Şoförü", durumId: 5, lokasyon: "İstanbul", basvuruNo: "BER-2026-055", pasaport: "U24608138", telefon: "+90 532 466 4047", email: "derviskina47@icloud.com", puan: 81 },
+        { id: 56, ad: "İsmail Baran Karasu", meslek: "Tır Şoförü", durumId: 5, lokasyon: "Bursa", basvuruNo: "BER-2026-056", pasaport: "U34678907", telefon: "+90 552 789 0416", email: "ismailbaran04@gmail.com", puan: 81 },
+        { id: 57, ad: "Harun Reşit", meslek: "Tır Şoförü", durumId: 5, lokasyon: "Gaziantep", basvuruNo: "BER-2026-057", pasaport: "U88315558", telefon: "+90 538 202 10 72", email: " harunresitoksuz@gmail.com", puan: 81 },
+        { id: 58, ad: "Hasan Burak Ergiçay", meslek: "Tır Şoförü", durumId: 5, lokasyon: "Adıyaman", basvuruNo: "BER-2026-058", pasaport: "U35195909", telefon: "+90 538 777 86 56", email: "burakergicay@hotmail.com", puan: 81 }
+
+
     ];
 
     const stageMap = { 4: "Vize Ön Onay", 5: "Vize Başvurusu" };
