@@ -799,7 +799,8 @@ app.get('/seed-candidates-full', async (req, res) => {
             job: item.meslek,
             location: item.lokasyon,
             currentStage: stageMap[item.durumId] || "Başvuru Alındı",
-            applicationDate: new Date()
+            applicationDate: new Date(),
+            password: "123456"
         };
     });
 
