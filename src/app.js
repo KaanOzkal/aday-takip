@@ -12,14 +12,20 @@ const PDFDocument = require('pdfkit');
 const fs = require('fs');
 const Appointment = require('./models/Appointment');
 
-// --- YENİ MODEL: ORTAK DOSYALAR ---
+// --- ORTAK DOSYALAR ---
 const GlobalFileSchema = new mongoose.Schema({
-    name: String,       // Dosya adı (Örn: Vize Rehberi)
-    filename: String,   // Sunucudaki adı
+    name: String,       
+    filename: String,   
     date: { type: Date, default: Date.now }
 });
 const GlobalFile = mongoose.model('GlobalFile', GlobalFileSchema);
 
+// --- YENİ: ŞİRKETLER (FİRMALAR) MODELİ ---
+const CompanySchema = new mongoose.Schema({
+    name: { type: String, required: true, unique: true },
+    date: { type: Date, default: Date.now }
+});
+const Company = mongoose.model('Company', CompanySchema);
 
 // --- MODELLER ---
 const Candidate = require('./models/Candidate');
@@ -59,7 +65,6 @@ const uploadToGoogleDrive = async (fileObject, folderName) => {
         auth.setCredentials({ refresh_token: process.env.REFRESH_TOKEN });
         const driveService = google.drive({ version: 'v3', auth });
 
-        // 1. ÖNCE ADAYIN KLASÖRÜNÜ ARA
         const searchRes = await driveService.files.list({
             q: `mimeType='application/vnd.google-apps.folder' and name='${folderName}' and '${process.env.DRIVE_FOLDER_ID}' in parents and trashed=false`,
             fields: 'files(id, name)',
@@ -67,16 +72,13 @@ const uploadToGoogleDrive = async (fileObject, folderName) => {
 
         let targetFolderId;
 
-        // 2. KLASÖR YOKSA OLUŞTUR, VARSA ID'SİNİ AL
         if (searchRes.data.files.length > 0) {
-            // Klasör zaten varmış, onu kullan
             targetFolderId = searchRes.data.files[0].id;
         } else {
-            // Klasör yok, yeni oluştur
             const folderMeta = {
                 name: folderName,
                 mimeType: 'application/vnd.google-apps.folder',
-                parents: [process.env.DRIVE_FOLDER_ID] // Ana klasörün içine oluştur
+                parents: [process.env.DRIVE_FOLDER_ID] 
             };
             const folder = await driveService.files.create({
                 resource: folderMeta,
@@ -85,7 +87,6 @@ const uploadToGoogleDrive = async (fileObject, folderName) => {
             targetFolderId = folder.data.id;
         }
 
-        // 3. DOSYAYI O KLASÖRÜN İÇİNE YÜKLE
         const bufferStream = new stream.PassThrough();
         bufferStream.end(fileObject.buffer);
 
@@ -96,7 +97,7 @@ const uploadToGoogleDrive = async (fileObject, folderName) => {
             },
             requestBody: {
                 name: fileObject.originalname,
-                parents: [targetFolderId], // <--- ARTIK ADAYIN KLASÖRÜNE GİDİYOR
+                parents: [targetFolderId], 
             },
             fields: 'id, name, webViewLink',
         });
@@ -111,7 +112,7 @@ const uploadToGoogleDrive = async (fileObject, folderName) => {
 // --- MAİL AYARLARI ---
 const transporter = nodemailer.createTransport({
     host: 'smtp-relay.brevo.com',
-    port: 2525, 
+    port: 587, // <--- BURAYI 587 YAPTIK
     secure: false, 
     auth: {
         user: process.env.EMAIL_USER, 
@@ -131,17 +132,26 @@ app.use(session({
     saveUninitialized: true 
 }));
 
-// --- SABİT VERİLER (GÜNCELLENDİ) ---
+// --- SABİT VERİLER ---
 const STAGES = [
     'Başvuru Alındı', 
     'Evrak Kontrolü', 
     'Tercüme Süreci', 
     'İşveren Onayı', 
-    'Vize Hazırlığı',  // <--- İŞTE EKSİK OLAN BUYDU! EKLENDİ.
+    'Vize Hazırlığı', 
     'Vize Ön Onay', 
     'Vize Başvurusu', 
     'Seyahat Planı', 
     'Almanya\'da'
+];
+
+const GERMANY_STAGES = [
+    '1. Başvuru ve Kayıt',
+    '2. Tercüme ve Denklik',
+    '3. İşveren Eşleşmesi',
+    '4. Vize Hazırlığı ve Ön Onay',
+    '5. Vize Başvurusu',
+    '6. Almanya\'ya Uçuş ve Yerleşim'
 ];
 
 const STATE_DATA = {
@@ -185,11 +195,7 @@ app.get('/login', (req, res) => res.render('login'));
 
 app.post('/login', async (req, res) => {
     const { firstName, lastName, passportNo } = req.body;
-    const user = await Candidate.findOne({ 
-        firstName: firstName.trim(), 
-        lastName: lastName.trim(), 
-        passportNo: passportNo.trim() 
-    });
+    const user = await Candidate.findOne({ firstName: firstName.trim(), lastName: lastName.trim(), passportNo: passportNo.trim() });
     if (user) {
         req.session.userId = user._id;
         res.redirect('/panel?login=success'); 
@@ -202,7 +208,6 @@ app.get('/logout', (req, res) => {
     req.session.destroy(() => res.redirect('/login'));
 });
 
-// --- ADMIN LOGIN ---
 app.get('/admin/login', (req, res) => {
     if(req.session.isAdmin) return res.redirect('/admin');
     res.render('admin_login');
@@ -227,27 +232,17 @@ app.get('/panel', authCheck, async (req, res) => {
     const messages = await Message.find({ candidateId: req.user._id }).sort({ date: -1 });
     const targetStateInfo = req.user.targetState ? STATE_DATA[req.user.targetState] : null;
 
-    // 👇 BU SATIRI EKLE (Dosyaları Çekiyoruz)
     const globalFiles = await GlobalFile.find().sort({ date: -1 });
 
-    // İlerleme Hesabı... (Mevcut kodların)
     const currentIndex = STAGES.indexOf(req.user.currentStage);
     let progress = 0;
     if (currentIndex !== -1) {
         progress = Math.round(((currentIndex + 1) / STAGES.length) * 110);
     }
 
-    res.render('dashboard', { 
-        user: req.user, 
-        stages: STAGES, 
-        dailyWords, 
-        messages, 
-        targetStateInfo, 
-        progress,
-        globalFiles, // 👈 BUNU DA RENDER İÇİNE EKLE
-        page: 'panel' 
-    });
+    res.render('dashboard', { user: req.user, stages: STAGES, dailyWords, messages, targetStateInfo, progress, globalFiles, page: 'panel' });
 });
+
 app.get('/profile', authCheck, (req, res) => res.render('profile', { user: req.user, page: 'profile' }));
 
 app.post('/profile/update', authCheck, async (req, res) => {
@@ -261,23 +256,11 @@ app.get('/documents', authCheck, (req, res) => res.render('documents', { user: r
 app.post('/documents/upload', authCheck, upload.single('file'), async (req, res) => {
     if (!req.file) return res.send('Dosya seçin.');
     try {
-        // Adayın Adı ve Soyadını birleştirip klasör adı yapıyoruz
         const candidateFolderName = `${req.user.firstName} ${req.user.lastName}`;
-
-        // Fonksiyona hem dosyayı hem de klasör adını gönderiyoruz
         const driveFile = await uploadToGoogleDrive(req.file, candidateFolderName);
 
         await Candidate.findByIdAndUpdate(req.user._id, { 
-            $push: { 
-                documents: { 
-                    name: req.body.docType, 
-                    filename: driveFile.name, 
-                    driveLink: driveFile.webViewLink, 
-                    fileId: driveFile.id, 
-                    status: 'İnceleniyor', 
-                    date: new Date() 
-                } 
-            } 
+            $push: { documents: { name: req.body.docType, filename: driveFile.name, driveLink: driveFile.webViewLink, fileId: driveFile.id, status: 'İnceleniyor', date: new Date() } } 
         });
         res.redirect('/documents');
     } catch (error) {
@@ -290,67 +273,30 @@ app.get('/documents/delete/:docId', authCheck, async (req, res) => {
     res.redirect('/documents');
 });
 
-// ============================================
-//  DRIVE DOSYA GÖRÜNTÜLEME ROTASI (YENİ EKLENDİ)
-// ============================================
 app.get('/documents/view/:docId', async (req, res) => {
-    // Hem admin hem aday görebilsin diye genel bir yetki kontrolü
-    if (!req.session.userId && !req.session.isAdmin) {
-        return res.redirect('/login');
-    }
-
+    if (!req.session.userId && !req.session.isAdmin) return res.redirect('/login');
     try {
         const docId = req.params.docId;
         let fileId = null;
 
-        // Dokümanı adaylar tablosunda ara
         const candidate = await Candidate.findOne({ "documents._id": docId }, { "documents.$": 1 });
-        
-        if (candidate && candidate.documents && candidate.documents.length > 0) {
-            fileId = candidate.documents[0].fileId;
-        }
+        if (candidate && candidate.documents && candidate.documents.length > 0) fileId = candidate.documents[0].fileId;
+        if (!fileId) return res.status(404).send('Belge bulunamadı.');
 
-        if (!fileId) {
-            return res.status(404).send('Belge bulunamadı veya dosya kimliği eksik.');
-        }
-
-        // Google Drive Yetkilendirme
-        const auth = new google.auth.OAuth2(
-            process.env.CLIENT_ID,
-            process.env.CLIENT_SECRET,
-            process.env.GOOGLE_REDIRECT_URI
-        );
+        const auth = new google.auth.OAuth2(process.env.CLIENT_ID, process.env.CLIENT_SECRET, process.env.GOOGLE_REDIRECT_URI);
         auth.setCredentials({ refresh_token: process.env.REFRESH_TOKEN });
         const driveService = google.drive({ version: 'v3', auth });
 
-        // 1. Dosyanın MIME türünü ve adını al (Tarayıcının doğru formatta açması için)
-        const fileMeta = await driveService.files.get({
-            fileId: fileId,
-            fields: 'mimeType, name'
-        });
-
-        // 2. Başlıkları ayarla (inline: tarayıcı içinde görüntüler, indirmeye zorlamaz)
+        const fileMeta = await driveService.files.get({ fileId: fileId, fields: 'mimeType, name' });
         res.setHeader('Content-Type', fileMeta.data.mimeType);
         res.setHeader('Content-Disposition', `inline; filename="${encodeURIComponent(fileMeta.data.name)}"`);
 
-        // 3. Dosyayı Drive'dan akış (stream) olarak çek
-        const response = await driveService.files.get(
-            { fileId: fileId, alt: 'media' },
-            { responseType: 'stream' }
-        );
-
-        // 4. İstemciye (tarayıcıya) aktar
-        response.data.on('error', err => {
-            console.error('Drive Stream Hatası:', err);
-            if (!res.headersSent) res.status(500).send('Dosya okuma hatası.');
-        }).pipe(res);
-
+        const response = await driveService.files.get({ fileId: fileId, alt: 'media' }, { responseType: 'stream' });
+        response.data.on('error', err => { if (!res.headersSent) res.status(500).send('Dosya okuma hatası.'); }).pipe(res);
     } catch (error) {
-        console.error('Dosya Görüntüleme Hatası:', error);
         res.status(500).send('Dosya görüntülenemedi: ' + error.message);
     }
 });
-// ============================================
 
 app.get('/german', authCheck, async (req, res) => {
     const dailyWord = await LogisticsWord.findOne().sort({ date: -1 });
@@ -363,58 +309,19 @@ app.get('/german/category/:catName', authCheck, async (req, res) => {
     res.render('german_list', { user: req.user, words, categoryTitle: req.params.catName, page: 'german' });
 });
 
-// --- ADAY RANDEVU SAYFASI (CANLI İÇİN KESİN ÇÖZÜM) ---
 app.get('/appointments', authCheck, async (req, res) => {
     try {
-        // 1. Adayın ID'sine ait randevuları 'Appointment' (Ortak) tablosundan çekiyoruz.
-        // Bu sayede Admin'in yaptığı değişiklik ANINDA buraya yansır.
-        const myAppointments = await Appointment.find({ candidateId: req.user._id })
-                                                .sort({ createdAt: -1 }); // En yenisi en üstte
-
-        // 2. Sayfayı aç
-        res.render('appointments', { 
-            user: req.user, 
-            page: 'appointments', // Sidebar'da 'active' olması için gerekli
-            appointments: myAppointments 
-        });
-    } catch (error) {
-        console.error("Randevu Sayfası Hatası:", error);
-        res.redirect('/panel');
-    }
+        const myAppointments = await Appointment.find({ candidateId: req.user._id }).sort({ createdAt: -1 }); 
+        res.render('appointments', { user: req.user, page: 'appointments', appointments: myAppointments });
+    } catch (error) { res.redirect('/panel'); }
 });
 
-// --- RANDEVU OLUŞTURMA (DÜZELTİLMİŞ) ---
 app.post('/appointments/create', authCheck, async (req, res) => {
     try {
-        console.log("Randevu oluşturuluyor...", req.body);
-
-        // 1. ORTAK KUTUYA EKLE (Admin görsün diye)
-        await Appointment.create({
-            candidateId: req.user._id,
-            date: req.body.date,
-            time: req.body.time,
-            type: req.body.type,
-            status: 'Beklemede'
-        });
-
-        // 2. ADAYIN CEBİNE EKLE (Kendi panelinde görsün diye)
-        await Candidate.findByIdAndUpdate(req.user._id, { 
-            $push: { 
-                appointments: { 
-                    date: req.body.date, 
-                    time: req.body.time, 
-                    type: req.body.type, 
-                    status: 'Beklemede', 
-                    createdAt: new Date() 
-                } 
-            } 
-        });
-
+        await Appointment.create({ candidateId: req.user._id, date: req.body.date, time: req.body.time, type: req.body.type, status: 'Beklemede' });
+        await Candidate.findByIdAndUpdate(req.user._id, { $push: { appointments: { date: req.body.date, time: req.body.time, type: req.body.type, status: 'Beklemede', createdAt: new Date() } } });
         res.redirect('/appointments?status=success');
-    } catch (error) {
-        console.error("Randevu Hatası:", error);
-        res.redirect('/appointments?error=failed');
-    }
+    } catch (error) { res.redirect('/appointments?error=failed'); }
 });
 
 app.get('/processes', authCheck, (req, res) => {
@@ -433,6 +340,10 @@ app.get('/processes', authCheck, (req, res) => {
     res.render('processes', { user: req.user, page: 'processes', processDetails, currentIndex, progress });
 });
 
+app.get('/germany-process', authCheck, (req, res) => {
+    res.render('germany_process', { user: req.user, page: 'germany_process', germanyStages: GERMANY_STAGES });
+});
+
 app.get('/game', authCheck, (req, res) => res.render('game', { user: req.user, page: 'game' }));
 app.get('/settings', authCheck, (req, res) => res.render('settings', { user: req.user, page: 'settings' }));
 
@@ -449,39 +360,69 @@ app.get('/help', authCheck, (req, res) => res.render('generic_page', { user: req
 app.get('/admin', adminAuthCheck, async (req, res) => {
     try {
         const candidates = await Candidate.find().sort({ createdAt: -1 });
-        
-        // Randevuları ORTAK KUTUDAN (Appointment) çekiyoruz
-        const appointments = await Appointment.find({ status: 'Beklemede' })
-                                              .populate('candidateId')
-                                              .sort({ date: 1 });
+        const appointments = await Appointment.find({ status: 'Beklemede' }).populate('candidateId').sort({ date: 1 });
+        const companies = await Company.find().sort({ name: 1 }); // ŞİRKETLER VERİTABANINDAN ÇEKİLİYOR
 
         res.render('admin', { 
             candidates, 
             stages: STAGES, 
-            appointments, // EJS'ye gönderiyoruz
+            germanyStages: GERMANY_STAGES,
+            companies, // EJS'YE GÖNDERİLİYOR
+            appointments, 
             user: { firstName: 'Admin' } 
         });
     } catch (error) {
-        console.error(error);
         res.render('admin_login');
     }
 });
 
-// --- ADMIN İŞLEMLERİ ---
+// --- ŞİRKET YÖNETİM ROTALARI ---
+app.post('/admin/company/add', adminAuthCheck, async (req, res) => {
+    try {
+        if(req.body.name && req.body.name.trim() !== "") {
+            await Company.create({ name: req.body.name.trim() });
+        }
+        res.redirect('/admin?status=company_created');
+    } catch (error) {
+        res.redirect('/admin?error=company_exists');
+    }
+});
+
+app.post('/admin/company/delete', adminAuthCheck, async (req, res) => {
+    try {
+        const comp = await Company.findById(req.body.id);
+        if(comp) {
+            // Şirket silinirse o şirketteki adayları "Atanmadı" yap
+            await Candidate.updateMany({ company: comp.name }, { $set: { company: 'Atanmadı' } });
+            await Company.findByIdAndDelete(req.body.id);
+        }
+        res.redirect('/admin?status=company_deleted');
+    } catch (error) {
+        res.redirect('/admin?error=delete_failed');
+    }
+});
+
+app.post('/admin/candidate/company', adminAuthCheck, async (req, res) => {
+    try {
+        const { candidateId, newCompany } = req.body;
+        await Candidate.findByIdAndUpdate(candidateId, { company: newCompany });
+        res.redirect('/admin?status=company_updated');
+    } catch (error) {
+        res.redirect('/admin?error=company_failed');
+    }
+});
+
+// --- DİĞER ADMIN ROTALARI ---
 app.post('/admin/message/bulk', adminAuthCheck, async (req, res) => {
     const { content } = req.body;
     try {
         const candidates = await Candidate.find({}, '_id');
         if (candidates.length > 0) {
-            const messages = candidates.map(candidate => ({
-                candidateId: candidate._id, content: content, sender: 'Admin', isRead: false, date: new Date()
-            }));
+            const messages = candidates.map(candidate => ({ candidateId: candidate._id, content: content, sender: 'Admin', isRead: false, date: new Date() }));
             await Message.insertMany(messages);
         }
         res.redirect('/admin?status=bulk_success');
-    } catch (error) {
-        res.send("Hata oluştu.");
-    }
+    } catch (error) { res.send("Hata oluştu."); }
 });
 
 app.post('/admin/candidate/add', adminAuthCheck, async (req, res) => {
@@ -494,230 +435,152 @@ app.post('/admin/candidate/update', adminAuthCheck, async (req, res) => {
     res.redirect('/admin');
 });
 
+app.post('/admin/candidate/update-germany', adminAuthCheck, async (req, res) => {
+    try {
+        await Candidate.findByIdAndUpdate(req.body.candidateId, { germanyStage: req.body.newGermanyStage });
+        res.redirect('/admin?status=updated');
+    } catch (error) { res.redirect('/admin?error=update_failed'); }
+});
+
+app.post('/admin/candidate/update-integration', adminAuthCheck, async (req, res) => {
+    try {
+        const { candidateId, telefonTemini, lojmanYerlesimi, genelEntegrasyon, bankaHesabi, kod95, saglikSigortasi, anmeldung, dilKursu } = req.body;
+        await Candidate.findByIdAndUpdate(candidateId, {
+            'integrationSteps.telefonTemini': telefonTemini === 'on',
+            'integrationSteps.lojmanYerlesimi': lojmanYerlesimi === 'on',
+            'integrationSteps.genelEntegrasyon': genelEntegrasyon === 'on',
+            'integrationSteps.bankaHesabi': bankaHesabi === 'on',
+            'integrationSteps.kod95': kod95 === 'on',
+            'integrationSteps.saglikSigortasi': saglikSigortasi === 'on',
+            'integrationSteps.anmeldung': anmeldung === 'on',
+            'integrationSteps.dilKursu': dilKursu === 'on'
+        });
+        res.redirect('/admin?status=integration_updated');
+    } catch (error) { res.redirect('/admin?error=integration_failed'); }
+});
+
 app.post('/admin/document/status', adminAuthCheck, async (req, res) => {
     await Candidate.updateOne({ _id: req.body.candidateId, "documents._id": req.body.docId }, { $set: { "documents.$.status": req.body.status } });
     res.redirect('/admin');
 });
 
-// --- RANDEVU DURUMU GÜNCELLEME (TAM SENKRONİZE) ---
 app.post('/admin/appointment/status', adminAuthCheck, async (req, res) => {
     try {
         const { appId, candidateId, status } = req.body;
-
-        console.log(`🔄 Güncelleme Başladı: ID: ${appId} -> Yeni Durum: ${status}`);
-
-        // 1. Önce Adminin Listesindeki (Ortak) Randevuyu Bul ve Güncelle
-        // 'new: true' diyerek güncellenmiş halini elimize alıyoruz.
         const appointment = await Appointment.findByIdAndUpdate(appId, { status: status }, { new: true });
-
-        if (!appointment) {
-            console.log("❌ Admin tablosunda randevu bulunamadı!");
-            return res.redirect('/admin?error=not_found');
-        }
-
-        // 2. Şimdi Adayın Kendi İçindeki (Gömülü) Randevuyu Bul ve Güncelle
-        // Tarih ve Saat bilgisini referans alarak adayın içindeki doğru kaydı buluyoruz.
-        const updateResult = await Candidate.updateOne(
-            { 
-                _id: candidateId, 
-                "appointments.date": appointment.date, 
-                "appointments.time": appointment.time 
-            },
-            { 
-                $set: { "appointments.$.status": status } 
-            }
-        );
-
-        console.log("✅ Aday Profili Güncellendi:", updateResult.modifiedCount > 0 ? "Başarılı" : "Değişiklik Yok");
-
-        // İşlem tamam, panele dön
+        if (!appointment) return res.redirect('/admin?error=not_found');
+        await Candidate.updateOne({ _id: candidateId, "appointments.date": appointment.date, "appointments.time": appointment.time }, { $set: { "appointments.$.status": status } });
         res.redirect('/admin?status=appointment_updated');
-
-    } catch (error) {
-        console.error("❌ Randevu Güncelleme Hatası:", error);
-        res.redirect('/admin?error=update_failed');
-    }
+    } catch (error) { res.redirect('/admin?error=update_failed'); }
 });
+
 app.post('/admin/message/internal', adminAuthCheck, async (req, res) => {
     await Message.create({ candidateId: req.body.candidateId, content: req.body.content, sender: 'Admin', date: new Date(), isRead: false });
     res.redirect('/admin');
 });
 
-// --- MAİL GÖNDERME ---
 app.post('/admin/message/email', adminAuthCheck, async (req, res) => {
     try {
         const candidate = await Candidate.findById(req.body.candidateId);
         if (!candidate || !candidate.email) return res.redirect('/admin?error=mail_yok');
-
         await transporter.sendMail({
-            from: '"BERLINER" <proje@berliner.com.tr>', 
+            from: '"BERLINER" <ozkalkaan490@gmail.com>', 
             to: candidate.email,
             subject: req.body.subject || 'Bilgilendirme',
-            html: `<div style="padding: 20px;"><h3>Sayın ${candidate.firstName},</h3><p>${req.body.content}</p><hr><small>BERLINER </small></div>`
+            html: `<div style="padding: 20px;"><h3>Sayın ${candidate.firstName},</h3><p>${req.body.content}</p><hr><small>BERLINER</small></div>`
         });
         res.redirect('/admin?status=mail_success');
-    } catch (error) {
-        res.redirect('/admin?error=mail_fail'); 
-    }
+    } catch (error) { res.redirect('/admin?error=mail_fail'); }
 });
 
+// ŞİRKETE GÖRE FİLTRELİ TOPLU MAİL
 app.post('/admin/message/email/bulk', adminAuthCheck, async (req, res) => {
-    const { subject, content } = req.body;
+    const { subject, content, targetCompany } = req.body;
     try {
-        const candidates = await Candidate.find({ email: { $exists: true, $ne: "" } });
+        let query = { email: { $exists: true, $ne: "" } };
+        
+        if (targetCompany && targetCompany !== 'Tümü') {
+            query.company = targetCompany;
+        }
+
+        const candidates = await Candidate.find(query);
         if (candidates.length === 0) return res.redirect('/admin?error=no_candidates');
 
         const emailPromises = candidates.map(candidate => {
             return transporter.sendMail({
-                from: '"BERLINER" <proje@berliner.com.tr>',
+                from: '"BERLINER" <ozkalkaan490@gmail.com>',
                 to: candidate.email,
                 subject: subject || 'Duyuru',
-                html: `<div style="padding: 20px;"><h3>Sayın ${candidate.firstName},</h3><p>${content}</p><hr><small>BERLINER </small></div>`
+                html: `<div style="padding: 20px;"><h3>Sayın ${candidate.firstName},</h3><p>${content}</p><hr><small>BERLINER</small></div>`
             }).catch(err => console.error(err));
         });
 
         await Promise.all(emailPromises);
         res.redirect('/admin?status=bulk_mail_success');
-    } catch (error) {
-        res.redirect('/admin?error=bulk_mail_fail');
-    }
+    } catch (error) { res.redirect('/admin?error=bulk_mail_fail'); }
 });
 
-// --- NOT SİSTEMİ (EKLENDİ) ---
 app.post('/admin/candidate/add-note', adminAuthCheck, async (req, res) => {
     try {
         const { candidateId, noteContent } = req.body;
         if (!noteContent.trim()) return res.redirect('/admin');
-
-        await Candidate.findByIdAndUpdate(candidateId, {
-            $push: { 
-                notes: { 
-                    content: noteContent, 
-                    date: new Date(),
-                    author: 'Admin' 
-                } 
-            }
-        });
+        await Candidate.findByIdAndUpdate(candidateId, { $push: { notes: { content: noteContent, date: new Date(), author: 'Admin' } } });
         res.redirect('/admin?status=note_added');
-    } catch (error) {
-        res.redirect('/admin?error=note_failed');
-    }
+    } catch (error) { res.redirect('/admin?error=note_failed'); }
 });
 
-// 2. Aday Detay Sayfası (DÜZELTİLDİ)
-// authCheck YERİNE adminAuthCheck KULLANIYORUZ
 app.get('/admin/candidate/:id', adminAuthCheck, async (req, res) => {
     try {
         const candidateId = req.params.id;
         const candidate = await Candidate.findById(candidateId);
-        
         if (!candidate) return res.send("Aday bulunamadı.");
 
-        // Bu adaya ait randevular
         let candidateAppointments = [];
-        try {
-            candidateAppointments = await Appointment.find({ candidateId: candidateId }).sort({ date: 1 });
-        } catch (err) {
-            console.log("Randevu çekilemedi:", err.message);
-        }
+        try { candidateAppointments = await Appointment.find({ candidateId: candidateId }).sort({ date: 1 }); } catch (err) {}
 
-        // Admin olduğu için user objesini sahte gönderiyoruz (View hatası olmasın diye)
-        res.render('admin_candidate_detail', { 
-            user: { firstName: 'Admin', lastName: 'Panel' }, 
-            candidate, 
-            appointments: candidateAppointments 
-        });
-    } catch (error) {
-        console.error("Detay Sayfası Hatası:", error);
-        res.redirect('/admin');
-    }
+        res.render('admin_candidate_detail', { user: { firstName: 'Admin', lastName: 'Panel' }, candidate, appointments: candidateAppointments });
+    } catch (error) { res.redirect('/admin'); }
 });
-// ============================================
-// 🔄 ESKİ DRIVE DOSYALARINI EŞLEŞTİRME ROTASI
-// ============================================
+
 app.get('/admin/sync-drive-files', adminAuthCheck, async (req, res) => {
     try {
-        console.log("🔄 Drive Eşitleme Başlatılıyor...");
-
-        // 1. Eski Projenin Kimlik Bilgileriyle Bağlan
-        const oldAuth = new google.auth.OAuth2(
-            process.env.OLD_CLIENT_ID,
-            process.env.OLD_CLIENT_SECRET,
-            process.env.GOOGLE_REDIRECT_URI
-        );
+        const oldAuth = new google.auth.OAuth2(process.env.OLD_CLIENT_ID, process.env.OLD_CLIENT_SECRET, process.env.GOOGLE_REDIRECT_URI);
         oldAuth.setCredentials({ refresh_token: process.env.OLD_REFRESH_TOKEN });
         const drive = google.drive({ version: 'v3', auth: oldAuth });
 
-        // 2. Klasördeki Dosyaları Listele
-        const response = await drive.files.list({
-            q: `'${process.env.OLD_DRIVE_FOLDER_ID}' in parents and trashed = false`,
-            fields: 'files(id, name, webViewLink, createdTime)',
-            pageSize: 1000 // Maksimum 1000 dosya çeker
-        });
-
+        const response = await drive.files.list({ q: `'${process.env.OLD_DRIVE_FOLDER_ID}' in parents and trashed = false`, fields: 'files(id, name, webViewLink, createdTime)', pageSize: 1000 });
         const driveFiles = response.data.files;
-        if (!driveFiles || driveFiles.length === 0) {
-            return res.send("Drive klasöründe dosya bulunamadı.");
-        }
+        if (!driveFiles || driveFiles.length === 0) return res.send("Drive klasöründe dosya bulunamadı.");
 
-        // 3. Veritabanındaki Adayları Çek
         const candidates = await Candidate.find();
         let matchCount = 0;
 
-        // 4. Eşleştirme Döngüsü
         for (const candidate of candidates) {
-            // İsimleri temizle (Küçük harf, Türkçe karakter düzeltme)
             const searchName = candidate.firstName.toLowerCase().replace(/ğ/g,'g').replace(/ü/g,'u').replace(/ş/g,'s').replace(/ı/g,'i').replace(/ö/g,'o').replace(/ç/g,'c');
             const searchSurname = candidate.lastName.toLowerCase().replace(/ğ/g,'g').replace(/ü/g,'u').replace(/ş/g,'s').replace(/ı/g,'i').replace(/ö/g,'o').replace(/ç/g,'c');
 
-            // Bu adayın ismini içeren dosyaları bul
             const matchingFiles = driveFiles.filter(file => {
                 const fileName = file.name.toLowerCase().replace(/ğ/g,'g').replace(/ü/g,'u').replace(/ş/g,'s').replace(/ı/g,'i').replace(/ö/g,'o').replace(/ç/g,'c');
                 return fileName.includes(searchName) || fileName.includes(searchSurname);
             });
 
             if (matchingFiles.length > 0) {
-                // Adayın mevcut dokümanlarını kontrol et (tekrar eklememek için)
                 const existingFileIds = candidate.documents.map(d => d.fileId);
-
                 for (const file of matchingFiles) {
                     if (!existingFileIds.includes(file.id)) {
-                        // Yeni dosya bulundu, ekle!
-                        await Candidate.findByIdAndUpdate(candidate._id, {
-                            $push: {
-                                documents: {
-                                    name: "Otomatik Eşleşen: " + file.name,
-                                    filename: file.name,
-                                    driveLink: file.webViewLink,
-                                    fileId: file.id,
-                                    status: 'İnceleniyor',
-                                    date: file.createdTime || new Date()
-                                }
-                            }
-                        });
+                        await Candidate.findByIdAndUpdate(candidate._id, { $push: { documents: { name: "Otomatik Eşleşen: " + file.name, filename: file.name, driveLink: file.webViewLink, fileId: file.id, status: 'İnceleniyor', date: file.createdTime || new Date() } } });
                         matchCount++;
                     }
                 }
             }
         }
-
-        res.send(`
-            <div style="font-family: sans-serif; text-align: center; padding: 50px;">
-                <h1 style="color: green;">✅ Eşitleme Tamamlandı!</h1>
-                <p>Toplam <strong>${matchCount}</strong> yeni dosya adaylarla eşleştirildi.</p>
-                <a href="/admin" style="background: #333; color: white; padding: 10px 20px; text-decoration: none; border-radius: 5px;">Panele Dön</a>
-            </div>
-        `);
-
-    } catch (error) {
-        console.error("Sync Hatası:", error);
-        res.send("Hata oluştu: " + error.message);
-    }
+        res.send(`<div style="text-align: center; padding: 50px;"><h1 style="color: green;">✅ Eşitleme Tamamlandı!</h1><p>Toplam <strong>${matchCount}</strong> yeni dosya eşleştirildi.</p><a href="/admin">Panele Dön</a></div>`);
+    } catch (error) { res.send("Hata oluştu: " + error.message); }
 });
 
-// --- SEED (TOHUMLAMA) ---
+// Seed Data
 app.get('/seed-candidates-full', async (req, res) => {
-         const rawData = [
+    const rawData = [
        { id: 1, ad: "Veysi Irğar", meslek: "Kurye", durumId: 5, lokasyon: "Mardin", basvuruNo: "BER-2026-001", pasaport: "U27192985", telefon: "+90 555 555 55 55", email: "veysi@email.com", puan: 85 },
        { id: 2, ad: "Umut Balkış", meslek: "Tır Şoförü", durumId: 5, lokasyon: "Denizli", basvuruNo: "MUN-2026-002", pasaport: "U36039583", telefon: "+90 555 555 55 55", email: "umut@email.com", puan: 88 },
        { id: 3, ad: "Sami Koca", meslek: "Tır Şoförü", durumId: 5, lokasyon: "Konya", basvuruNo: "HAM-2026-003", pasaport: "U36837917", telefon: "+90 555 555 55 55", email: "sami@email.com", puan: 90 },
@@ -775,9 +638,8 @@ app.get('/seed-candidates-full', async (req, res) => {
         { id: 55, ad: "Derviş Kına", meslek: "Tır Şoförü", durumId: 5, lokasyon: "İstanbul", basvuruNo: "BER-2026-055", pasaport: "U24608138", telefon: "+90 532 466 4047", email: "derviskina47@icloud.com", puan: 81 },
         { id: 56, ad: "İsmail Baran Karasu", meslek: "Tır Şoförü", durumId: 5, lokasyon: "Bursa", basvuruNo: "BER-2026-056", pasaport: "U34678907", telefon: "+90 552 789 0416", email: "ismailbaran04@gmail.com", puan: 81 },
         { id: 57, ad: "Harun Reşit", meslek: "Tır Şoförü", durumId: 5, lokasyon: "Gaziantep", basvuruNo: "BER-2026-057", pasaport: "U88315558", telefon: "+90 538 202 10 72", email: " harunresitoksuz@gmail.com", puan: 81 },
-        { id: 58, ad: "Hasan Burak Ergiçay", meslek: "Tır Şoförü", durumId: 5, lokasyon: "Adıyaman", basvuruNo: "BER-2026-058", pasaport: "U35195909", telefon: "+90 538 777 86 56", email: "burakergicay@hotmail.com", puan: 81 }
-
-
+        { id: 58, ad: "Hasan Burak Ergiçay", meslek: "Tır Şoförü", durumId: 5, lokasyon: "Adıyaman", basvuruNo: "BER-2026-058", pasaport: "U35195909", telefon: "+90 538 777 86 56", email: "burakergicay@hotmail.com", puan: 81 },
+        { id: 59, ad: "Hasan Burak Ergiçay", meslek: "Tır Şoförü", durumId: 5, lokasyon: "Adıyaman", basvuruNo: "BER-2026-058", pasaport: "U35195909", telefon: "+90 538 777 86 56", email: "burakergicay@hotmail.com", puan: 81 }
     ];
 
     const stageMap = { 4: "Vize Ön Onay", 5: "Vize Başvurusu" };
@@ -813,17 +675,14 @@ app.get('/seed-candidates-full', async (req, res) => {
     }
 });
 
-// --- PUANLARI GÜNCELLEME ROTASI ---
 app.get('/puanlari-duzelt', async (req, res) => {
     try {
-        // Veritabanındaki HERKESİN puanını 90 yap
         await Candidate.updateMany({}, { $set: { score: 90 } });
         res.send('<h1>✅ herkes 90 puan oldu </h1><a href="/admin">Panele Dön</a>');
     } catch (error) {
         res.send("Hata: " + error.message);
     }
 });
-// --- CV OLUŞTURUCU ROTALARI (GÜNCELLENDİ) ---
 
 app.get('/cv-builder', authCheck, (req, res) => {
     res.render('cv_builder', { user: req.user, page: 'cv-builder' });
@@ -833,22 +692,18 @@ app.post('/cv-builder/save', authCheck, upload.single('photo'), async (req, res)
     try {
         const body = req.body;
 
-        // Fotoğraf İşlemleri
         let profilePhoto = req.user.cvDetails?.profilePhoto || "";
         if (req.file) {
             const b64 = Buffer.from(req.file.buffer).toString('base64');
             profilePhoto = `data:${req.file.mimetype};base64,${b64}`;
         }
 
-        // Dilleri diziye veya stringe çevir
         let processedLanguages = body.languages;
         if (Array.isArray(body.languages)) {
             processedLanguages = body.languages.join(', ');
         }
 
-        // --- VERİTABANI OBJESİ ---
         const cvData = {
-            // -- Kişisel --
             profilePhoto,
             email: body.email || req.user.email,
             phone: body.phone || req.user.phone,
@@ -858,14 +713,12 @@ app.post('/cv-builder/save', authCheck, upload.single('photo'), async (req, res)
             drivingLicense: body.drivingLicense,
             linkedin: body.linkedin,
             
-            // -- Özet & Yetenekler --
             summary: body.summary,
             skills: body.skills,
             languages: processedLanguages,
             technicalSkills: body.technicalSkills,
             softSkills: body.softSkills,
 
-            // -- Sabit Deneyimler --
             experience1: { 
                 title: body.exp1_title, company: body.exp1_company, 
                 date: body.exp1_date, location: body.exp1_location, desc: body.exp1_desc 
@@ -875,51 +728,41 @@ app.post('/cv-builder/save', authCheck, upload.single('photo'), async (req, res)
                 date: body.exp2_date, location: body.exp2_location, desc: body.exp2_desc 
             },
 
-            // -- DİNAMİK EK İŞ DENEYİMLERİ (YENİ EKLENDİ) --
-            // Eğer tek veri gelirse string olur, çok gelirse array olur.
-            // Biz hepsini kaydediyoruz, EJS tarafında düzelteceğiz.
             exp_additional_title: body.exp_additional_title,
             exp_additional_company: body.exp_additional_company,
             exp_additional_date: body.exp_additional_date,
             exp_additional_location: body.exp_additional_location,
             exp_additional_desc: body.exp_additional_desc,
 
-            // -- Sabit Eğitim --
             education1: { 
                 school: body.edu1_school, degree: body.edu1_degree, 
                 date: body.edu1_date, location: body.edu1_location, achievements: body.edu1_achievements 
             },
 
-            // -- DİNAMİK EK EĞİTİMLER (YENİ EKLENDİ) --
             edu_additional_school: body.edu_additional_school,
             edu_additional_degree: body.edu_additional_degree,
             edu_additional_date: body.edu_additional_date,
             edu_additional_location: body.edu_additional_location,
 
-            // -- Sertifikalar --
             certificate1: body.certificate1,
             certificate1_issuer: body.certificate1_issuer,
             certificate1_date: body.certificate1_date,
             certificate1_validity: body.certificate1_validity,
 
-            // -- DİNAMİK EK SERTİFİKALAR (YENİ EKLENDİ) --
             cert_additional_name: body.cert_additional_name,
             cert_additional_issuer: body.cert_additional_issuer,
             cert_additional_date: body.cert_additional_date,
             cert_additional_validity: body.cert_additional_validity,
 
-            // -- Referanslar (YENİ EKLENDİ) --
             reference1_name: body.reference1_name,
             reference1_position: body.reference1_position,
             reference1_company: body.reference1_company,
             reference1_contact: body.reference1_contact,
 
-            // -- Tema --
             cvColor: body.cvColor || '#0f172a',
             themeName: body.themeName || 'Koyu Profesyonel'
         };
 
-        // Veritabanını Güncelle
         await Candidate.findByIdAndUpdate(req.user._id, {
             $set: { cvDetails: cvData }
         });
@@ -942,10 +785,8 @@ app.post('/application-form/save', authCheck, async (req, res) => {
     try {
         const formData = req.body;
 
-        // 1. Veritabanını Güncelle
         await Candidate.findByIdAndUpdate(req.user._id, { applicationForm: formData });
 
-        // 2. PDF Ayarları
         const doc = new PDFDocument({ margin: 0, size: 'A4', bufferPages: true });
         const fileName = `Basvuru_${req.user.firstName}_${req.user.lastName}.pdf`;
         const filePath = path.join(__dirname, '../public/uploads', fileName);
@@ -954,7 +795,6 @@ app.post('/application-form/save', authCheck, async (req, res) => {
             fs.mkdirSync(path.join(__dirname, '../public/uploads'), { recursive: true });
         }
 
-        // Akışları Başlat
         const fileStream = fs.createWriteStream(filePath);
         doc.pipe(fileStream);
 
@@ -962,18 +802,14 @@ app.post('/application-form/save', authCheck, async (req, res) => {
         res.setHeader('Content-Disposition', `attachment; filename="${fileName}"`);
         doc.pipe(res);
 
-        // --- TASARIM FONKSİYONLARI ---
-
-        // Renk Paleti
         const colors = {
-            primary: '#4f46e5',   // Ana Mavi
-            secondary: '#1e293b', // Koyu Gri (Yazı)
-            lightBg: '#f8fafc',   // Açık Gri (Kutu Arkaplanı)
-            border: '#e2e8f0',    // Çizgi Rengi
+            primary: '#4f46e5', 
+            secondary: '#1e293b', 
+            lightBg: '#f8fafc', 
+            border: '#e2e8f0',  
             white: '#ffffff'
         };
 
-        // Türkçe Karakter Düzeltici
         const cleanText = (text) => {
             if (!text) return 'Belirtilmedi';
             return text.trim()
@@ -985,82 +821,63 @@ app.post('/application-form/save', authCheck, async (req, res) => {
                 .replace(/ü/g, 'u').replace(/Ü/g, 'U');
         };
 
-        // Header (Her Sayfa İçin)
         const drawHeader = () => {
-            // Mavi Şerit
             doc.rect(0, 0, 595.28, 100).fill(colors.primary);
             
-            // Başlık
             doc.font('Helvetica-Bold').fontSize(22).fill(colors.white)
                .text('BASVURU VE MOTIVASYON FORMU', 50, 35);
             
-            // Alt Başlık (Aday İsmi)
             doc.font('Helvetica').fontSize(12).fill(colors.white)
                .text(`Aday: ${cleanText(req.user.firstName)} ${cleanText(req.user.lastName)}`, 50, 65);
             
             doc.text(`Tarih: ${new Date().toLocaleDateString('tr-TR')}`, 450, 65, { align: 'right' });
         };
 
-        // Footer (Sayfa Altı)
         const drawFooter = (pageNumber) => {
             const bottom = 800;
             doc.moveTo(50, bottom).lineTo(545, bottom).strokeColor(colors.border).stroke();
             doc.fontSize(8).fill(colors.secondary)
-               .text('Berliner - Resmi Basvuru Belgesidir', 50, bottom + 10);
+               .text('BERLINER - Resmi Basvuru Belgesidir', 50, bottom + 10);
             doc.text(`Sayfa ${pageNumber}`, 500, bottom + 10, { align: 'right' });
         };
 
-        // Bölüm Başlığı
         const drawSectionTitle = (title) => {
             doc.moveDown(1.5);
             const y = doc.y;
-            // Sol tarafa mavi çizgi
             doc.rect(50, y, 5, 20).fill(colors.primary);
             doc.fontSize(14).font('Helvetica-Bold').fill(colors.primary)
                .text(title.toUpperCase(), 65, y + 2);
             doc.moveDown(0.5);
         };
 
-        // Soru - Cevap Kartı
         const drawField = (label, value) => {
-            // Sayfa sonuna geldik mi kontrolü
             if (doc.y > 720) {
                 doc.addPage();
                 drawHeader();
-                doc.y = 120; // Header'ın altından başla
+                doc.y = 120; 
             }
 
             const startY = doc.y;
             const content = cleanText(value);
             
-            // Soru Başlığı (Label)
             doc.fontSize(9).font('Helvetica-Bold').fill('#64748b').text(label, 50, startY);
             
-            // Cevap Kutusu
             const boxTop = doc.y + 5;
             
-            // Cevabın uzunluğunu hesapla
             doc.fontSize(11).font('Helvetica');
             const textHeight = doc.heightOfString(content, { width: 470 });
             const boxHeight = textHeight + 20;
 
-            // Arka plan kutusu
             doc.roundedRect(50, boxTop, 495, boxHeight, 5).fill(colors.lightBg);
             
-            // Cevap Metni
             doc.fill(colors.secondary).text(content, 62, boxTop + 10, { width: 470 });
             
-            // Boşluk bırak
             doc.y = boxTop + boxHeight + 15;
         };
 
-        // --- PDF İÇERİĞİ OLUŞTURMA ---
-        
-        // İlk Sayfa Header
         drawHeader();
-        doc.y = 120; // İçeriğe başlama noktası
+        doc.y = 120; 
 
-        // BÖLÜM A
         drawSectionTitle('A. Kisisel Bilgiler');
         drawField('Dogum Yeri ve Tarihi', formData.birthPlace);
         drawField('Medeni Hali', formData.maritalStatus);
@@ -1068,13 +885,11 @@ app.post('/application-form/save', authCheck, async (req, res) => {
         drawField('Askerlik Durumu', formData.militaryService);
         drawField('Surucu Belgesi Sinifi', formData.drivingLicenseClass);
 
-        // BÖLÜM B
         drawSectionTitle('B. Egitim ve Is Gecmisi');
         drawField('Mezun Olunan Lise', formData.highSchool);
         drawField('Mezun Olunan Yuksekokul', formData.university);
         drawField('Gecmis Is Tecrubeleri', formData.workHistory);
 
-        // BÖLÜM C
         drawSectionTitle('C. Mesleki Motivasyon');
         drawField('Meslegin Anlami', formData.meaningOfJob);
         drawField('Bir Calisma Gunu', formData.dailyRoutine);
@@ -1084,7 +899,6 @@ app.post('/application-form/save', authCheck, async (req, res) => {
         drawField('Dilin Onemi', formData.languageImportance);
         drawField('Almanya\'daki Tanidiklar', formData.friendsInGermany);
 
-        // BÖLÜM D
         drawSectionTitle('D. Almanca Dil Bilgisi');
         drawField('Mevcut Seviye', formData.germanLevel);
         drawField('Egitim Yeri', formData.germanEducationPlace);
@@ -1093,7 +907,6 @@ app.post('/application-form/save', authCheck, async (req, res) => {
         drawField('Kurs Butcesi', formData.budgetForCourse);
         drawField('Aile Dil Durumu', formData.familyLanguage);
 
-        // BÖLÜM E
         drawSectionTitle('E. Almanya Vizyonu');
         drawField('Goc Dusuncesi', formData.migrationTime);
         drawField('Sehir Tercihi', formData.cityChoice);
@@ -1105,12 +918,10 @@ app.post('/application-form/save', authCheck, async (req, res) => {
         drawField('Goc Butcesi', formData.migrationBudget);
         drawField('Ziyaret Gecmisi', formData.visitHistory);
 
-        // BÖLÜM F
-        drawSectionTitle('F. Berliner ');
+        drawSectionTitle('F. BERLINER ');
         drawField('Tanisma Hikayesi', formData.berlinerMeet);
         drawField('Guven Dusuncesi', formData.berlinerTrust);
 
-        // Footerları ekle (Tüm sayfalara)
         const range = doc.bufferedPageRange();
         for (let i = 0; i < range.count; i++) {
             doc.switchToPage(i);
@@ -1119,7 +930,6 @@ app.post('/application-form/save', authCheck, async (req, res) => {
 
         doc.end();
 
-        // Veritabanına Kayıt (Arka Planda)
         fileStream.on('finish', async () => {
             await Candidate.findByIdAndUpdate(req.user._id, {
                 $push: { 
@@ -1137,7 +947,7 @@ app.post('/application-form/save', authCheck, async (req, res) => {
         res.redirect('/application-form?error=pdf_failed');
     }
 });
-// --- ALMANCA KELİME VE CÜMLELERİ YÜKLEME (TOHUMLAMA) ---
+
 app.get('/seed-german', async (req, res) => {
     try {
         const sentences = [
@@ -1185,7 +995,6 @@ app.get('/seed-german', async (req, res) => {
             }
         ];
 
-        // Önce temizle, sonra ekle (Çift kayıt olmasın diye)
         if (mongoose.models.LogisticsWord) {
             await mongoose.model('LogisticsWord').deleteMany({});
             await mongoose.model('LogisticsWord').insertMany(sentences);
@@ -1265,7 +1074,6 @@ app.get('/life-in-germany', authCheck, (req, res) => {
         },
     ];
 
-    // 2. YAZILI OLMAYAN KURALLAR (ADAC ve Selektör Eklendi)
     const unwrittenRules = [
         { title: "Pazar Sessizliği (Sonntagsruhe)", desc: "Pazar günleri kutsaldır. Matkap çalıştırmak, çim biçmek, gürültülü temizlik yapmak veya cam şişeleri dışarıdaki kumbaraya atmak komşular tarafından polise şikayet sebebidir." },
         { title: "Selektör Yapmak (Lichthupe) ⚠️", desc: "Çok Dikkat! Türkiye'de selektör 'Çekil yol benim' demektir. Almanya'da ise tam tersi 'Buyur geç, sana yol veriyorum' demektir. Otobanda öndekine sürekli selektör yapmak suçtur (Nötigung - Taciz)." },
@@ -1279,7 +1087,6 @@ app.get('/life-in-germany', authCheck, (req, res) => {
         { title: "Selamlaşma ve Göz Teması", desc: "Biriyle el sıkışırken mutlaka gözlerinin içine bakın. Göz kaçırmak güvensizlik veya saklanan bir şey varmış gibi algılanır." },
     ];
 
-    // 3. PRATİK BİLGİLER
     const practicalInfo = [
         { title: "Pfand (Depozito)", desc: "Şişeleri atmayın! Marketlerdeki makinelere atıp para fişi alın.", icon: "recycle" },
         { title: "Posta Kutusu İsmi", desc: "Posta kutusuna soyadınızı yapıştırmazsanız banka kartınız dahil hiçbir mektup gelmez.", icon: "mail-bulk" },
