@@ -639,7 +639,8 @@ app.get('/seed-candidates-full', async (req, res) => {
         { id: 56, ad: "İsmail Baran Karasu", meslek: "Tır Şoförü", durumId: 5, lokasyon: "Bursa", basvuruNo: "BER-2026-056", pasaport: "U34678907", telefon: "+90 552 789 0416", email: "ismailbaran04@gmail.com", puan: 81 },
         { id: 57, ad: "Harun Reşit", meslek: "Tır Şoförü", durumId: 5, lokasyon: "Gaziantep", basvuruNo: "BER-2026-057", pasaport: "U88315558", telefon: "+90 538 202 10 72", email: " harunresitoksuz@gmail.com", puan: 81 },
         { id: 58, ad: "Hasan Burak Ergiçay", meslek: "Tır Şoförü", durumId: 5, lokasyon: "Adıyaman", basvuruNo: "BER-2026-058", pasaport: "U35195909", telefon: "+90 538 777 86 56", email: "burakergicay@hotmail.com", puan: 81 },
-        { id: 59, ad: "Hasan Burak Ergiçay", meslek: "Tır Şoförü", durumId: 5, lokasyon: "Adıyaman", basvuruNo: "BER-2026-058", pasaport: "U35195909", telefon: "+90 538 777 86 56", email: "burakergicay@hotmail.com", puan: 81 }
+        { id: 59, ad: "Hasan Burak Ergiçay", meslek: "Tır Şoförü", durumId: 5, lokasyon: "Adıyaman", basvuruNo: "BER-2026-058", pasaport: "U35195909", telefon: "+90 538 777 86 56", email: "burakergicay@hotmail.com", puan: 81 },
+        {id: 60, ad: "Melih Çopuroğlu", meslek: "Tır Şoförü", durumId: 8, lokasyon: "Almanya", basvuruNo: "BER-2026-060", pasaport: "U32999180", telefon: "+90 555 555 55 55", email: "melih.copuroglu@gmail.com", puan: 90 }
     ];
 
     const stageMap = { 4: "Vize Ön Onay", 5: "Vize Başvurusu" };

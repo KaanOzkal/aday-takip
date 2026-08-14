@@ -202,7 +202,6 @@
             border-color: var(--primary-color);
         }
 
-        /* Badges */
         .badge-soft {
             padding: 0.5em 1em;
             border-radius: 8px;
@@ -288,7 +287,6 @@
                             <p class="text-secondary small mb-0">Adayları şirket gruplarına göre filtreleyip yönetin.</p>
                         </div>
                         <div class="d-flex gap-2">
-                            <!-- YENİ: ŞİRKETLERİ YÖNET BUTONU -->
                             <button class="btn btn-outline-primary fw-bold rounded-pill px-4 py-2 shadow-sm" data-bs-toggle="modal" data-bs-target="#manageCompaniesModal">
                                 <i class="fas fa-building me-2"></i> Şirketler
                             </button>
@@ -303,12 +301,17 @@
                             let allCompanyNames = companies.map(c => c.name);
                             let tabNames = ['Atanmadı', ...allCompanyNames];
 
+                            // Burayı garantiye alıyoruz
                             const renderGroups = [
                                 { id: 'all', name: 'Tüm Adaylar', list: candidates },
                                 ...tabNames.map((comp, idx) => ({
                                     id: `comp-${idx}`,
                                     name: comp,
-                                    list: candidates.filter(c => (c.company || 'Atanmadı') === comp)
+                                    list: candidates.filter(c => {
+                                        // Adayın şirketi yoksa Atanmadı kabul et
+                                        const cComp = c.company || 'Atanmadı';
+                                        return cComp === comp;
+                                    })
                                 }))
                             ];
                         %>
@@ -380,10 +383,6 @@
                                                             <span class="badge-soft" style="background: #E0E7FF; color: var(--primary-color);">
                                                                 <%= candidate.currentStage %>
                                                             </span>
-                                                            <% const pendingApps=candidate.appointments ? candidate.appointments.filter(a=> a.status === 'Beklemede').length : 0; %>
-                                                            <% if(pendingApps > 0) { %>
-                                                                <span class="badge rounded-pill bg-danger ms-1 animate__animated animate__pulse animate__infinite" title="Bekleyen Randevu"><%= pendingApps %></span>
-                                                            <% } %>
                                                         </td>
                                                         <td>
                                                             <!-- Şirket Seçicisi -->
@@ -484,7 +483,7 @@
 
         </div>
 
-        <!-- YENİ: ŞİRKETLERİ YÖNET MODALI -->
+        <!-- ŞİRKETLERİ YÖNET MODALI -->
         <div class="modal fade" id="manageCompaniesModal" tabindex="-1">
             <div class="modal-dialog modal-dialog-centered">
                 <div class="modal-content">
@@ -522,8 +521,8 @@
             </div>
         </div>
 
+        <!-- MODALLAR (TÜM ADAYLAR İÇİN DÖNGÜ) -->
         <% candidates.forEach(candidate=> { %>
-            <!-- ADAY DETAY MODALI -->
             <div class="modal fade" id="detailModal<%= candidate._id %>" tabindex="-1">
                 <div class="modal-dialog modal-lg modal-dialog-centered modal-dialog-scrollable">
                     <div class="modal-content">
@@ -548,9 +547,7 @@
                         </div>
                         <div class="modal-body">
 
-                            <!-- SÜREÇ VE ENTEGRASYON YÖNETİM ALANI -->
                             <div class="card border-0 shadow-sm p-4 mb-4" style="border-radius: 16px;">
-                                <!-- 1. GENEL SÜREÇ -->
                                 <h6 class="fw-bold mb-3 text-dark"><i class="fas fa-route me-2 text-primary"></i>Genel Süreç Durumu</h6>
                                 <form action="/admin/candidate/update" method="POST" class="d-flex gap-2 mb-4">
                                     <input type="hidden" name="candidateId" value="<%= candidate._id %>">
@@ -562,7 +559,6 @@
                                     <button type="submit" class="btn btn-primary px-4 fw-bold rounded-3">Kaydet</button>
                                 </form>
 
-                                <!-- 2. ALMANYA SÜRECİ -->
                                 <h6 class="fw-bold mb-3 text-dark border-top border-light pt-4 mt-2"><i class="fas fa-plane-departure me-2 text-info"></i>Almanya Süreci Durumu</h6>
                                 <form action="/admin/candidate/update-germany" method="POST" class="d-flex gap-2 mb-4">
                                     <input type="hidden" name="candidateId" value="<%= candidate._id %>">
@@ -574,7 +570,6 @@
                                     <button type="submit" class="btn btn-info text-white px-4 fw-bold rounded-3">Kaydet</button>
                                 </form>
 
-                                <!-- 3. ENTEGRASYON KUTUCUKLARI (CHECKBOX) -->
                                 <h6 class="fw-bold mb-3 text-dark border-top border-light pt-4 mt-2"><i class="fas fa-boxes me-2 text-warning"></i>Almanya Entegrasyon İşlemleri</h6>
                                 <form action="/admin/candidate/update-integration" method="POST" class="bg-white p-3 rounded-4 border">
                                     <input type="hidden" name="candidateId" value="<%= candidate._id %>">
@@ -680,7 +675,6 @@
                 </div>
             </div>
 
-            <!-- Mesaj Modalı -->
             <div class="modal fade" id="msgModal<%= candidate._id %>" tabindex="-1">
                 <div class="modal-dialog modal-dialog-centered">
                     <div class="modal-content">
@@ -702,15 +696,15 @@
                                 <div class="tab-pane fade show active" id="panelMsg<%= candidate._id %>">
                                     <form action="/admin/message/internal" method="POST">
                                         <input type="hidden" name="candidateId" value="<%= candidate._id %>">
-                                        <textarea name="content" class="form-control mb-4 bg-light border-0" rows="4" placeholder="Panel mesajı yazın..." required></textarea>
+                                        <textarea name="content" class="form-control mb-4 bg-white border" rows="4" placeholder="Panel mesajı yazın..." required></textarea>
                                         <button type="submit" class="btn btn-dark w-100 fw-bold py-2 rounded-3">Panele Gönder</button>
                                     </form>
                                 </div>
                                 <div class="tab-pane fade" id="mailMsg<%= candidate._id %>">
                                     <form action="/admin/message/email" method="POST">
                                         <input type="hidden" name="candidateId" value="<%= candidate._id %>">
-                                        <input type="text" name="subject" class="form-control mb-3 bg-light border-0" placeholder="Konu Başlığı" required>
-                                        <textarea name="content" class="form-control mb-4 bg-light border-0" rows="4" placeholder="Mail içeriği yazın..." required></textarea>
+                                        <input type="text" name="subject" class="form-control mb-3 bg-white border" placeholder="Konu Başlığı" required>
+                                        <textarea name="content" class="form-control mb-4 bg-white border" rows="4" placeholder="Mail içeriği yazın..." required></textarea>
                                         <button type="submit" class="btn btn-primary w-100 fw-bold py-2 rounded-3"><i class="fas fa-paper-plane me-2"></i>Mail Gönder</button>
                                     </form>
                                 </div>
@@ -719,10 +713,8 @@
                     </div>
                 </div>
             </div>
+        <% }) %> 
 
-        <% }) %> <!-- Modal Döngüsü Sonu -->
-
-        <!-- Genel Modallar -->
         <div class="modal fade" id="addCandidateModal" tabindex="-1">
             <div class="modal-dialog modal-dialog-centered">
                 <div class="modal-content">
@@ -742,7 +734,6 @@
             </div>
         </div>
 
-        <!-- TOPLU MAİL MODALI -->
         <div class="modal fade" id="bulkEmailModal" tabindex="-1">
             <div class="modal-dialog modal-lg modal-dialog-centered">
                 <div class="modal-content">
@@ -752,8 +743,6 @@
                     </div>
                     <form action="/admin/message/email/bulk" method="POST" onsubmit="return confirm('Bu maili seçtiğiniz kitleye göndermek istiyor musunuz?')">
                         <div class="modal-body p-4">
-                            
-                            <!-- YENİ: ŞİRKET FİLTRELİ TOPLU MAİL SEÇENEĞİ -->
                             <div class="mb-4 bg-light p-3 rounded-3 border">
                                 <label class="fw-bold small text-secondary mb-2"><i class="fas fa-filter me-2 text-primary"></i>Hedef Kitle (Kime Gönderilecek?)</label>
                                 <select name="targetCompany" class="form-select bg-white fw-bold text-primary border-primary">
@@ -764,7 +753,6 @@
                                     <% }) %>
                                 </select>
                             </div>
-
                             <div class="mb-3">
                                 <label class="fw-bold small text-secondary mb-1">Konu</label>
                                 <input type="text" name="subject" class="form-control bg-white" placeholder="Örn: Önemli Duyuru" required>
@@ -804,7 +792,6 @@
             </div>
         </div>
 
-        <!-- BİREYSEL MAİL GÖNDERME MODALI -->
         <div id="mailModal" class="modal" tabindex="-1" style="display: none; background: rgba(15,23,42,0.7); position: fixed; top: 0; left: 0; width: 100%; height: 100%; z-index: 9999;">
             <div class="modal-dialog modal-dialog-centered">
                 <div class="modal-content">
@@ -825,7 +812,7 @@
                             </div>
                             <div class="mb-2">
                                 <label class="form-label fw-bold small text-secondary mb-1">Mesaj İçeriği</label>
-                                <textarea name="content" class="form-control bg-white" rows="6" required placeholder="Mesajınızı buraya yazın... (Kullanıcıya 'Sayın [Ad],' şeklinde otomatik başlık eklenecektir)"></textarea>
+                                <textarea name="content" class="form-control bg-white" rows="6" required placeholder="Mesajınızı buraya yazın..."></textarea>
                             </div>
                         </div>
                         <div class="modal-footer border-0 px-4 pb-4 pt-0">
@@ -853,43 +840,25 @@
             timerProgressBar: true
         });
 
-        if (status === 'bulk_success') {
-            Toast.fire({ icon: 'success', title: 'Duyuru tüm panellere gönderildi.' });
-        } else if (status === 'bulk_mail_success') {
-            Toast.fire({ icon: 'success', title: 'Toplu mailler başarıyla gönderildi.' });
-        } else if (status === 'note_added') {
-            Toast.fire({ icon: 'success', title: 'Not eklendi.' });
-        } else if (status === 'company_created') {
-            Toast.fire({ icon: 'success', title: 'Yeni şirket başarıyla oluşturuldu.' });
-        } else if (status === 'company_deleted') {
-            Toast.fire({ icon: 'success', title: 'Şirket silindi. Adaylar Atanmadı durumuna düştü.' });
-        } else if (status === 'note_deleted') {
-            Toast.fire({ icon: 'success', title: 'Not silindi.' });
-        } else if (status === 'company_updated') {
-            Toast.fire({ icon: 'success', title: 'Adayın şirketi güncellendi.' });
-        } else if (status === 'group_updated') {
-            Toast.fire({ icon: 'success', title: 'Aday grubu güncellendi.' });
-        } else if (status === 'mail_success') {
-            Toast.fire({ icon: 'success', title: 'E-posta başarıyla iletildi.' });
-        } else if (status === 'integration_updated') {
-            Toast.fire({ icon: 'success', title: 'Entegrasyon adımları kaydedildi.' });
-        } else if (status === 'updated') {
-            Toast.fire({ icon: 'success', title: 'Aday süreci güncellendi.' });
-        } else if (error === 'company_exists') {
-            Swal.fire({ icon: 'error', title: 'Hata', text: 'Bu şirket ismi zaten kayıtlı veya bir sorun oluştu.' });
-        } else if (error === 'mail_yok') {
-            Swal.fire({ icon: 'warning', title: 'Uyarı', text: 'Bu adayın e-posta adresi bulunmuyor.' });
-        } else if (error) {
-            Swal.fire({ icon: 'error', title: 'Hata', text: 'Bir sorun oluştu.' });
-        }
+        if (status === 'bulk_success') { Toast.fire({ icon: 'success', title: 'Duyuru gönderildi.' }); }
+        else if (status === 'bulk_mail_success') { Toast.fire({ icon: 'success', title: 'Toplu mailler gönderildi.' }); }
+        else if (status === 'note_added') { Toast.fire({ icon: 'success', title: 'Not eklendi.' }); }
+        else if (status === 'company_created') { Toast.fire({ icon: 'success', title: 'Şirket oluşturuldu.' }); }
+        else if (status === 'company_deleted') { Toast.fire({ icon: 'success', title: 'Şirket silindi.' }); }
+        else if (status === 'note_deleted') { Toast.fire({ icon: 'success', title: 'Not silindi.' }); }
+        else if (status === 'company_updated') { Toast.fire({ icon: 'success', title: 'Şirket güncellendi.' }); }
+        else if (status === 'mail_success') { Toast.fire({ icon: 'success', title: 'E-posta iletildi.' }); }
+        else if (status === 'integration_updated') { Toast.fire({ icon: 'success', title: 'Entegrasyon kaydedildi.' }); }
+        else if (status === 'updated') { Toast.fire({ icon: 'success', title: 'Süreç güncellendi.' }); }
+        else if (error === 'company_exists') { Swal.fire({ icon: 'error', title: 'Hata', text: 'Şirket zaten kayıtlı.' }); }
+        else if (error === 'mail_yok') { Swal.fire({ icon: 'warning', title: 'Uyarı', text: 'E-posta bulunmuyor.' }); }
+        else if (error) { Swal.fire({ icon: 'error', title: 'Hata', text: 'Bir sorun oluştu.' }); }
 
-        if (status || error) {
-            window.history.replaceState(null, null, window.location.pathname);
-        }
+        if (status || error) window.history.replaceState(null, null, window.location.pathname);
 
         function openMailModal(id, email, name) {
             if (!email || email === 'undefined' || email.trim() === '') {
-                Swal.fire({ icon: 'warning', title: 'E-posta Eksik', text: 'Bu adayın sisteme kayıtlı bir e-posta adresi bulunmuyor!' });
+                Swal.fire({ icon: 'warning', title: 'E-posta Eksik', text: 'Bu adayın e-posta adresi bulunmuyor!' });
                 return;
             }
             document.getElementById('mailCandidateId').value = id;
@@ -903,5 +872,4 @@
         }
     </script>
 </body>
-
 </html>
