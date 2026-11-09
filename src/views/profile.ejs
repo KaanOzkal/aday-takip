@@ -1,325 +1,91 @@
 <!DOCTYPE html>
 <html lang="tr">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Profilim | Almanya Kariyer</title>
-    
-    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
-    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
-    
+    <title>Profilim | BERLINER Aday Portalı</title>
+    <%- include('partials/cand_head') %>
     <style>
-        body {
-            background-color: #f8fafc;
-            font-family: 'Plus Jakarta Sans', sans-serif;
-            color: #334155;
-        }
-
-        /* Sidebar & Layout */
-        .sidebar {
-            min-height: 100vh;
-            background: white;
-            border-right: 1px solid #e2e8f0;
-        }
-        
-        .nav-link {
-            color: #64748b;
-            font-weight: 500;
-            padding: 0.75rem 1rem;
-            border-radius: 10px;
-            margin-bottom: 0.25rem;
-            transition: all 0.2s;
-        }
-        .nav-link:hover, .nav-link.active {
-            background-color: #f1f5f9;
-            color: #0f172a;
-        }
-        .nav-link.active {
-            background-color: #e0f2fe;
-            color: #0284c7;
-        }
-        .nav-link i { width: 24px; text-align: center; margin-right: 8px; }
-
-        /* Profil Header */
-        .profile-header {
-            background: linear-gradient(135deg, #1e293b 0%, #0f172a 100%);
-            color: white;
-            padding: 3rem 2rem;
-            border-radius: 24px;
-            margin-bottom: -60px;
-            position: relative;
-            z-index: 0;
-            box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1);
-        }
-
-        /* Profil Kartları */
-        .profile-card {
-            background: white;
-            border-radius: 20px;
-            box-shadow: 0 10px 30px rgba(0,0,0,0.05);
-            border: 1px solid #f1f5f9;
-            position: relative;
-            z-index: 1;
-            height: 100%;
-        }
-
-        .avatar-box {
-            width: 100px;
-            height: 100px;
-            background: #3b82f6;
-            color: white;
-            font-size: 2.5rem;
-            font-weight: bold;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            border-radius: 20px;
-            border: 4px solid white;
-            box-shadow: 0 4px 6px rgba(0,0,0,0.1);
-        }
-
-        /* Form Elemanları */
-        .form-control:disabled, .form-select:disabled {
-            background-color: #f8fafc;
-            opacity: 0.8;
-            border-color: #e2e8f0;
-            color: #64748b;
-        }
-        .form-floating > label { color: #94a3b8; }
-        .form-control:focus, .form-select:focus {
-            border-color: #3b82f6;
-            box-shadow: 0 0 0 4px rgba(59, 130, 246, 0.1);
-        }
+        .pf-cover { height: 96px; border-radius: var(--radius) var(--radius) 0 0; background: linear-gradient(135deg, #0B1220, #2343C9); }
+        .pf-av { width: 88px; height: 88px; border-radius: 50%; background: var(--brand-50); color: var(--brand); border: 4px solid #fff; display: grid; place-items: center; font-weight: 800; font-size: 28px; margin: -44px auto 10px; box-shadow: 0 4px 12px rgba(16,24,40,.1); }
+        .kv { display: flex; justify-content: space-between; gap: 12px; padding: 11px 0; border-bottom: 1px dashed var(--line); font-size: 13.5px; }
+        .kv:last-child { border-bottom: 0; }
+        .kv span:first-child { color: var(--muted); }
+        .kv span:last-child { font-weight: 600; color: var(--ink); text-align: right; }
+        .city { position: relative; }
+        .city input { position: absolute; opacity: 0; }
+        .city label { display: flex; align-items: center; gap: 10px; padding: 12px 14px; border: 1px solid var(--line); border-radius: 12px; cursor: pointer; font-weight: 600; background: #fff; transition: all .15s; }
+        .city label:hover { border-color: #C7D2FE; }
+        .city input:checked + label { border-color: var(--brand); background: var(--brand-50); color: var(--brand); box-shadow: 0 0 0 3px rgba(47,84,235,.12); }
+        .city input:focus-visible + label { outline: 2px solid var(--brand); }
     </style>
 </head>
 <body>
+<%
+    const ini = ((user.firstName || '?').charAt(0) + (user.lastName || '').charAt(0)).toLocaleUpperCase('tr-TR');
+    const cities = (typeof states !== 'undefined' && states) ? states : ['Berlin', 'Hamburg', 'Kiel', 'Hannover', 'Dortmund', 'Gelsenkirchen'];
+    const phone = user.phone || user.phoneNumber || '';
+    const missing = !user.email || !phone;
+%>
+<%- include('partials/cand_shell_start', { page: 'profile', title: 'Profilim', subtitle: 'Kişisel bilgilerini ve hedef şehrini yönet' }) %>
 
-    <nav class="navbar navbar-dark bg-dark d-lg-none sticky-top shadow-sm">
-        <div class="container-fluid">
-            <span class="navbar-brand fw-bold"><i class="fas fa-flag me-2"></i>AlmanyaKariyer</span>
-            <button class="navbar-toggler" type="button" data-bs-toggle="offcanvas" data-bs-target="#mobileSidebar">
-                <span class="navbar-toggler-icon"></span>
-            </button>
-        </div>
-    </nav>
-
-    <div class="container-fluid">
-        <div class="row">
-            
-            <div class="col-lg-2 d-none d-lg-block sidebar p-4 sticky-top">
-                <div class="d-flex align-items-center gap-2 mb-5">
-                    <div class="bg-primary text-white rounded p-2"><i class="fas fa-flag"></i></div>
-                    <span class="fw-bold fs-5 text-dark">AlmanyaKariyer</span>
+<div class="row g-3">
+    <div class="col-lg-4">
+        <div class="c-card">
+            <div class="pf-cover"></div>
+            <div class="px-4 pb-4 text-center">
+                <div class="pf-av"><%= ini %></div>
+                <h2 class="fs-5 fw-bold mb-1"><%= user.firstName %> <%= user.lastName %></h2>
+                <div class="muted mb-3"><%= user.job || 'Meslek belirtilmedi' %></div>
+                <span class="pill t-brand"><span class="d"></span><%= user.currentStage %></span>
+                <div class="text-start mt-4">
+                    <div class="kv"><span>Pasaport No</span><span class="font-monospace"><%= user.passportNo || '—' %></span></div>
+                    <div class="kv"><span>Hedef şehir</span><span><%= user.targetState && user.targetState !== 'Belirtilmedi' ? user.targetState : 'Seçilmedi' %></span></div>
+                    <div class="kv"><span>İşveren</span><span><%= user.company && user.company !== 'Atanmadı' ? user.company : 'Eşleşme bekleniyor' %></span></div>
+                    <div class="kv"><span>Profil puanı</span><span><%= user.score %> / 100</span></div>
+                    <div class="kv"><span>Kayıt tarihi</span><span><%= new Date(user.applicationDate).toLocaleDateString('tr-TR', { day: 'numeric', month: 'long', year: 'numeric' }) %></span></div>
                 </div>
-                
-                <nav class="nav flex-column gap-1">
-                    <a href="/panel" class="nav-link <%= page === 'panel' ? 'active' : '' %>"><i class="fas fa-home"></i> Ana Sayfa</a>
-                    <a href="/profile" class="nav-link <%= page === 'profile' ? 'active' : '' %>"><i class="fas fa-user-circle"></i> Profilim</a>
-                    <a href="/processes" class="nav-link <%= page === 'processes' ? 'active' : '' %>"><i class="fas fa-tasks"></i> Süreçler</a>
-                    <a href="/documents" class="nav-link <%= page === 'documents' ? 'active' : '' %>"><i class="fas fa-file-alt"></i> Dokümanlar</a>
-                    <a href="/messages" class="nav-link <%= page === 'messages' ? 'active' : '' %>"><i class="fas fa-comments"></i> Mesajlar</a>
-                    <a href="/cv-builder" class="nav-link"><i class="fas fa-file-contract"></i> Akıllı CV oluşturucu </a>
-                    <a href="/application-form" class="nav-link"><i class="fas fa-file-signature"></i>Form</a>
-                    <a href="/life-in-germany" class="nav-link <%= page === 'life_germany' ? 'active' : '' %>">
-    <i class="fas fa-city"></i> Almanya'da Hayat
-</a>
-                    <a href="/german" class="nav-link <%= page === 'german' ? 'active' : '' %>"><i class="fas fa-graduation-cap"></i> Almanca</a>
-                    <a href="/appointments" class="nav-link <%= page === 'appointments' ? 'active' : '' %>"><i class="fas fa-calendar-alt"></i> Randevular</a>
-                    <a href="/settings" class="nav-link <%= page === 'settings' ? 'active' : '' %>"><i class="fas fa-cog"></i> Ayarlar</a>
-                    <a href="/game" class="nav-link <%= page === 'game' ? 'active' : '' %>"><i class="fas fa-gamepad"></i> Oyun Alanı</a>
-                    <hr>
-                    <a href="/logout" class="nav-link text-danger"><i class="fas fa-sign-out-alt"></i> Çıkış Yap</a>
-                </nav>
-            </div>
-
-            <div class="col-12 col-lg-10 p-0">
-                
-                <div class="p-4">
-                    <div class="profile-header">
-                        <div class="row align-items-center">
-                            <div class="col-md-8">
-                                <h2 class="fw-bold mb-1">Hesap Bilgileri</h2>
-                                <p class="text-white-50 mb-0">Kişisel bilgilerinizi ve hedeflediğiniz Almanya eyaletini buradan yönetebilirsiniz.</p>
-                            </div>
-                            <div class="col-md-4 text-md-end mt-3 mt-md-0">
-                                <div class="d-inline-flex align-items-center bg-white bg-opacity-10 px-4 py-2 rounded-pill border border-white border-opacity-10">
-                                    <i class="fas fa-star text-warning me-2"></i>
-                                    <span class="fw-bold">Profil Puanı: <%= user.score %>%</span>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-
-                    <div class="row g-4 pb-5">
-                        
-                        <div class="col-lg-4 mt-5">
-                            <div class="profile-card p-4 text-center">
-                                <div class="d-flex justify-content-center mb-3 mt-n5">
-                                    <div class="avatar-box">
-                                        <%= user.firstName.charAt(0) %><%= user.lastName.charAt(0) %>
-                                    </div>
-                                </div>
-                                <h4 class="fw-bold mb-1 text-dark"><%= user.firstName %> <%= user.lastName %></h4>
-                                <p class="text-muted mb-3"><%= user.job || 'Meslek Belirtilmedi' %></p>
-                                
-                                <span class="badge bg-primary bg-opacity-10 text-primary px-3 py-2 rounded-pill mb-4">
-                                    <%= user.currentStage %>
-                                </span>
-
-                                <div class="border-top pt-4 text-start">
-                                    <div class="mb-3">
-                                        <small class="text-muted d-block fw-bold text-uppercase" style="font-size: 0.7rem;">Pasaport No</small>
-                                        <span class="fs-6 font-monospace fw-medium text-dark"><%= user.passportNo %></span>
-                                    </div>
-                                    <div class="mb-3">
-                                        <small class="text-muted d-block fw-bold text-uppercase" style="font-size: 0.7rem;">Hedef Eyalet</small>
-                                        <span class="fs-6 fw-bold text-primary">
-                                            <i class="fas fa-map-marker-alt me-1"></i> <%= user.targetState || 'Seçilmedi' %>
-                                        </span>
-                                    </div>
-                                    <div>
-                                        <small class="text-muted d-block fw-bold text-uppercase" style="font-size: 0.7rem;">Kayıt Tarihi</small>
-                                        <span class="fs-6 fw-medium text-dark"><%= new Date(user.applicationDate).toLocaleDateString('tr-TR') %></span>
-                                    </div>
-                                </div>
-                            </div>
-                        </div>
-
-                        <div class="col-lg-8 mt-5">
-                            <div class="profile-card p-4">
-                                <div class="d-flex justify-content-between align-items-center mb-4 border-bottom pb-3">
-                                    <h5 class="fw-bold mb-0 text-dark">Bilgileri Düzenle</h5>
-                                    <div class="bg-light p-2 rounded-circle text-primary"><i class="fas fa-pen"></i></div>
-                                </div>
-
-                                <form action="/profile/update" method="POST">
-                                    <div class="row g-3">
-                                        
-                                        <div class="col-md-6">
-                                            <div class="form-floating">
-                                                <input type="text" class="form-control" value="<%= user.firstName %>" disabled>
-                                                <label>Ad</label>
-                                            </div>
-                                        </div>
-                                        <div class="col-md-6">
-                                            <div class="form-floating">
-                                                <input type="text" class="form-control" value="<%= user.lastName %>" disabled>
-                                                <label>Soyad</label>
-                                            </div>
-                                        </div>
-
-                                        <div class="col-md-6">
-                                            <div class="form-floating">
-                                                <input type="email" name="email" class="form-control" id="emailInput" value="<%= user.email %>" placeholder="mail" required>
-                                                <label for="emailInput">E-Posta Adresi</label>
-                                            </div>
-                                        </div>
-                                        <div class="col-md-6">
-                                            <div class="form-floating">
-                                                <input type="text" name="phone" class="form-control" id="phoneInput" value="<%= user.phone %>" placeholder="tel" required>
-                                                <label for="phoneInput">Telefon Numarası</label>
-                                            </div>
-                                        </div>
-
-                                        <div class="col-md-6">
-                                            <div class="form-floating">
-                                                <input type="text" name="job" class="form-control" id="jobInput" value="<%= user.job %>" placeholder="Meslek">
-                                                <label for="jobInput">Meslek / Uzmanlık</label>
-                                            </div>
-                                        </div>
-                                        <div class="col-md-6">
-                                            <div class="form-floating">
-                                                <input type="text" name="location" class="form-control" id="locInput" value="<%= user.location %>" placeholder="Şehir">
-                                                <label for="locInput">Şu Anki Konum (Şehir/Ülke)</label>
-                                            </div>
-                                        </div>
-
-                                       <div class="col-12 mt-3">
-  <div class="col-12 mt-3">
-    <div class="form-floating">
-        <select name="targetState" class="form-select" id="stateSelect">
-            <option value="" disabled <%= !user.targetState ? 'selected' : '' %>>Hedef Şehri Seçiniz...</option>
-            
-            <% const sehirler = ["Berlin", "Hamburg", "Kiel", "Hannover", "Dortmund", "Gelsenkirchen"]; %>
-
-            <% sehirler.forEach(sehir => { %>
-                <option value="<%= sehir %>" <%= user.targetState === sehir ? 'selected' : '' %>>
-                    <%= sehir %>
-                </option>
-            <% }) %>
-        </select>
-        <label for="stateSelect">📍 Hedef Şehir (Almanya)</label>
-    </div>
-</div>
-<div style="background-color: #e0f2fe; border: 1px solid #0284c7; color: #ff0000; padding: 15px; border-radius: 12px; display: flex; align-items: center; gap: 10px; font-weight: 600;">
-    <i class="fas fa-info-circle" style="font-size: 1.2rem;"></i>
-    <span>LÜTFEN MAİL VE TELEFON ADRESİNİZİ GÜNCELLEYİNİZ</span>
-</div>
-                                        <div class="col-12 text-end">
-                                            <button type="submit" class="btn btn-primary btn-lg rounded-pill px-5 shadow-sm fw-bold">
-                                                <i class="fas fa-save me-2"></i> Değişiklikleri Kaydet
-                                            </button>
-                                        </div>
-                                    </div>
-                                </form>
-                            </div>
-                        </div>
-
-                    </div>
-                </div>
-
             </div>
         </div>
     </div>
 
-    <div class="offcanvas offcanvas-start" tabindex="-1" id="mobileSidebar">
-        <div class="offcanvas-header bg-dark text-white">
-            <h5 class="offcanvas-title">Menü</h5>
-            <button type="button" class="btn-close btn-close-white" data-bs-dismiss="offcanvas"></button>
+    <div class="col-lg-8">
+        <% if (missing) { %>
+        <div class="d-flex gap-3 align-items-center p-3 mb-3" style="background:var(--warn-50);border:1px solid #FEDF89;border-radius:14px;color:#93370D">
+            <i class="fas fa-circle-info fa-lg"></i>
+            <div><strong>İletişim bilgilerin eksik.</strong> Danışmanının sana ulaşabilmesi için e-posta ve telefon numaranı ekle.</div>
         </div>
-        <div class="offcanvas-body">
-            <nav class="nav flex-column gap-2">
-                <a href="/panel" class="nav-link"><i class="fas fa-home"></i> Ana Sayfa</a>
-                <a href="/profile" class="nav-link active"><i class="fas fa-user-circle"></i> Profilim</a>
-                <a href="/processes" class="nav-link"><i class="fas fa-tasks"></i> Süreçler</a>
-                <a href="/documents" class="nav-link"><i class="fas fa-file-alt"></i> Dokümanlar</a>
-                <a href="/messages" class="nav-link"><i class="fas fa-comments"></i> Mesajlar</a>
-                <a href="/cv-builder" class="nav-link"><i class="fas fa-file-contract"></i> Akıllı CV oluşturucu </a>
-                <a href="/application-form" class="nav-link"><i class="fas fa-file-signature"></i>Form</a>
-                <a href="/life-in-germany" class="nav-link <%= page === 'life_germany' ? 'active' : '' %>">
-    <i class="fas fa-city"></i> Almanya'da Hayat
-</a>
-                <a href="/german" class="nav-link"><i class="fas fa-graduation-cap"></i> Almanca</a>
-                
-                <a href="/appointments" class="nav-link"><i class="fas fa-calendar-alt"></i> Randevular</a>
-                <a href="/settings" class="nav-link"><i class="fas fa-cog"></i> Ayarlar</a>
-                <a href="/game" class="nav-link"><i class="fas fa-gamepad"></i> Oyun Alanı</a>
-                <hr>
-                <a href="/logout" class="nav-link text-danger"><i class="fas fa-sign-out-alt"></i> Çıkış Yap</a>
-            </nav>
-        </div>
+        <% } %>
+        <form class="c-card" action="/profile/update" method="POST">
+            <div class="c-card-h"><div><h2>Bilgileri Düzenle</h2><p class="sub">Ad, soyad ve pasaport bilgisi yalnızca danışmanın tarafından değiştirilebilir.</p></div></div>
+            <div class="c-card-b">
+                <div class="row g-3">
+                    <div class="col-md-6"><label class="form-label">Ad</label><input class="form-control" value="<%= user.firstName %>" disabled></div>
+                    <div class="col-md-6"><label class="form-label">Soyad</label><input class="form-control" value="<%= user.lastName %>" disabled></div>
+                    <div class="col-md-6"><label class="form-label" for="em">E-posta adresi *</label><input id="em" type="email" name="email" class="form-control" value="<%= user.email || '' %>" placeholder="ornek@mail.com" required autocomplete="email"></div>
+                    <div class="col-md-6"><label class="form-label" for="ph">Telefon numarası *</label><input id="ph" type="tel" name="phone" class="form-control" value="<%= phone %>" placeholder="+90 5xx xxx xx xx" required autocomplete="tel"></div>
+                    <div class="col-md-6"><label class="form-label" for="jb">Meslek / Uzmanlık</label><input id="jb" name="job" class="form-control" value="<%= user.job || '' %>" placeholder="Örn: Tır Şoförü"></div>
+                    <div class="col-md-6"><label class="form-label" for="lc">Şu anki konum</label><input id="lc" name="location" class="form-control" value="<%= user.location || '' %>" placeholder="Örn: Ankara"></div>
+                    <div class="col-12">
+                        <label class="form-label">Hedef şehir (Almanya)</label>
+                        <div class="row g-2">
+                            <% cities.forEach((c, i) => { %>
+                            <div class="col-6 col-md-4 city">
+                                <input type="radio" name="targetState" id="city<%= i %>" value="<%= c %>" <%= user.targetState === c ? 'checked' : '' %>>
+                                <label for="city<%= i %>"><i class="fas fa-location-dot"></i><%= c %></label>
+                            </div>
+                            <% }) %>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div class="d-flex justify-content-end gap-2 px-4 py-3" style="border-top:1px solid var(--line)">
+                <button type="reset" class="btn btn-soft">Vazgeç</button>
+                <button class="btn btn-brand"><i class="fas fa-check me-1"></i> Değişiklikleri Kaydet</button>
+            </div>
+        </form>
     </div>
+</div>
 
-    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
-    <script>
-        const urlParams = new URLSearchParams(window.location.search);
-        
-        if(urlParams.get('status') === 'success'){
-            Swal.fire({
-                icon: 'success',
-                title: 'Başarılı!',
-                text: 'Profil ve hedef eyalet seçiminiz güncellendi.',
-                confirmButtonText: 'Tamam',
-                confirmButtonColor: '#3b82f6',
-                timer: 3000,
-                timerProgressBar: true
-            }).then(() => {
-                window.history.replaceState(null, null, window.location.pathname);
-            });
-        }
-    </script>
-
-    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+<%- include('partials/cand_shell_end', { page: 'profile' }) %>
+<script>cNotify({ ok: { success: 'Profilin güncellendi.' }, err: { invalid_email: 'Geçerli bir e-posta adresi girin.', failed: 'Profil kaydedilemedi, tekrar deneyin.' } });</script>
 </body>
 </html>

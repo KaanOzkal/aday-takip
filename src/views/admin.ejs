@@ -1,875 +1,759 @@
 <!DOCTYPE html>
 <html lang="tr">
-
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Yönetim Paneli | BERLINER</title>
-
-    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
-    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
-    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
-    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
-
-    <style>
-        :root {
-            --primary-color: #4F46E5;
-            --primary-light: #EEF2FF;
-            --primary-hover: #4338CA;
-            --secondary-color: #64748B;
-            --success-color: #10B981;
-            --warning-color: #F59E0B;
-            --danger-color: #EF4444;
-            --dark-color: #0F172A;
-            --bg-color: #F8FAFC;
-        }
-
-        body {
-            background-color: var(--bg-color);
-            font-family: 'Plus Jakarta Sans', sans-serif;
-            color: var(--dark-color);
-            -webkit-font-smoothing: antialiased;
-        }
-
-        /* NAVBAR */
-        .navbar {
-            background: rgba(255, 255, 255, 0.9) !important;
-            backdrop-filter: blur(10px);
-            border-bottom: 1px solid rgba(0,0,0,0.05);
-        }
-
-        .navbar-brand {
-            color: var(--primary-color) !important;
-            font-size: 1.3rem;
-            letter-spacing: -0.5px;
-        }
-
-        /* STAT CARDS */
-        .stat-card {
-            background: #fff;
-            border: 1px solid rgba(0,0,0,0.04);
-            border-radius: 20px;
-            padding: 1.5rem;
-            transition: all 0.3s ease;
-            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.02);
-        }
-
-        .stat-card:hover {
-            transform: translateY(-4px);
-            box-shadow: 0 12px 20px -3px rgba(0, 0, 0, 0.08);
-            border-color: rgba(79, 70, 229, 0.2);
-        }
-
-        .icon-box {
-            width: 54px;
-            height: 54px;
-            border-radius: 16px;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            font-size: 1.5rem;
-        }
-
-        /* MAIN CARD & TABS */
-        .main-card {
-            background: #fff;
-            border-radius: 24px;
-            border: 1px solid rgba(0,0,0,0.04);
-            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.02);
-        }
-
-        .nav-pills .nav-link {
-            border-radius: 12px;
-            color: var(--secondary-color);
-            font-weight: 600;
-            padding: 0.6rem 1.2rem;
-            transition: all 0.2s;
-            background: transparent;
-            border: 1px solid transparent;
-        }
-
-        .nav-pills .nav-link:hover {
-            background: #F1F5F9;
-        }
-
-        .nav-pills .nav-link.active {
-            background: var(--primary-color);
-            color: white;
-            box-shadow: 0 4px 10px rgba(79, 70, 229, 0.3);
-        }
-
-        /* TABLE MODERNIZATION */
-        .table thead th {
-            background: transparent;
-            color: #94A3B8;
-            font-weight: 700;
-            text-transform: uppercase;
-            font-size: 0.75rem;
-            letter-spacing: 1px;
-            padding: 1.2rem 1.5rem;
-            border-bottom: 2px solid #F1F5F9;
-        }
-
-        .table tbody td {
-            padding: 1.2rem 1.5rem;
-            vertical-align: middle;
-            border-bottom: 1px solid #F8FAFC;
-            color: #334155;
-            font-size: 0.95rem;
-            font-weight: 500;
-            transition: background-color 0.2s;
-        }
-
-        .table tbody tr:hover td {
-            background-color: #F8FAFC;
-        }
-
-        .avatar-circle {
-            width: 44px;
-            height: 44px;
-            background: linear-gradient(135deg, var(--primary-light) 0%, #E0E7FF 100%);
-            color: var(--primary-color);
-            border-radius: 14px;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            font-weight: 800;
-            font-size: 1rem;
-            box-shadow: 0 2px 4px rgba(79, 70, 229, 0.1);
-        }
-
-        /* BUTTONS */
-        .btn-action {
-            width: 38px;
-            height: 38px;
-            border-radius: 10px;
-            display: inline-flex;
-            align-items: center;
-            justify-content: center;
-            transition: all 0.2s;
-            border: 1px solid #E2E8F0;
-            color: var(--secondary-color);
-            background: #fff;
-        }
-
-        .btn-action:hover {
-            background: var(--primary-color);
-            color: white;
-            border-color: var(--primary-color);
-            transform: translateY(-2px);
-            box-shadow: 0 4px 6px rgba(79, 70, 229, 0.2);
-        }
-
-        .btn-action.btn-mail {
-            background: var(--primary-light);
-            color: var(--primary-color);
-            border-color: transparent;
-        }
-        .btn-action.btn-mail:hover {
-            background: var(--primary-hover);
-            color: white;
-        }
-
-        /* MODALS */
-        .modal-content {
-            border: none;
-            border-radius: 24px;
-            box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.25);
-            overflow: hidden;
-        }
-
-        .modal-header {
-            border-bottom: 1px solid rgba(0,0,0,0.05);
-            padding: 1.5rem 2rem;
-            background: #fff;
-        }
-
-        .modal-body {
-            padding: 2rem;
-            background: #F8FAFC;
-        }
-
-        .form-control, .form-select {
-            border-radius: 12px;
-            border: 1px solid #E2E8F0;
-            padding: 0.8rem 1rem;
-            font-size: 0.95rem;
-            background-color: #fff;
-        }
-
-        .form-control:focus, .form-select:focus {
-            box-shadow: 0 0 0 4px rgba(79, 70, 229, 0.1);
-            border-color: var(--primary-color);
-        }
-
-        .badge-soft {
-            padding: 0.5em 1em;
-            border-radius: 8px;
-            font-weight: 700;
-            font-size: 0.75rem;
-            letter-spacing: 0.3px;
-        }
-    </style>
+    <%- include('partials/admin_head') %>
 </head>
-
 <body>
+<%
+    const PALETTE = [['#EEF2FF','#2F54EB'],['#ECFDF3','#039855'],['#FFFAEB','#B54708'],['#FDF2FA','#C11574'],['#F0F9FF','#026AA2'],['#F4F3FF','#5925DC'],['#FEF3F2','#B42318']];
+    const avatarStyle = (n) => { let h = 0; for (const ch of String(n || '')) h = (h * 31 + ch.charCodeAt(0)) >>> 0; const c = PALETTE[h % PALETTE.length]; return `background:${c[0]};color:${c[1]}`; };
+    const initials = (c) => (((c.firstName || '?').charAt(0)) + ((c.lastName || '').charAt(0))).toLocaleUpperCase('tr-TR');
+    const fullName = (c) => `${c.firstName || ''} ${c.lastName || ''}`.trim();
+    const fmtDate = (d) => { if (!d) return '—'; const x = new Date(d); return isNaN(x) ? String(d) : x.toLocaleDateString('tr-TR', { day: '2-digit', month: 'short', year: 'numeric' }); };
+    const stageIdx = (s) => stages.indexOf(s);
+    const stagePct = (s) => { const i = stageIdx(s); return i < 0 ? 0 : Math.round(((i + 1) / stages.length) * 100); };
+    const stageTone = (s) => { const i = stageIdx(s); if (i === stages.length - 1) return 't-ok'; if (i >= 5) return 't-info'; if (i >= 2) return 't-brand'; return 't-gray'; };
+    const statusTone = (s) => s === 'Onaylandı' ? 't-ok' : s === 'Reddedildi' ? 't-bad' : 't-warn';
+    const docUrl = (d) => d.fileId ? `/documents/view/${d._id}` : (d.driveLink || (d.filename ? `/uploads/${encodeURIComponent(d.filename)}` : '#'));
+    const pendingDocs = allDocuments.filter(d => d.status === 'İnceleniyor');
+    const pendingApps = appointments.filter(a => a.status === 'Beklemede');
+    const maxStage = Math.max(1, ...stageCounts.map(s => s.count));
+    const audience = { 'Tümü': { total: candidates.length, mail: candidates.filter(c => c.email && c.email.trim()).length } };
+    companyCounts.forEach(co => {
+        const list = candidates.filter(c => co.name === 'Atanmadı' ? (!c.company || c.company === 'Atanmadı') : c.company === co.name);
+        audience[co.name] = { total: list.length, mail: list.filter(c => c.email && c.email.trim()).length };
+    });
+%>
+<div class="app">
+    <%- include('partials/admin_sidebar', { active: 'dashboard', onMain: true, stats }) %>
 
-    <nav class="navbar navbar-expand-lg sticky-top py-3">
-        <div class="container-fluid px-4">
-            <a class="navbar-brand d-flex align-items-center gap-2 fw-bold" href="#">
-                <div class="bg-primary text-white rounded-3 p-2 d-flex align-items-center justify-content-center" style="width: 36px; height: 36px;">
-                    <i class="fas fa-shield-alt"></i>
-                </div>
-                <span>BERLINER Admin</span>
-            </a>
-
-            <div class="d-flex align-items-center gap-2 ms-auto">
-                <button class="btn btn-light border text-primary fw-bold btn-sm rounded-pill px-3 py-2 d-none d-md-inline-block shadow-sm"
-                    data-bs-toggle="modal" data-bs-target="#bulkMessageModal">
-                    <i class="fas fa-bullhorn me-1"></i> Genel Duyuru
-                </button>
-
-                <button class="btn btn-danger btn-sm fw-bold rounded-pill px-3 py-2 shadow-sm" data-bs-toggle="modal"
-                    data-bs-target="#bulkEmailModal">
-                    <i class="fas fa-envelope-open-text me-1"></i> Toplu Mail
-                </button>
-                <a href="/admin/sync-drive-files" class="btn btn-warning text-dark btn-sm fw-bold rounded-pill px-3 py-2 shadow-sm"
-                    onclick="return confirm('Eski Drive klasörü taranıp isim eşleşmesi yapan dosyalar adaylara eklenecek. İşlem biraz sürebilir. Onaylıyor musunuz?')">
-                    <i class="fab fa-google-drive me-1"></i> Dosyaları Eşitle
-                </a>
-                <div class="vr mx-2 text-muted opacity-25"></div>
-
-                <a href="/logout" class="btn btn-dark btn-sm fw-bold rounded-pill px-4 py-2">
-                    <i class="fas fa-sign-out-alt me-1"></i> Çıkış
-                </a>
+    <div class="main">
+        <header class="topbar">
+            <button class="btn btn-soft btn-icon menu-toggle" aria-label="Menü"><i class="fas fa-bars"></i></button>
+            <div>
+                <div class="crumb">BERLINER Yönetim</div>
+                <h1 id="pageTitle">Genel Bakış</h1>
             </div>
-        </div>
-    </nav>
-
-    <div class="container-fluid px-4 py-4">
-
-        <div class="row g-4 mb-4">
-            <div class="col-12 col-md-6 col-xl-3">
-                <div class="stat-card d-flex align-items-center justify-content-between">
-                    <div>
-                        <p class="text-secondary small fw-bold text-uppercase mb-1" style="letter-spacing: 1px;">Toplam Aday</p>
-                        <h2 class="fw-bold mb-0 text-dark"><%= candidates.length %></h2>
-                    </div>
-                    <div class="icon-box" style="background: var(--primary-light); color: var(--primary-color);">
-                        <i class="fas fa-users"></i>
-                    </div>
+            <div class="ms-auto d-flex align-items-center gap-2">
+                <div class="search d-none d-md-block" style="width:280px">
+                    <i class="fas fa-magnifying-glass"></i>
+                    <input type="search" id="globalSearch" class="form-control" placeholder="Aday ara (ad, pasaport, e-posta)…  /">
                 </div>
+                <button class="btn btn-brand" data-bs-toggle="modal" data-bs-target="#addCandidateModal"><i class="fas fa-plus me-1"></i><span class="d-none d-sm-inline"> Yeni Aday</span></button>
             </div>
-            <div class="col-12 col-md-6 col-xl-3">
-                <div class="stat-card d-flex align-items-center justify-content-between">
-                    <div>
-                        <p class="text-secondary small fw-bold text-uppercase mb-1" style="letter-spacing: 1px;">İşlem Bekleyen</p>
-                        <h2 class="fw-bold mb-0 text-dark">
-                            <%= candidates.reduce((acc, c)=> acc +
-                                (c.documents.filter(d=>d.status==='İnceleniyor').length + (c.appointments ?
-                                c.appointments.filter(a=>a.status==='Beklemede').length : 0)), 0) %>
-                        </h2>
+        </header>
+
+        <main class="content">
+
+            <!-- ================= GENEL BAKIŞ ================= -->
+            <section class="section" id="sec-dashboard" data-title="Genel Bakış">
+                <div class="row g-3 mb-3">
+                    <div class="col-6 col-xl">
+                        <a class="card-x kpi" href="#candidates">
+                            <div class="ic t-brand"><i class="fas fa-users"></i></div>
+                            <div><div class="lbl">Toplam Aday</div><div class="val"><%= stats.total %></div><div class="hint">Kayıtlı tüm adaylar</div></div>
+                        </a>
                     </div>
-                    <div class="icon-box" style="background: #FFFBEB; color: var(--warning-color);">
-                        <i class="fas fa-bell"></i>
+                    <div class="col-6 col-xl">
+                        <a class="card-x kpi" href="#documents">
+                            <div class="ic t-warn"><i class="fas fa-file-circle-exclamation"></i></div>
+                            <div><div class="lbl">Bekleyen Belge</div><div class="val"><%= stats.pendingDocs %></div><div class="hint">Onay bekliyor</div></div>
+                        </a>
                     </div>
-                </div>
-            </div>
-        </div>
-
-        <div class="row g-4">
-
-            <div class="col-lg-9">
-                <div class="main-card">
-                    <div class="p-4 border-bottom border-light d-flex flex-column flex-md-row justify-content-between align-items-start align-items-md-center gap-3 bg-white" style="border-radius: 24px 24px 0 0;">
-                        <div>
-                            <h4 class="fw-bold text-dark mb-1">Aday Yönetimi</h4>
-                            <p class="text-secondary small mb-0">Adayları şirket gruplarına göre filtreleyip yönetin.</p>
-                        </div>
-                        <div class="d-flex gap-2">
-                            <button class="btn btn-outline-primary fw-bold rounded-pill px-4 py-2 shadow-sm" data-bs-toggle="modal" data-bs-target="#manageCompaniesModal">
-                                <i class="fas fa-building me-2"></i> Şirketler
-                            </button>
-                            <button class="btn btn-primary fw-bold rounded-pill px-4 py-2 shadow-sm" data-bs-toggle="modal" data-bs-target="#addCandidateModal">
-                                <i class="fas fa-plus me-2"></i> Yeni Aday
-                            </button>
-                        </div>
+                    <div class="col-6 col-xl">
+                        <a class="card-x kpi" href="#appointments">
+                            <div class="ic t-info"><i class="fas fa-calendar-day"></i></div>
+                            <div><div class="lbl">Bekleyen Randevu</div><div class="val"><%= stats.pendingAppointments %></div><div class="hint">Yanıt bekliyor</div></div>
+                        </a>
                     </div>
-
-                    <div class="p-4 bg-white border-bottom border-light">
-                        <% 
-                            let allCompanyNames = companies.map(c => c.name);
-                            let tabNames = ['Atanmadı', ...allCompanyNames];
-
-                            // Burayı garantiye alıyoruz
-                            const renderGroups = [
-                                { id: 'all', name: 'Tüm Adaylar', list: candidates },
-                                ...tabNames.map((comp, idx) => ({
-                                    id: `comp-${idx}`,
-                                    name: comp,
-                                    list: candidates.filter(c => {
-                                        // Adayın şirketi yoksa Atanmadı kabul et
-                                        const cComp = c.company || 'Atanmadı';
-                                        return cComp === comp;
-                                    })
-                                }))
-                            ];
-                        %>
-                        <!-- ŞİRKET SEKMELERİ (TABS) -->
-                        <ul class="nav nav-pills gap-2" id="companyTabs" role="tablist">
-                            <% renderGroups.forEach((group, index) => { %>
-                                <li class="nav-item" role="presentation">
-                                    <button class="nav-link <%= index === 0 ? 'active' : '' %> d-flex align-items-center gap-2" 
-                                            id="tab-btn-<%= group.id %>" 
-                                            data-bs-toggle="pill" 
-                                            data-bs-target="#tab-pane-<%= group.id %>" 
-                                            type="button" role="tab">
-                                        <%= group.name %> 
-                                        <span class="badge rounded-pill <%= index === 0 ? 'bg-white text-primary' : 'bg-secondary bg-opacity-10 text-secondary' %>">
-                                            <%= group.list.length %>
-                                        </span>
-                                    </button>
-                                </li>
-                            <% }) %>
-                        </ul>
+                    <div class="col-6 col-xl">
+                        <a class="card-x kpi" href="#candidates" data-filter-stage="Almanya'da">
+                            <div class="ic t-ok"><i class="fas fa-plane-arrival"></i></div>
+                            <div><div class="lbl">Almanya'da</div><div class="val"><%= stats.inGermany %></div><div class="hint">Süreci tamamlanan</div></div>
+                        </a>
                     </div>
-
-                    <div class="tab-content bg-white" id="companyTabsContent" style="border-radius: 0 0 24px 24px;">
-                        <% renderGroups.forEach((group, index) => { %>
-                            <div class="tab-pane fade <%= index === 0 ? 'show active' : '' %>" id="tab-pane-<%= group.id %>" role="tabpanel">
-                                <div class="table-responsive">
-                                    <table class="table table-hover mb-0 align-middle">
-                                        <thead>
-                                            <tr>
-                                                <th class="ps-4">Aday Bilgisi</th>
-                                                <th>Hedef Şehir</th>
-                                                <th class="d-none d-md-table-cell">Aşama</th>
-                                                <th>Şirket Ataması</th>
-                                                <th class="text-end pe-4">İşlemler</th>
-                                            </tr>
-                                        </thead>
-                                        <tbody>
-                                            <% if(group.list.length === 0) { %>
-                                                <tr>
-                                                    <td colspan="5" class="text-center py-5 text-muted">
-                                                        <i class="fas fa-folder-open fa-2x mb-3 opacity-50"></i><br>
-                                                        Bu grupta henüz aday bulunmuyor.
-                                                    </td>
-                                                </tr>
-                                            <% } else { %>
-                                                <% group.list.forEach(candidate => { %>
-                                                    <tr>
-                                                        <td class="ps-4">
-                                                            <div class="d-flex align-items-center">
-                                                                <div class="avatar-circle me-3">
-                                                                    <%= candidate.firstName.charAt(0) %>
-                                                                </div>
-                                                                <div>
-                                                                    <div class="fw-bold text-dark">
-                                                                        <%= candidate.firstName %> <%= candidate.lastName %>
-                                                                    </div>
-                                                                    <div class="small text-secondary mt-1">
-                                                                        <i class="fas fa-envelope me-1 opacity-50"></i><%= candidate.email || 'Mail Yok' %>
-                                                                    </div>
-                                                                </div>
-                                                            </div>
-                                                        </td>
-                                                        <td>
-                                                            <span class="badge-soft" style="background: #F1F5F9; color: #475569;">
-                                                                <i class="fas fa-map-marker-alt me-1 text-primary"></i> <%= candidate.targetState || 'Seçilmedi' %>
-                                                            </span>
-                                                        </td>
-                                                        <td class="d-none d-md-table-cell">
-                                                            <span class="badge-soft" style="background: #E0E7FF; color: var(--primary-color);">
-                                                                <%= candidate.currentStage %>
-                                                            </span>
-                                                        </td>
-                                                        <td>
-                                                            <!-- Şirket Seçicisi -->
-                                                            <form action="/admin/candidate/company" method="POST" style="margin: 0;">
-                                                                <input type="hidden" name="candidateId" value="<%= candidate._id %>">
-                                                                <select name="newCompany" class="form-select form-select-sm fw-bold border-0 bg-light text-dark shadow-none" onchange="this.form.submit()" style="min-width: 130px; cursor: pointer;">
-                                                                    <option value="Atanmadı" <%= (!candidate.company || candidate.company === 'Atanmadı') ? 'selected' : '' %>>Atanmadı</option>
-                                                                    <% companies.forEach(c => { %>
-                                                                        <option value="<%= c.name %>" <%= candidate.company === c.name ? 'selected' : '' %>><%= c.name %></option>
-                                                                    <% }) %>
-                                                                </select>
-                                                            </form>
-                                                        </td>
-                                                        <td class="text-end pe-4">
-                                                            <button class="btn-action btn-mail me-1" type="button" title="Mail Gönder"
-                                                                    onclick="openMailModal('<%= candidate._id %>', '<%= candidate.email %>', '<%= candidate.firstName %> <%= candidate.lastName %>')">
-                                                                <i class="fas fa-paper-plane"></i>
-                                                            </button>
-                                                            <button class="btn-action me-1" data-bs-toggle="modal" title="Hızlı Mesaj"
-                                                                data-bs-target="#msgModal<%= candidate._id %>"><i class="far fa-comment-dots"></i>
-                                                            </button>
-                                                            <button class="btn-action" data-bs-toggle="modal" title="Aday Detayı"
-                                                                data-bs-target="#detailModal<%= candidate._id %>"><i class="fas fa-sliders-h"></i>
-                                                            </button>
-                                                        </td>
-                                                    </tr>
-                                                <% }) %>
-                                            <% } %>
-                                        </tbody>
-                                    </table>
-                                </div>
-                            </div>
-                        <% }) %>
+                    <div class="col-12 col-xl">
+                        <a class="card-x kpi" href="#candidates" data-filter-company="Atanmadı">
+                            <div class="ic t-gray"><i class="fas fa-user-tag"></i></div>
+                            <div><div class="lbl">Şirket Atanmamış</div><div class="val"><%= stats.unassigned %></div><div class="hint">Eşleştirme bekliyor</div></div>
+                        </a>
                     </div>
                 </div>
-            </div>
 
-            <div class="col-lg-3">
-                <div class="main-card h-100 border-0">
-                    <div class="p-4 border-bottom border-light bg-white" style="border-radius: 24px 24px 0 0;">
-                        <h6 class="fw-bold mb-0 text-dark"><i class="fas fa-calendar-alt me-2 text-primary"></i>Yaklaşan Randevular</h6>
-                    </div>
-                    <div class="p-0 bg-white" style="border-radius: 0 0 24px 24px;">
-                        <% if(appointments && appointments.length> 0) { %>
-                            <div class="list-group list-group-flush">
-                                <% appointments.forEach(app=> { %>
-                                    <div class="list-group-item p-4 border-bottom border-light">
-                                        <div class="d-flex justify-content-between align-items-center mb-2">
-                                            <span class="badge-soft bg-primary text-white">
-                                                <%= app.time %>
-                                            </span>
-                                            <small class="text-muted fw-bold">
-                                                <%= new Date(app.date).toLocaleDateString('tr-TR') %>
-                                            </small>
-                                        </div>
-
-                                        <h6 class="mb-1 fw-bold text-dark mt-2">
-                                            <% if(app.candidateId) { %>
-                                                <%= app.candidateId.firstName %> <%= app.candidateId.lastName %>
-                                            <% } else { %>
-                                                Bilinmeyen Aday
-                                            <% } %>
-                                        </h6>
-
-                                        <p class="mb-3 small text-secondary">
-                                            <%= app.type %>
-                                        </p>
-
-                                        <div class="d-flex gap-2">
-                                            <form action="/admin/appointment/status" method="POST" class="w-50">
-                                                <input type="hidden" name="candidateId" value="<%= app.candidateId?._id %>">
-                                                <input type="hidden" name="appId" value="<%= app._id %>"> 
-                                                <input type="hidden" name="status" value="Onaylandı">
-                                                <button class="btn btn-success btn-sm w-100 fw-bold rounded-3 py-2">Onayla</button>
-                                            </form>
-
-                                            <form action="/admin/appointment/status" method="POST" class="flex-grow-1">
-                                                <input type="hidden" name="candidateId" value="<%= app.candidateId?._id %>">
-                                                <input type="hidden" name="appId" value="<%= app._id %>">
-                                                <input type="hidden" name="status" value="Reddedildi">
-                                                <button class="btn btn-light text-danger border-danger btn-sm w-100 fw-bold rounded-3 py-2">Reddet</button>
-                                            </form>
-                                        </div>
-                                    </div>
-                                    <% }) %>
-                            </div>
-                            <% } else { %>
-                                <div class="text-center py-5">
-                                    <div class="bg-light rounded-circle d-inline-flex align-items-center justify-content-center mb-3" style="width: 60px; height: 60px;">
-                                        <i class="fas fa-check text-success fa-2x opacity-50"></i>
-                                    </div>
-                                    <p class="text-muted small fw-bold">Bekleyen randevu yok.</p>
-                                </div>
-                                <% } %>
-                    </div>
+                <% if (stats.noEmail > 0) { %>
+                <div class="alert d-flex align-items-center gap-2 border-0 mb-3" style="background:var(--warn-50);color:#93370D;border-radius:12px">
+                    <i class="fas fa-circle-info"></i>
+                    <div><strong><%= stats.noEmail %></strong> adayın e-posta adresi eksik — bu adaylara e-posta gönderilemez. Aday detayından ekleyebilirsiniz.</div>
                 </div>
-            </div>
+                <% } %>
 
-        </div>
-
-        <!-- ŞİRKETLERİ YÖNET MODALI -->
-        <div class="modal fade" id="manageCompaniesModal" tabindex="-1">
-            <div class="modal-dialog modal-dialog-centered">
-                <div class="modal-content">
-                    <div class="modal-header bg-primary text-white border-0">
-                        <h5 class="modal-title fw-bold"><i class="fas fa-building me-2"></i>Şirket Yönetimi</h5>
-                        <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
-                    </div>
-                    <div class="modal-body p-4">
-                        <form action="/admin/company/add" method="POST" class="mb-4">
-                            <label class="fw-bold small text-secondary mb-1">Yeni Şirket Ekle</label>
-                            <div class="input-group">
-                                <input type="text" name="name" class="form-control bg-white border" placeholder="Şirket Adı (Örn: XYZ Lojistik)" required>
-                                <button type="submit" class="btn btn-success fw-bold px-4"><i class="fas fa-plus"></i> Ekle</button>
-                            </div>
-                        </form>
-                        
-                        <h6 class="fw-bold text-dark border-bottom border-light pb-2 mb-3">Mevcut Şirketler</h6>
-                        <ul class="list-group list-group-flush">
-                            <% if(companies.length > 0) { %>
-                                <% companies.forEach(comp => { %>
-                                    <li class="list-group-item d-flex justify-content-between align-items-center px-0 bg-transparent border-light">
-                                        <span class="fw-bold text-dark"><i class="fas fa-building text-primary me-2 opacity-50"></i> <%= comp.name %></span>
-                                        <form action="/admin/company/delete" method="POST" style="margin:0;" onsubmit="return confirm('Silerseniz bu şirkete bağlı adaylar Atanmadı durumuna düşer. Onaylıyor musunuz?')">
-                                            <input type="hidden" name="id" value="<%= comp._id %>">
-                                            <button type="submit" class="btn btn-sm btn-light text-danger border-danger"><i class="fas fa-trash"></i></button>
-                                        </form>
-                                    </li>
+                <div class="row g-3 mb-3">
+                    <div class="col-lg-8">
+                        <div class="card-x h-100">
+                            <div class="card-h"><div><h2>Süreç Hunisi</h2><p class="sub">Adayların genel süreç aşamalarına göre dağılımı. Bir aşamaya tıklayarak listeleyin.</p></div></div>
+                            <div class="card-b">
+                                <% stageCounts.forEach((s, i) => { %>
+                                <a href="#candidates" data-filter-stage="<%= s.name %>" class="d-flex align-items-center gap-3 mb-2 text-decoration-none" style="color:inherit">
+                                    <div class="muted fw-semibold" style="width:22px;font-size:12px"><%= i + 1 %></div>
+                                    <div style="width:150px" class="fw-650 text-truncate-1"><%= s.name %></div>
+                                    <div class="bar flex-grow-1"><span style="width:<%= Math.max(s.count ? 3 : 0, Math.round(s.count / maxStage * 100)) %>%;<%= i === stages.length - 1 ? 'background:var(--ok)' : '' %>"></span></div>
+                                    <div class="fw-bold text-end" style="width:36px"><%= s.count %></div>
+                                </a>
                                 <% }) %>
-                            <% } else { %>
-                                <div class="text-muted small text-center py-3 border border-dashed rounded-3">Henüz bir şirket oluşturulmamış.</div>
-                            <% } %>
-                        </ul>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-lg-4">
+                        <div class="card-x h-100">
+                            <div class="card-h"><div><h2>Şirket Dağılımı</h2><p class="sub">Atanan aday sayıları</p></div>
+                                <a href="#companies" class="btn btn-soft btn-sm ms-auto">Yönet</a></div>
+                            <div>
+                                <% companyCounts.forEach(co => { %>
+                                <a href="#candidates" data-filter-company="<%= co.name %>" class="list-row text-decoration-none" style="color:inherit">
+                                    <div class="avatar" style="<%= co.name === 'Atanmadı' ? 'background:#F2F4F7;color:#667085' : avatarStyle(co.name) %>;border-radius:10px"><i class="fas <%= co.name === 'Atanmadı' ? 'fa-user-slash' : 'fa-building' %>"></i></div>
+                                    <div class="flex-grow-1 fw-650 text-truncate-1"><%= co.name %></div>
+                                    <span class="pill t-gray"><%= co.count %></span>
+                                </a>
+                                <% }) %>
+                            </div>
+                        </div>
                     </div>
                 </div>
-            </div>
-        </div>
 
-        <!-- MODALLAR (TÜM ADAYLAR İÇİN DÖNGÜ) -->
-        <% candidates.forEach(candidate=> { %>
-            <div class="modal fade" id="detailModal<%= candidate._id %>" tabindex="-1">
-                <div class="modal-dialog modal-lg modal-dialog-centered modal-dialog-scrollable">
-                    <div class="modal-content">
-                        <div class="modal-header">
-                            <div class="d-flex align-items-center gap-3">
-                                <div class="avatar-circle shadow-sm" style="width: 56px; height: 56px; font-size: 1.4rem;">
-                                    <%= candidate.firstName.charAt(0) %><%= candidate.lastName.charAt(0) %>
+                <div class="row g-3">
+                    <div class="col-lg-7">
+                        <div class="card-x h-100">
+                            <div class="card-h"><div><h2>Onay Bekleyen Belgeler</h2><p class="sub">En son yüklenenler</p></div>
+                                <a href="#documents" class="btn btn-soft btn-sm ms-auto">Tümünü gör</a></div>
+                            <% if (pendingDocs.length === 0) { %>
+                                <div class="empty"><i class="fas fa-circle-check"></i>Bekleyen belge yok. Harika!</div>
+                            <% } else { pendingDocs.slice(0, 6).forEach(d => { %>
+                                <div class="list-row">
+                                    <div class="avatar t-warn" style="border-radius:10px"><i class="fas fa-file-lines"></i></div>
+                                    <div class="flex-grow-1" style="min-width:0">
+                                        <div class="fw-650 text-truncate-1"><%= d.name || d.filename %></div>
+                                        <div class="muted small"><a href="/admin/candidate/<%= d.candidateId %>#documents" class="text-decoration-none"><%= d.candidateName %></a> · <%= fmtDate(d.date) %></div>
+                                    </div>
+                                    <a href="<%= docUrl(d) %>" target="_blank" class="btn btn-soft btn-icon" title="Görüntüle"><i class="fas fa-eye"></i></a>
+                                    <form action="/admin/document/status" method="POST" class="m-0">
+                                        <input type="hidden" name="returnTo" value="/admin#dashboard"><input type="hidden" name="candidateId" value="<%= d.candidateId %>"><input type="hidden" name="docId" value="<%= d._id %>"><input type="hidden" name="status" value="Onaylandı">
+                                        <button class="btn btn-ok btn-icon" title="Onayla"><i class="fas fa-check"></i></button>
+                                    </form>
+                                    <form action="/admin/document/status" method="POST" class="m-0">
+                                        <input type="hidden" name="returnTo" value="/admin#dashboard"><input type="hidden" name="candidateId" value="<%= d.candidateId %>"><input type="hidden" name="docId" value="<%= d._id %>"><input type="hidden" name="status" value="Reddedildi">
+                                        <button class="btn btn-bad-soft btn-icon" title="Reddet"><i class="fas fa-xmark"></i></button>
+                                    </form>
                                 </div>
-                                <div>
-                                    <h4 class="modal-title fw-bold text-dark mb-1">
-                                        <%= candidate.firstName %> <%= candidate.lastName %>
-                                    </h4>
-                                    <span class="badge-soft bg-light border text-secondary">
-                                        <i class="fas fa-passport me-1"></i> <%= candidate.passportNo || 'Pasaport Yok' %>
-                                    </span>
-                                    <span class="badge-soft bg-primary bg-opacity-10 text-primary ms-1">
-                                        <i class="fas fa-building me-1"></i> <%= candidate.company || 'Atanmadı' %>
-                                    </span>
-                                </div>
-                            </div>
-                            <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                            <% }) } %>
                         </div>
-                        <div class="modal-body">
+                    </div>
+                    <div class="col-lg-5">
+                        <div class="card-x h-100">
+                            <div class="card-h"><div><h2>Bekleyen Randevular</h2><p class="sub">Yanıt bekleyen talepler</p></div>
+                                <a href="#appointments" class="btn btn-soft btn-sm ms-auto">Tümünü gör</a></div>
+                            <% if (pendingApps.length === 0) { %>
+                                <div class="empty"><i class="fas fa-calendar-check"></i>Bekleyen randevu yok.</div>
+                            <% } else { pendingApps.slice(0, 6).forEach(a => { %>
+                                <div class="list-row">
+                                    <div class="text-center t-brand" style="width:48px;border-radius:10px;padding:6px 0;line-height:1.1">
+                                        <div class="fw-bold" style="font-size:15px"><%= a.date ? new Date(a.date).getDate() || '—' : '—' %></div>
+                                        <div style="font-size:10.5px;text-transform:uppercase"><%= a.date && !isNaN(new Date(a.date)) ? new Date(a.date).toLocaleDateString('tr-TR', { month: 'short' }) : '' %></div>
+                                    </div>
+                                    <div class="flex-grow-1" style="min-width:0">
+                                        <div class="fw-650 text-truncate-1"><%= a.candidateId ? fullName(a.candidateId) : 'Silinmiş aday' %></div>
+                                        <div class="muted small text-truncate-1"><%= a.type || 'Randevu' %> · <%= a.time || '' %></div>
+                                    </div>
+                                    <form action="/admin/appointment/status" method="POST" class="m-0">
+                                        <input type="hidden" name="returnTo" value="/admin#dashboard"><input type="hidden" name="appId" value="<%= a._id %>"><input type="hidden" name="status" value="Onaylandı">
+                                        <button class="btn btn-ok btn-icon" title="Onayla"><i class="fas fa-check"></i></button>
+                                    </form>
+                                    <form action="/admin/appointment/status" method="POST" class="m-0">
+                                        <input type="hidden" name="returnTo" value="/admin#dashboard"><input type="hidden" name="appId" value="<%= a._id %>"><input type="hidden" name="status" value="Reddedildi">
+                                        <button class="btn btn-bad-soft btn-icon" title="Reddet"><i class="fas fa-xmark"></i></button>
+                                    </form>
+                                </div>
+                            <% }) } %>
+                        </div>
+                    </div>
+                </div>
+            </section>
 
-                            <div class="card border-0 shadow-sm p-4 mb-4" style="border-radius: 16px;">
-                                <h6 class="fw-bold mb-3 text-dark"><i class="fas fa-route me-2 text-primary"></i>Genel Süreç Durumu</h6>
-                                <form action="/admin/candidate/update" method="POST" class="d-flex gap-2 mb-4">
-                                    <input type="hidden" name="candidateId" value="<%= candidate._id %>">
-                                    <select name="newStage" class="form-select fw-bold text-primary">
-                                        <% stages.forEach(s=> { %>
-                                            <option value="<%= s %>" <%=candidate.currentStage===s ? 'selected' : '' %>><%= s %></option>
-                                        <% }) %>
-                                    </select>
-                                    <button type="submit" class="btn btn-primary px-4 fw-bold rounded-3">Kaydet</button>
-                                </form>
-
-                                <h6 class="fw-bold mb-3 text-dark border-top border-light pt-4 mt-2"><i class="fas fa-plane-departure me-2 text-info"></i>Almanya Süreci Durumu</h6>
-                                <form action="/admin/candidate/update-germany" method="POST" class="d-flex gap-2 mb-4">
-                                    <input type="hidden" name="candidateId" value="<%= candidate._id %>">
-                                    <select name="newGermanyStage" class="form-select fw-bold text-info">
-                                        <% germanyStages.forEach(s=> { %>
-                                            <option value="<%= s %>" <%= candidate.germanyStage === s ? 'selected' : '' %>><%= s %></option>
-                                        <% }) %>
-                                    </select>
-                                    <button type="submit" class="btn btn-info text-white px-4 fw-bold rounded-3">Kaydet</button>
-                                </form>
-
-                                <h6 class="fw-bold mb-3 text-dark border-top border-light pt-4 mt-2"><i class="fas fa-boxes me-2 text-warning"></i>Almanya Entegrasyon İşlemleri</h6>
-                                <form action="/admin/candidate/update-integration" method="POST" class="bg-white p-3 rounded-4 border">
-                                    <input type="hidden" name="candidateId" value="<%= candidate._id %>">
-                                    <div class="row g-3 mb-3">
-                                        <% 
-                                            const intKeys = [
-                                                {k: 'telefonTemini', n: 'Telefon Temini'}, {k: 'lojmanYerlesimi', n: 'Lojman Yerleşimi'},
-                                                {k: 'genelEntegrasyon', n: 'Genel Entegrasyon'}, {k: 'bankaHesabi', n: 'Banka Hesabı'},
-                                                {k: 'kod95', n: 'Kod95 Ehliyet'}, {k: 'saglikSigortasi', n: 'Sağlık Sigortası'},
-                                                {k: 'anmeldung', n: 'Anmeldung (İkamet)'}, {k: 'dilKursu', n: 'Almanca Kursu'}
-                                            ];
-                                            intKeys.forEach(int => { 
-                                                const isChecked = candidate.integrationSteps && candidate.integrationSteps[int.k] ? 'checked' : '';
-                                        %>
-                                        <div class="col-12 col-md-6">
-                                            <div class="form-check form-switch p-3 border rounded-3 <%= isChecked ? 'bg-success bg-opacity-10 border-success border-opacity-25' : 'bg-light' %>">
-                                                <input class="form-check-input ms-0 me-2 mt-1" type="checkbox" name="<%= int.k %>" id="<%= int.k %>_<%= candidate._id %>" <%= isChecked %> style="cursor: pointer; transform: scale(1.2);">
-                                                <label class="form-check-label fw-bold text-dark small" for="<%= int.k %>_<%= candidate._id %>" style="cursor: pointer;"><%= int.n %></label>
+            <!-- ================= ADAYLAR ================= -->
+            <section class="section" id="sec-candidates" data-title="Adaylar">
+                <div class="card-x">
+                    <div class="card-h">
+                        <div class="search flex-grow-1" style="min-width:220px;max-width:360px">
+                            <i class="fas fa-magnifying-glass"></i>
+                            <input type="search" id="fSearch" class="form-control" placeholder="Ad, soyad, pasaport, e-posta, telefon…">
+                        </div>
+                        <select id="fCompany" class="form-select" style="width:auto;min-width:160px">
+                            <option value="">Tüm şirketler</option>
+                            <option value="Atanmadı">Atanmadı</option>
+                            <% companies.forEach(c => { %><option value="<%= c.name %>"><%= c.name %></option><% }) %>
+                        </select>
+                        <select id="fStage" class="form-select" style="width:auto;min-width:160px">
+                            <option value="">Tüm aşamalar</option>
+                            <% stages.forEach(s => { %><option value="<%= s %>"><%= s %></option><% }) %>
+                        </select>
+                        <select id="fJob" class="form-select" style="width:auto;min-width:140px">
+                            <option value="">Tüm meslekler</option>
+                            <% jobs.forEach(j => { %><option value="<%= j %>"><%= j %></option><% }) %>
+                        </select>
+                        <div class="form-check form-switch ms-1 mb-0">
+                            <input class="form-check-input" type="checkbox" id="fPending">
+                            <label class="form-check-label small fw-semibold" for="fPending">Bekleyen belgesi olanlar</label>
+                        </div>
+                        <button class="btn btn-soft btn-sm" id="fReset" type="button"><i class="fas fa-rotate-left me-1"></i>Sıfırla</button>
+                        <a class="btn btn-soft btn-sm ms-auto" id="exportBtn" href="/admin/export.csv"><i class="fas fa-download me-1"></i>Dışa aktar</a>
+                    </div>
+                    <div class="table-responsive">
+                        <table class="table table-x" id="candTable">
+                            <thead>
+                                <tr>
+                                    <th style="width:36px"><input class="form-check-input" type="checkbox" id="checkAll" title="Görünenlerin tümünü seç"></th>
+                                    <th class="sortable" data-sort="name">Aday <i class="fas fa-sort si"></i></th>
+                                    <th class="sortable d-none d-lg-table-cell" data-sort="job">Meslek / Lokasyon <i class="fas fa-sort si"></i></th>
+                                    <th class="sortable" data-sort="stage">Süreç <i class="fas fa-sort si"></i></th>
+                                    <th class="sortable" data-sort="company">Şirket <i class="fas fa-sort si"></i></th>
+                                    <th class="sortable text-center d-none d-md-table-cell" data-sort="docs">Belge <i class="fas fa-sort si"></i></th>
+                                    <th class="text-end">İşlem</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                            <% candidates.forEach(c => {
+                                const pend = (c.documents || []).filter(d => d.status === 'İnceleniyor').length;
+                                const comp = c.company || 'Atanmadı';
+                                const search = [fullName(c), c.email, c.passportNo, c.phone, c.phoneNumber, c.location, c.job, c.targetState].filter(Boolean).join(' ').toLocaleLowerCase('tr-TR');
+                            %>
+                                <tr class="clickable cand-row" data-id="<%= c._id %>" data-href="/admin/candidate/<%= c._id %>"
+                                    data-search="<%= search %>" data-company="<%= comp %>" data-stage="<%= c.currentStage %>" data-job="<%= c.job || '' %>"
+                                    data-name="<%= fullName(c).toLocaleLowerCase('tr-TR') %>" data-stageidx="<%= stageIdx(c.currentStage) %>" data-docs="<%= pend %>" data-email="<%= c.email || '' %>" data-fullname="<%= fullName(c) %>">
+                                    <td class="no-row"><input class="form-check-input row-check" type="checkbox" value="<%= c._id %>"></td>
+                                    <td>
+                                        <div class="person">
+                                            <div class="avatar" style="<%= avatarStyle(fullName(c)) %>"><%= initials(c) %></div>
+                                            <div style="min-width:0">
+                                                <div class="nm text-truncate-1"><%= fullName(c) %></div>
+                                                <div class="sm text-truncate-1"><% if (c.email) { %><%= c.email %><% } else { %><span style="color:var(--warn)"><i class="fas fa-triangle-exclamation me-1"></i>E-posta yok</span><% } %></div>
                                             </div>
                                         </div>
-                                        <% }) %>
-                                    </div>
-                                    <button type="submit" class="btn btn-warning fw-bold text-dark w-100 rounded-3 py-2"><i class="fas fa-save me-2"></i>Entegrasyon Durumunu Kaydet</button>
-                                </form>
-                            </div>
+                                    </td>
+                                    <td class="d-none d-lg-table-cell">
+                                        <div class="fw-650"><%= c.job || '—' %></div>
+                                        <div class="muted small"><i class="fas fa-location-dot me-1 opacity-50"></i><%= c.location || '—' %><% if (c.targetState && c.targetState !== 'Belirtilmedi') { %> → <%= c.targetState %><% } %></div>
+                                    </td>
+                                    <td style="min-width:170px">
+                                        <span class="pill <%= stageTone(c.currentStage) %>"><span class="dot"></span><%= c.currentStage || '—' %></span>
+                                        <div class="bar mt-2" style="height:4px;max-width:150px"><span style="width:<%= stagePct(c.currentStage) %>%"></span></div>
+                                    </td>
+                                    <td class="no-row">
+                                        <form action="/admin/candidate/company" method="POST" class="m-0">
+                                            <input type="hidden" name="returnTo" value="/admin#candidates">
+                                            <input type="hidden" name="candidateId" value="<%= c._id %>">
+                                            <select name="newCompany" class="form-select form-select-sm" style="min-width:140px;font-size:13px" onchange="this.form.submit()">
+                                                <option value="Atanmadı" <%= comp === 'Atanmadı' ? 'selected' : '' %>>Atanmadı</option>
+                                                <% companies.forEach(co => { %><option value="<%= co.name %>" <%= comp === co.name ? 'selected' : '' %>><%= co.name %></option><% }) %>
+                                            </select>
+                                        </form>
+                                    </td>
+                                    <td class="text-center d-none d-md-table-cell">
+                                        <% if (pend > 0) { %><span class="pill t-warn" title="Onay bekleyen belge"><%= pend %> bekliyor</span>
+                                        <% } else { %><span class="muted small"><%= (c.documents || []).length %></span><% } %>
+                                    </td>
+                                    <td class="text-end no-row" style="white-space:nowrap">
+                                        <button class="btn btn-soft btn-icon js-msg" title="Mesaj / E-posta gönder"><i class="far fa-paper-plane"></i></button>
+                                        <a href="/admin/candidate/<%= c._id %>" class="btn btn-soft btn-icon" title="Detayı aç"><i class="fas fa-chevron-right"></i></a>
+                                    </td>
+                                </tr>
+                            <% }) %>
+                            </tbody>
+                        </table>
+                        <div class="empty" id="noResults" style="display:none"><i class="fas fa-user-magnifying-glass fa-magnifying-glass"></i>Filtrelere uyan aday bulunamadı.</div>
+                    </div>
+                    <div class="d-flex align-items-center justify-content-between flex-wrap gap-2 px-3 py-3 border-top" style="border-color:var(--line)!important">
+                        <div class="muted small" id="resultInfo"></div>
+                        <div class="d-flex align-items-center gap-2">
+                            <select id="pageSize" class="form-select form-select-sm" style="width:auto">
+                                <option value="25">25 / sayfa</option><option value="50">50 / sayfa</option><option value="100">100 / sayfa</option><option value="100000">Tümü</option>
+                            </select>
+                            <div class="pagination-x" id="pager"></div>
+                        </div>
+                    </div>
+                </div>
 
-                            <div class="row g-4">
-                                <div class="col-lg-7">
-                                    <h6 class="fw-bold mb-3 ps-1 text-dark"><i class="fas fa-folder-open me-2 text-secondary"></i>Belgeler (<%= candidate.documents.length %>)</h6>
-                                    <div class="d-flex flex-column gap-3 mb-4">
-                                        <% if(candidate.documents.length> 0) { %>
-                                            <% candidate.documents.forEach(doc=> { %>
-                                                <div class="bg-white p-3 rounded-4 border d-flex justify-content-between align-items-center shadow-sm">
-                                                    <div class="text-truncate me-2">
-                                                        <div class="fw-bold text-dark text-truncate mb-1"><%= doc.name %></div>
-                                                        <small class="text-muted"><i class="far fa-calendar-alt me-1"></i><%= new Date(doc.date).toLocaleDateString('tr-TR') %></small>
-                                                    </div>
-                                                    <div class="d-flex gap-2">
-                                                        <a href="/uploads/<%= doc.filename %>" target="_blank" class="btn btn-light btn-sm border rounded-3" title="Görüntüle"><i class="fas fa-eye"></i></a>
-                                                        <% if(doc.status==='İnceleniyor' ) { %>
-                                                            <form action="/admin/document/status" method="POST" style="display:inline;">
-                                                                <input type="hidden" name="candidateId" value="<%= candidate._id %>">
-                                                                <input type="hidden" name="docId" value="<%= doc._id %>">
-                                                                <input type="hidden" name="status" value="Onaylandı">
-                                                                <button class="btn btn-success btn-sm rounded-3"><i class="fas fa-check"></i></button>
-                                                            </form>
-                                                            <form action="/admin/document/status" method="POST" style="display:inline;">
-                                                                <input type="hidden" name="candidateId" value="<%= candidate._id %>">
-                                                                <input type="hidden" name="docId" value="<%= doc._id %>">
-                                                                <input type="hidden" name="status" value="Reddedildi">
-                                                                <button class="btn btn-danger btn-sm rounded-3"><i class="fas fa-times"></i></button>
-                                                            </form>
-                                                        <% } else { %>
-                                                            <span class="badge-soft <%= doc.status === 'Onaylandı' ? 'bg-success text-white' : 'bg-danger text-white' %> d-flex align-items-center">
-                                                                <%= doc.status %>
-                                                            </span>
-                                                        <% } %>
-                                                    </div>
-                                                </div>
-                                                <% }) %>
-                                        <% } else { %>
-                                            <div class="p-4 border border-dashed rounded-4 text-center text-muted bg-white">
-                                                <i class="fas fa-file-excel fa-2x mb-2 opacity-50"></i><br>Belge Yok
-                                            </div>
-                                        <% } %>
-                                    </div>
-                                </div>
+                <!-- Toplu işlem çubuğu -->
+                <form class="bulkbar" id="bulkBar" action="/admin/candidates/bulk" method="POST">
+                    <input type="hidden" name="returnTo" value="/admin#candidates">
+                    <input type="hidden" name="ids" id="bulkIds">
+                    <input type="hidden" name="value" id="bulkValue">
+                    <div class="fw-semibold me-1"><span id="selCount">0</span> aday seçildi</div>
+                    <select name="action" id="bulkAction" class="form-select">
+                        <option value="">Toplu işlem seçin…</option>
+                        <option value="company">Şirkete ata</option>
+                        <option value="stage">Genel aşamayı değiştir</option>
+                        <option value="germanyStage">Almanya aşamasını değiştir</option>
+                        <option value="message">Panel mesajı gönder</option>
+                        <option value="export">Seçilenleri dışa aktar</option>
+                        <option value="delete">Seçilenleri sil</option>
+                    </select>
+                    <select id="bulkCompany" class="form-select d-none">
+                        <option value="Atanmadı">Atanmadı</option>
+                        <% companies.forEach(co => { %><option value="<%= co.name %>"><%= co.name %></option><% }) %>
+                    </select>
+                    <select id="bulkStage" class="form-select d-none">
+                        <% stages.forEach(s => { %><option value="<%= s %>"><%= s %></option><% }) %>
+                    </select>
+                    <select id="bulkGStage" class="form-select d-none">
+                        <% germanyStages.forEach(s => { %><option value="<%= s %>"><%= s %></option><% }) %>
+                    </select>
+                    <button type="submit" class="btn btn-brand btn-sm" data-no-busy="1">Uygula</button>
+                    <button type="button" class="btn btn-sm ms-auto" style="color:#CBD5E1" id="bulkClear">Seçimi temizle</button>
+                </form>
+            </section>
 
-                                <div class="col-lg-5">
-                                    <h6 class="fw-bold mb-3 ps-1 text-dark"><i class="fas fa-sticky-note me-2 text-warning"></i>Notlar</h6>
-
-                                    <div class="bg-white border rounded-4 p-3 mb-3 shadow-sm" style="max-height: 350px; overflow-y: auto;">
-                                        <% if (candidate.notes && candidate.notes.length> 0) { %>
-                                            <% candidate.notes.reverse().forEach(note=> { %>
-                                                <div class="note-item p-3 mb-3 rounded-3">
-                                                    <p class="mb-2 small text-dark fw-medium"><%= note.content %></p>
-                                                    <div class="d-flex justify-content-between align-items-center">
-                                                        <small class="text-muted" style="font-size: 0.7rem;"><i class="far fa-clock me-1"></i><%= new Date(note.date).toLocaleDateString('tr-TR') %></small>
-                                                        <a href="/admin/candidate/delete-note/<%= candidate._id %>/<%= note._id %>" class="text-danger small text-decoration-none" onclick="return confirm('Notu sil?')">
-                                                            <i class="fas fa-trash-alt"></i>
-                                                        </a>
-                                                    </div>
-                                                </div>
-                                            <% }) %>
-                                        <% } else { %>
-                                            <div class="text-center small text-muted py-5">
-                                                <i class="far fa-comment-dots fa-2x mb-2 opacity-50"></i><br>Henüz not yok.
-                                            </div>
-                                        <% } %>
-                                    </div>
-
-                                    <form action="/admin/candidate/add-note" method="POST">
-                                        <input type="hidden" name="candidateId" value="<%= candidate._id %>">
-                                        <div class="input-group">
-                                            <input type="text" name="noteContent" class="form-control form-control-sm rounded-start-3" placeholder="Yeni not ekle..." required>
-                                            <button class="btn btn-warning btn-sm rounded-end-3 px-3" type="submit"><i class="fas fa-paper-plane text-dark"></i></button>
+            <!-- ================= BELGELER ================= -->
+            <section class="section" id="sec-documents" data-title="Belge Onayları">
+                <div class="card-x">
+                    <div class="card-h">
+                        <div><h2>Tüm Belgeler</h2><p class="sub">Adayların yüklediği belgeleri inceleyin ve onaylayın.</p></div>
+                        <div class="seg ms-auto" id="docSeg">
+                            <button class="active" data-v="İnceleniyor">Bekleyen <span class="c"><%= pendingDocs.length %></span></button>
+                            <button data-v="Onaylandı">Onaylanan <span class="c"><%= allDocuments.filter(d => d.status === 'Onaylandı').length %></span></button>
+                            <button data-v="Reddedildi">Reddedilen <span class="c"><%= allDocuments.filter(d => d.status === 'Reddedildi').length %></span></button>
+                            <button data-v="">Tümü <span class="c"><%= allDocuments.length %></span></button>
+                        </div>
+                        <div class="search" style="width:240px"><i class="fas fa-magnifying-glass"></i><input type="search" id="docSearch" class="form-control form-control-sm" placeholder="Belge veya aday ara"></div>
+                    </div>
+                    <div class="table-responsive">
+                        <table class="table table-x">
+                            <thead><tr><th>Belge</th><th>Aday</th><th class="d-none d-md-table-cell">Yüklenme</th><th>Durum</th><th class="text-end">İşlem</th></tr></thead>
+                            <tbody id="docBody">
+                            <% allDocuments.forEach(d => { %>
+                                <tr data-status="<%= d.status %>" data-search="<%= ((d.name || '') + ' ' + (d.filename || '') + ' ' + d.candidateName).toLocaleLowerCase('tr-TR') %>">
+                                    <td style="max-width:340px">
+                                        <div class="d-flex align-items-center gap-2">
+                                            <i class="fas fa-file-lines muted"></i>
+                                            <div style="min-width:0"><div class="fw-650 text-truncate-1"><%= d.name || 'Belge' %></div><div class="muted small text-truncate-1"><%= d.filename %></div></div>
                                         </div>
-                                    </form>
-                                </div>
-                            </div>
-                        </div>
+                                    </td>
+                                    <td><a class="fw-600 text-decoration-none" href="/admin/candidate/<%= d.candidateId %>#documents"><%= d.candidateName %></a></td>
+                                    <td class="d-none d-md-table-cell muted"><%= fmtDate(d.date) %></td>
+                                    <td><span class="pill <%= statusTone(d.status) %>"><span class="dot"></span><%= d.status %></span></td>
+                                    <td class="text-end" style="white-space:nowrap">
+                                        <a href="<%= docUrl(d) %>" target="_blank" class="btn btn-soft btn-sm"><i class="fas fa-eye me-1"></i>Görüntüle</a>
+                                        <% if (d.status !== 'Onaylandı') { %>
+                                        <form action="/admin/document/status" method="POST" class="d-inline m-0">
+                                            <input type="hidden" name="returnTo" value="/admin#documents"><input type="hidden" name="candidateId" value="<%= d.candidateId %>"><input type="hidden" name="docId" value="<%= d._id %>"><input type="hidden" name="status" value="Onaylandı">
+                                            <button class="btn btn-ok btn-sm"><i class="fas fa-check me-1"></i>Onayla</button>
+                                        </form>
+                                        <% } %>
+                                        <% if (d.status !== 'Reddedildi') { %>
+                                        <form action="/admin/document/status" method="POST" class="d-inline m-0">
+                                            <input type="hidden" name="returnTo" value="/admin#documents"><input type="hidden" name="candidateId" value="<%= d.candidateId %>"><input type="hidden" name="docId" value="<%= d._id %>"><input type="hidden" name="status" value="Reddedildi">
+                                            <button class="btn btn-bad-soft btn-sm"><i class="fas fa-xmark me-1"></i>Reddet</button>
+                                        </form>
+                                        <% } %>
+                                    </td>
+                                </tr>
+                            <% }) %>
+                            </tbody>
+                        </table>
+                        <div class="empty" id="docEmpty" style="display:none"><i class="fas fa-folder-open"></i>Bu filtrede belge yok.</div>
                     </div>
                 </div>
-            </div>
+            </section>
 
-            <div class="modal fade" id="msgModal<%= candidate._id %>" tabindex="-1">
-                <div class="modal-dialog modal-dialog-centered">
-                    <div class="modal-content">
-                        <div class="modal-header bg-dark text-white border-0">
-                            <h5 class="modal-title fw-bold"><i class="far fa-comment-dots me-2"></i>Mesaj Gönder: <%= candidate.firstName %></h5>
-                            <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+            <!-- ================= RANDEVULAR ================= -->
+            <section class="section" id="sec-appointments" data-title="Randevular">
+                <div class="card-x">
+                    <div class="card-h">
+                        <div><h2>Randevu Talepleri</h2><p class="sub">Adayların oluşturduğu randevuları yönetin.</p></div>
+                        <div class="seg ms-auto" id="appSeg">
+                            <button class="active" data-v="Beklemede">Bekleyen <span class="c"><%= pendingApps.length %></span></button>
+                            <button data-v="Onaylandı">Onaylanan <span class="c"><%= appointments.filter(a => a.status === 'Onaylandı').length %></span></button>
+                            <button data-v="Reddedildi">Reddedilen <span class="c"><%= appointments.filter(a => a.status === 'Reddedildi').length %></span></button>
+                            <button data-v="">Tümü <span class="c"><%= appointments.length %></span></button>
                         </div>
-                        <div class="modal-body p-0">
-                            <ul class="nav nav-tabs nav-justified mb-0 bg-light border-bottom" role="tablist">
-                                <li class="nav-item">
-                                    <button class="nav-link active rounded-0 border-0 fw-bold py-3 text-dark" data-bs-toggle="tab" data-bs-target="#panelMsg<%= candidate._id %>">Panel Mesajı</button>
-                                </li>
-                                <li class="nav-item">
-                                    <button class="nav-link rounded-0 border-0 fw-bold py-3 text-secondary" data-bs-toggle="tab" data-bs-target="#mailMsg<%= candidate._id %>">E-Posta</button>
-                                </li>
-                            </ul>
-
-                            <div class="tab-content p-4">
-                                <div class="tab-pane fade show active" id="panelMsg<%= candidate._id %>">
-                                    <form action="/admin/message/internal" method="POST">
-                                        <input type="hidden" name="candidateId" value="<%= candidate._id %>">
-                                        <textarea name="content" class="form-control mb-4 bg-white border" rows="4" placeholder="Panel mesajı yazın..." required></textarea>
-                                        <button type="submit" class="btn btn-dark w-100 fw-bold py-2 rounded-3">Panele Gönder</button>
-                                    </form>
-                                </div>
-                                <div class="tab-pane fade" id="mailMsg<%= candidate._id %>">
-                                    <form action="/admin/message/email" method="POST">
-                                        <input type="hidden" name="candidateId" value="<%= candidate._id %>">
-                                        <input type="text" name="subject" class="form-control mb-3 bg-white border" placeholder="Konu Başlığı" required>
-                                        <textarea name="content" class="form-control mb-4 bg-white border" rows="4" placeholder="Mail içeriği yazın..." required></textarea>
-                                        <button type="submit" class="btn btn-primary w-100 fw-bold py-2 rounded-3"><i class="fas fa-paper-plane me-2"></i>Mail Gönder</button>
-                                    </form>
-                                </div>
-                            </div>
-                        </div>
+                    </div>
+                    <div class="table-responsive">
+                        <table class="table table-x">
+                            <thead><tr><th>Aday</th><th>Randevu Türü</th><th>Tarih / Saat</th><th class="d-none d-md-table-cell">Talep</th><th>Durum</th><th class="text-end">İşlem</th></tr></thead>
+                            <tbody id="appBody">
+                            <% appointments.forEach(a => { %>
+                                <tr data-status="<%= a.status %>">
+                                    <td>
+                                        <% if (a.candidateId) { %>
+                                        <a href="/admin/candidate/<%= a.candidateId._id %>#appointments" class="person text-decoration-none">
+                                            <div class="avatar" style="<%= avatarStyle(fullName(a.candidateId)) %>"><%= initials(a.candidateId) %></div>
+                                            <div class="nm"><%= fullName(a.candidateId) %></div>
+                                        </a>
+                                        <% } else { %><span class="muted">Silinmiş aday</span><% } %>
+                                    </td>
+                                    <td class="fw-650"><%= a.type || '—' %></td>
+                                    <td><div class="fw-650"><%= fmtDate(a.date) %></div><div class="muted small"><%= a.time || '' %></div></td>
+                                    <td class="d-none d-md-table-cell muted"><%= fmtDate(a.createdAt) %></td>
+                                    <td><span class="pill <%= statusTone(a.status) %>"><span class="dot"></span><%= a.status %></span></td>
+                                    <td class="text-end" style="white-space:nowrap">
+                                        <% if (a.status !== 'Onaylandı') { %>
+                                        <form action="/admin/appointment/status" method="POST" class="d-inline m-0">
+                                            <input type="hidden" name="returnTo" value="/admin#appointments"><input type="hidden" name="appId" value="<%= a._id %>"><input type="hidden" name="status" value="Onaylandı">
+                                            <button class="btn btn-ok btn-sm"><i class="fas fa-check me-1"></i>Onayla</button>
+                                        </form>
+                                        <% } %>
+                                        <% if (a.status !== 'Reddedildi') { %>
+                                        <form action="/admin/appointment/status" method="POST" class="d-inline m-0">
+                                            <input type="hidden" name="returnTo" value="/admin#appointments"><input type="hidden" name="appId" value="<%= a._id %>"><input type="hidden" name="status" value="Reddedildi">
+                                            <button class="btn btn-bad-soft btn-sm"><i class="fas fa-xmark me-1"></i>Reddet</button>
+                                        </form>
+                                        <% } %>
+                                    </td>
+                                </tr>
+                            <% }) %>
+                            </tbody>
+                        </table>
+                        <div class="empty" id="appEmpty" style="display:none"><i class="fas fa-calendar"></i>Bu filtrede randevu yok.</div>
                     </div>
                 </div>
-            </div>
-        <% }) %> 
+            </section>
 
-        <div class="modal fade" id="addCandidateModal" tabindex="-1">
-            <div class="modal-dialog modal-dialog-centered">
-                <div class="modal-content">
-                    <div class="modal-header bg-primary text-white border-0">
-                        <h5 class="modal-title fw-bold"><i class="fas fa-user-plus me-2"></i>Yeni Aday Oluştur</h5>
-                        <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
-                    </div>
-                    <div class="modal-body p-4">
-                        <form action="/admin/candidate/add" method="POST">
-                            <div class="mb-3"><label class="fw-bold small text-secondary mb-1">Ad</label><input type="text" name="firstName" class="form-control bg-light border-0" required></div>
-                            <div class="mb-3"><label class="fw-bold small text-secondary mb-1">Soyad</label><input type="text" name="lastName" class="form-control bg-light border-0" required></div>
-                            <div class="mb-4"><label class="fw-bold small text-secondary mb-1">Pasaport No</label><input type="text" name="passportNo" class="form-control bg-light border-0" required></div>
-                            <button type="submit" class="btn btn-primary w-100 fw-bold py-2 rounded-3">Kaydet</button>
+            <!-- ================= ŞİRKETLER ================= -->
+            <section class="section" id="sec-companies" data-title="Şirketler">
+                <div class="card-x mb-3">
+                    <div class="card-b">
+                        <form action="/admin/company/add" method="POST" class="row g-2 align-items-end">
+                            <input type="hidden" name="returnTo" value="/admin#companies">
+                            <div class="col-md">
+                                <label class="form-label">Yeni şirket ekle</label>
+                                <input type="text" name="name" class="form-control" placeholder="Örn: XYZ Logistik GmbH" required maxlength="80">
+                            </div>
+                            <div class="col-md-auto"><button class="btn btn-brand w-100"><i class="fas fa-plus me-1"></i>Şirket Ekle</button></div>
                         </form>
                     </div>
                 </div>
-            </div>
-        </div>
-
-        <div class="modal fade" id="bulkEmailModal" tabindex="-1">
-            <div class="modal-dialog modal-lg modal-dialog-centered">
-                <div class="modal-content">
-                    <div class="modal-header bg-danger text-white border-0">
-                        <h5 class="modal-title fw-bold"><i class="fas fa-mail-bulk me-2"></i>Toplu Mail Gönderimi</h5>
-                        <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+                <div class="row g-3">
+                    <% companyCounts.forEach(co => { %>
+                    <div class="col-sm-6 col-xl-4">
+                        <div class="card-x h-100">
+                            <div class="card-b d-flex flex-column gap-3">
+                                <div class="d-flex align-items-center gap-3">
+                                    <div class="avatar" style="width:44px;height:44px;border-radius:12px;<%= co.name === 'Atanmadı' ? 'background:#F2F4F7;color:#667085' : avatarStyle(co.name) %>"><i class="fas <%= co.name === 'Atanmadı' ? 'fa-user-slash' : 'fa-building' %>"></i></div>
+                                    <div style="min-width:0">
+                                        <div class="fw-bold text-truncate-1" style="font-size:15px"><%= co.name %></div>
+                                        <div class="muted small"><%= co.count %> aday<%= co.name === 'Atanmadı' ? ' · sistem grubu' : '' %></div>
+                                    </div>
+                                </div>
+                                <div class="d-flex gap-2 mt-auto">
+                                    <a href="#candidates" data-filter-company="<%= co.name %>" class="btn btn-soft btn-sm flex-grow-1"><i class="fas fa-users me-1"></i>Adayları gör</a>
+                                    <% if (co._id) { %>
+                                    <button type="button" class="btn btn-soft btn-sm btn-icon js-rename" data-id="<%= co._id %>" data-name="<%= co.name %>" title="Yeniden adlandır"><i class="fas fa-pen"></i></button>
+                                    <form action="/admin/company/delete" method="POST" class="m-0" data-confirm="“<%= co.name %>” silinecek. Bu şirkete bağlı <%= co.count %> aday “Atanmadı” grubuna taşınacak." data-danger>
+                                        <input type="hidden" name="returnTo" value="/admin#companies"><input type="hidden" name="id" value="<%= co._id %>">
+                                        <button class="btn btn-bad-soft btn-sm btn-icon" title="Sil"><i class="fas fa-trash"></i></button>
+                                    </form>
+                                    <% } %>
+                                </div>
+                            </div>
+                        </div>
                     </div>
-                    <form action="/admin/message/email/bulk" method="POST" onsubmit="return confirm('Bu maili seçtiğiniz kitleye göndermek istiyor musunuz?')">
-                        <div class="modal-body p-4">
-                            <div class="mb-4 bg-light p-3 rounded-3 border">
-                                <label class="fw-bold small text-secondary mb-2"><i class="fas fa-filter me-2 text-primary"></i>Hedef Kitle (Kime Gönderilecek?)</label>
-                                <select name="targetCompany" class="form-select bg-white fw-bold text-primary border-primary">
-                                    <option value="Tümü">Tüm Adaylara Gönder</option>
-                                    <option value="Atanmadı">Sadece "Atanmadı" Grubundaki Adaylara</option>
-                                    <% companies.forEach(c => { %>
-                                        <option value="<%= c.name %>">Sadece <%= c.name %> Adaylarına Gönder</option>
-                                    <% }) %>
-                                </select>
-                            </div>
-                            <div class="mb-3">
-                                <label class="fw-bold small text-secondary mb-1">Konu</label>
-                                <input type="text" name="subject" class="form-control bg-white" placeholder="Örn: Önemli Duyuru" required>
-                            </div>
-                            <div class="mb-3">
-                                <label class="fw-bold small text-secondary mb-1">İçerik</label>
-                                <textarea name="content" class="form-control bg-white" rows="6" placeholder="Mesajınız..." required></textarea>
-                            </div>
-                        </div>
-                        <div class="modal-footer border-0 p-4 pt-0">
-                            <button type="button" class="btn btn-light fw-bold" data-bs-dismiss="modal">İptal</button>
-                            <button type="submit" class="btn btn-danger fw-bold px-4"><i class="fas fa-paper-plane me-2"></i>Gönder</button>
-                        </div>
-                    </form>
+                    <% }) %>
                 </div>
-            </div>
-        </div>
+                <form id="renameForm" action="/admin/company/rename" method="POST" class="d-none">
+                    <input type="hidden" name="returnTo" value="/admin#companies"><input type="hidden" name="id"><input type="hidden" name="name">
+                </form>
+            </section>
 
-        <div class="modal fade" id="bulkMessageModal" tabindex="-1">
-            <div class="modal-dialog modal-dialog-centered">
-                <div class="modal-content">
-                    <div class="modal-header border-0 pb-0 pt-4 px-4">
-                        <h5 class="modal-title fw-bold text-dark"><i class="fas fa-bullhorn me-2 text-primary"></i>Site İçi Genel Duyuru</h5>
-                        <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            <!-- ================= İLETİŞİM ================= -->
+            <section class="section" id="sec-communication" data-title="Duyuru & E-posta">
+                <div class="row g-3">
+                    <div class="col-lg-6">
+                        <div class="card-x h-100">
+                            <div class="card-h"><div class="avatar t-brand" style="border-radius:10px"><i class="fas fa-bullhorn"></i></div>
+                                <div><h2>Panel Duyurusu</h2><p class="sub">Mesaj, adayların panelindeki “Mesajlar” bölümüne düşer.</p></div></div>
+                            <form class="card-b" action="/admin/message/bulk" method="POST" data-confirm="Duyuru seçilen kitledeki tüm adayların paneline gönderilecek.">
+                                <input type="hidden" name="returnTo" value="/admin#communication">
+                                <div class="mb-3">
+                                    <label class="form-label">Hedef kitle</label>
+                                    <select name="targetCompany" class="form-select js-audience" data-kind="total" data-out="annCount">
+                                        <option value="Tümü">Tüm adaylar</option>
+                                        <% companyCounts.forEach(co => { %><option value="<%= co.name %>"><%= co.name %></option><% }) %>
+                                    </select>
+                                    <div class="form-text"><i class="fas fa-users me-1"></i><span id="annCount"></span> adaya ulaşacak</div>
+                                </div>
+                                <div class="mb-3">
+                                    <label class="form-label">Duyuru metni</label>
+                                    <textarea name="content" class="form-control" rows="6" required placeholder="Örn: Vize randevularınız için gerekli belgeleri 15 Kasım'a kadar yüklemenizi rica ederiz."></textarea>
+                                </div>
+                                <button class="btn btn-brand"><i class="fas fa-paper-plane me-1"></i>Duyuruyu Yayınla</button>
+                            </form>
+                        </div>
                     </div>
-                    <form action="/admin/message/bulk" method="POST">
-                        <div class="modal-body p-4">
-                            <p class="text-muted small mb-3">Bu mesaj tüm adayların paneline düşer.</p>
-                            <textarea name="content" class="form-control bg-light border-0" rows="5" placeholder="Duyuru metni yazın..." required></textarea>
+                    <div class="col-lg-6">
+                        <div class="card-x h-100">
+                            <div class="card-h"><div class="avatar t-bad" style="border-radius:10px"><i class="fas fa-envelope-open-text"></i></div>
+                                <div><h2>Toplu E-posta</h2><p class="sub">Kurumsal şablonla adayların e-posta adreslerine gönderilir.</p></div></div>
+                            <form class="card-b" action="/admin/message/email/bulk" method="POST" data-confirm="E-posta seçilen kitledeki tüm adaylara gönderilecek. Bu işlem geri alınamaz.">
+                                <input type="hidden" name="returnTo" value="/admin#communication">
+                                <div class="mb-3">
+                                    <label class="form-label">Hedef kitle</label>
+                                    <select name="targetCompany" class="form-select js-audience" data-kind="mail" data-out="mailCount">
+                                        <option value="Tümü">Tüm adaylar</option>
+                                        <% companyCounts.forEach(co => { %><option value="<%= co.name %>"><%= co.name %></option><% }) %>
+                                    </select>
+                                    <div class="form-text"><i class="fas fa-at me-1"></i><span id="mailCount"></span> adayın e-posta adresi kayıtlı</div>
+                                </div>
+                                <div class="mb-3"><label class="form-label">Konu</label><input type="text" name="subject" class="form-control" required placeholder="Örn: Önemli Duyuru"></div>
+                                <div class="mb-3"><label class="form-label">İçerik</label><textarea name="content" class="form-control" rows="6" required placeholder="Mesajınız… (Her e-posta “Sayın [Ad]” hitabıyla başlar)"></textarea></div>
+                                <button class="btn btn-brand"><i class="fas fa-paper-plane me-1"></i>E-postaları Gönder</button>
+                            </form>
                         </div>
-                        <div class="modal-footer border-0 px-4 pb-4 pt-0">
-                            <button type="button" class="btn btn-light fw-bold" data-bs-dismiss="modal">Kapat</button>
-                            <button type="submit" class="btn btn-primary fw-bold px-4">Yayınla</button>
-                        </div>
-                    </form>
-                </div>
-            </div>
-        </div>
-
-        <div id="mailModal" class="modal" tabindex="-1" style="display: none; background: rgba(15,23,42,0.7); position: fixed; top: 0; left: 0; width: 100%; height: 100%; z-index: 9999;">
-            <div class="modal-dialog modal-dialog-centered">
-                <div class="modal-content">
-                    <div class="modal-header border-0 pb-0 pt-4 px-4">
-                        <h5 class="modal-title fw-bold text-dark">Mail Gönder: <span id="mailCandidateName" class="text-primary"></span></h5>
-                        <button type="button" class="btn-close" onclick="closeMailModal()"></button>
                     </div>
-                    <form action="/admin/message/email" method="POST">
-                        <div class="modal-body p-4">
-                            <input type="hidden" name="candidateId" id="mailCandidateId">
-                            <div class="mb-3">
-                                <label class="form-label text-muted small fw-bold mb-1">Alıcı E-posta</label>
-                                <input type="email" id="mailCandidateEmail" class="form-control bg-light border-0 text-muted" disabled>
-                            </div>
-                            <div class="mb-3">
-                                <label class="form-label fw-bold small text-secondary mb-1">Konu Başlığı</label>
-                                <input type="text" name="subject" class="form-control bg-white" required placeholder="Örn: Evrak Eksikliği, Vize Durumu...">
-                            </div>
-                            <div class="mb-2">
-                                <label class="form-label fw-bold small text-secondary mb-1">Mesaj İçeriği</label>
-                                <textarea name="content" class="form-control bg-white" rows="6" required placeholder="Mesajınızı buraya yazın..."></textarea>
-                            </div>
-                        </div>
-                        <div class="modal-footer border-0 px-4 pb-4 pt-0">
-                            <button type="button" class="btn btn-light fw-bold" onclick="closeMailModal()">İptal</button>
-                            <button type="submit" class="btn btn-primary fw-bold px-4"><i class="fas fa-paper-plane me-2"></i> Gönder</button>
-                        </div>
-                    </form>
                 </div>
-            </div>
-        </div>
-
+            </section>
+        </main>
     </div>
+</div>
 
-    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
-    <script>
-        const urlParams = new URLSearchParams(window.location.search);
-        const status = urlParams.get('status');
-        const error = urlParams.get('error');
+<!-- ===== Yeni Aday ===== -->
+<div class="modal fade" id="addCandidateModal" tabindex="-1">
+    <div class="modal-dialog modal-lg modal-dialog-centered">
+        <form class="modal-content" action="/admin/candidate/add" method="POST">
+            <input type="hidden" name="returnTo" value="/admin#candidates">
+            <div class="modal-header"><h5 class="modal-title"><i class="fas fa-user-plus me-2 text-primary"></i>Yeni Aday Oluştur</h5><button type="button" class="btn-close" data-bs-dismiss="modal"></button></div>
+            <div class="modal-body">
+                <div class="row g-3">
+                    <div class="col-md-6"><label class="form-label">Ad *</label><input type="text" name="firstName" class="form-control" required></div>
+                    <div class="col-md-6"><label class="form-label">Soyad *</label><input type="text" name="lastName" class="form-control" required></div>
+                    <div class="col-md-6"><label class="form-label">Pasaport No *</label><input type="text" name="passportNo" class="form-control text-uppercase" required><div class="form-text">Aday, Ad + Soyad + Pasaport No ile giriş yapar.</div></div>
+                    <div class="col-md-6"><label class="form-label">E-posta</label><input type="email" name="email" class="form-control" placeholder="ornek@mail.com"></div>
+                    <div class="col-md-6"><label class="form-label">Telefon</label><input type="tel" name="phone" class="form-control" placeholder="+90 5xx xxx xx xx"></div>
+                    <div class="col-md-6"><label class="form-label">Meslek</label>
+                        <input type="text" name="job" class="form-control" list="jobList" placeholder="Örn: Tır Şoförü">
+                        <datalist id="jobList"><% jobs.forEach(j => { %><option value="<%= j %>"><% }) %></datalist></div>
+                    <div class="col-md-4"><label class="form-label">Lokasyon</label><input type="text" name="location" class="form-control" placeholder="Örn: Ankara"></div>
+                    <div class="col-md-4"><label class="form-label">Şirket</label>
+                        <select name="company" class="form-select"><option value="Atanmadı">Atanmadı</option><% companies.forEach(co => { %><option value="<%= co.name %>"><%= co.name %></option><% }) %></select></div>
+                    <div class="col-md-4"><label class="form-label">Başlangıç aşaması</label>
+                        <select name="currentStage" class="form-select"><% stages.forEach(s => { %><option value="<%= s %>"><%= s %></option><% }) %></select></div>
+                </div>
+            </div>
+            <div class="modal-footer"><button type="button" class="btn btn-soft" data-bs-dismiss="modal">Vazgeç</button><button class="btn btn-brand"><i class="fas fa-check me-1"></i>Adayı Oluştur</button></div>
+        </form>
+    </div>
+</div>
 
-        const Toast = Swal.mixin({
-            toast: true,
-            position: 'top-end',
-            showConfirmButton: false,
-            timer: 3000,
-            timerProgressBar: true
-        });
+<!-- ===== Mesaj / E-posta (tek ortak modal) ===== -->
+<div class="modal fade" id="msgModal" tabindex="-1">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content">
+            <div class="modal-header"><h5 class="modal-title">İletişim: <span class="text-primary" id="msgName"></span></h5><button type="button" class="btn-close" data-bs-dismiss="modal"></button></div>
+            <div class="modal-body">
+                <div class="seg w-100 mb-3" id="msgSeg">
+                    <button class="active flex-fill" data-t="panel"><i class="far fa-comment-dots me-1"></i>Panel Mesajı</button>
+                    <button class="flex-fill" data-t="mail"><i class="far fa-envelope me-1"></i>E-posta</button>
+                </div>
+                <form id="msgPanel" action="/admin/message/internal" method="POST">
+                    <input type="hidden" name="returnTo" value="/admin#candidates"><input type="hidden" name="candidateId" class="js-cid">
+                    <label class="form-label">Mesaj</label>
+                    <textarea name="content" class="form-control mb-3" rows="5" required placeholder="Adayın paneline düşecek mesaj…"></textarea>
+                    <button class="btn btn-brand w-100"><i class="fas fa-paper-plane me-1"></i>Panele Gönder</button>
+                </form>
+                <form id="msgMail" action="/admin/message/email" method="POST" class="d-none">
+                    <input type="hidden" name="returnTo" value="/admin#candidates"><input type="hidden" name="candidateId" class="js-cid">
+                    <div class="mb-2 muted small"><i class="fas fa-at me-1"></i>Alıcı: <span id="msgEmail" class="fw-semibold"></span></div>
+                    <input type="text" name="subject" class="form-control mb-2" required placeholder="Konu">
+                    <textarea name="content" class="form-control mb-3" rows="5" required placeholder="E-posta içeriği…"></textarea>
+                    <button class="btn btn-brand w-100" id="msgMailBtn"><i class="fas fa-paper-plane me-1"></i>E-posta Gönder</button>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
 
-        if (status === 'bulk_success') { Toast.fire({ icon: 'success', title: 'Duyuru gönderildi.' }); }
-        else if (status === 'bulk_mail_success') { Toast.fire({ icon: 'success', title: 'Toplu mailler gönderildi.' }); }
-        else if (status === 'note_added') { Toast.fire({ icon: 'success', title: 'Not eklendi.' }); }
-        else if (status === 'company_created') { Toast.fire({ icon: 'success', title: 'Şirket oluşturuldu.' }); }
-        else if (status === 'company_deleted') { Toast.fire({ icon: 'success', title: 'Şirket silindi.' }); }
-        else if (status === 'note_deleted') { Toast.fire({ icon: 'success', title: 'Not silindi.' }); }
-        else if (status === 'company_updated') { Toast.fire({ icon: 'success', title: 'Şirket güncellendi.' }); }
-        else if (status === 'mail_success') { Toast.fire({ icon: 'success', title: 'E-posta iletildi.' }); }
-        else if (status === 'integration_updated') { Toast.fire({ icon: 'success', title: 'Entegrasyon kaydedildi.' }); }
-        else if (status === 'updated') { Toast.fire({ icon: 'success', title: 'Süreç güncellendi.' }); }
-        else if (error === 'company_exists') { Swal.fire({ icon: 'error', title: 'Hata', text: 'Şirket zaten kayıtlı.' }); }
-        else if (error === 'mail_yok') { Swal.fire({ icon: 'warning', title: 'Uyarı', text: 'E-posta bulunmuyor.' }); }
-        else if (error) { Swal.fire({ icon: 'error', title: 'Hata', text: 'Bir sorun oluştu.' }); }
+<%- include('partials/admin_scripts') %>
+<script>
+(function () {
+    const AUDIENCE = <%- JSON.stringify(audience).replace(/</g, '\\u003c') %>;
+    const trLower = s => (s || '').toLocaleLowerCase('tr-TR');
 
-        if (status || error) window.history.replaceState(null, null, window.location.pathname);
+    // ---------- Bölüm yönlendirme (hash) ----------
+    const sections = [...document.querySelectorAll('.section')];
+    function show(name) {
+        if (!document.getElementById('sec-' + name)) name = 'dashboard';
+        sections.forEach(s => s.classList.toggle('active', s.id === 'sec-' + name));
+        document.querySelectorAll('.side-nav a[data-section]').forEach(a => a.classList.toggle('active', a.dataset.section === name));
+        const sec = document.getElementById('sec-' + name);
+        document.getElementById('pageTitle').textContent = sec.dataset.title;
+        document.title = sec.dataset.title + ' | BERLINER Yönetim';
+        document.getElementById('sidebar').classList.remove('open'); document.getElementById('backdrop').classList.remove('show');
+        window.scrollTo(0, 0);
+    }
+    window.addEventListener('hashchange', () => show(location.hash.slice(1)));
+    show(location.hash.slice(1) || 'dashboard');
 
-        function openMailModal(id, email, name) {
-            if (!email || email === 'undefined' || email.trim() === '') {
-                Swal.fire({ icon: 'warning', title: 'E-posta Eksik', text: 'Bu adayın e-posta adresi bulunmuyor!' });
-                return;
-            }
-            document.getElementById('mailCandidateId').value = id;
-            document.getElementById('mailCandidateEmail').value = email;
-            document.getElementById('mailCandidateName').innerText = name;
-            document.getElementById('mailModal').style.display = 'block';
+    // ---------- Aday tablosu: filtre / sıralama / sayfalama ----------
+    const tbody = document.querySelector('#candTable tbody');
+    const rows = [...tbody.querySelectorAll('.cand-row')];
+    const f = { q: document.getElementById('fSearch'), company: document.getElementById('fCompany'), stage: document.getElementById('fStage'), job: document.getElementById('fJob'), pending: document.getElementById('fPending') };
+    const pageSizeEl = document.getElementById('pageSize');
+    let page = 1, sortKey = null, sortDir = 1, filtered = rows;
+    try { const ps = localStorage.getItem('adm_ps'); if (ps) pageSizeEl.value = ps; } catch (e) {}
+
+    function apply(resetPage = true) {
+        const q = trLower(f.q.value.trim());
+        const terms = q.split(/\s+/).filter(Boolean);
+        filtered = rows.filter(r =>
+            terms.every(t => r.dataset.search.includes(t)) &&
+            (!f.company.value || r.dataset.company === f.company.value) &&
+            (!f.stage.value || r.dataset.stage === f.stage.value) &&
+            (!f.job.value || r.dataset.job === f.job.value) &&
+            (!f.pending.checked || +r.dataset.docs > 0));
+        if (sortKey) {
+            const get = { name: r => r.dataset.name, job: r => trLower(r.dataset.job), stage: r => +r.dataset.stageidx, company: r => trLower(r.dataset.company), docs: r => +r.dataset.docs }[sortKey];
+            filtered.sort((a, b) => { const x = get(a), y = get(b); return (typeof x === 'number' ? x - y : x.localeCompare(y, 'tr')) * sortDir; });
+            filtered.forEach(r => tbody.appendChild(r));
         }
-
-        function closeMailModal() {
-            document.getElementById('mailModal').style.display = 'none';
+        if (resetPage) page = 1;
+        render();
+        // Dışa aktar linki filtreyi yansıtsın
+        const anyFilter = q || f.company.value || f.stage.value || f.job.value || f.pending.checked;
+        document.getElementById('exportBtn').href = anyFilter ? '/admin/export.csv?ids=' + filtered.map(r => r.dataset.id).join(',') : '/admin/export.csv';
+    }
+    function render() {
+        const size = +pageSizeEl.value, pages = Math.max(1, Math.ceil(filtered.length / size));
+        page = Math.min(page, pages);
+        const start = (page - 1) * size, visible = new Set(filtered.slice(start, start + size));
+        rows.forEach(r => r.style.display = visible.has(r) ? '' : 'none');
+        document.getElementById('noResults').style.display = filtered.length ? 'none' : 'block';
+        document.getElementById('resultInfo').textContent = filtered.length
+            ? `${filtered.length} adaydan ${start + 1}–${Math.min(start + size, filtered.length)} gösteriliyor` + (filtered.length !== rows.length ? ` (toplam ${rows.length})` : '')
+            : '';
+        const pager = document.getElementById('pager'); pager.innerHTML = '';
+        if (pages > 1) {
+            const btn = (label, p, dis, act) => { const b = document.createElement('button'); b.innerHTML = label; b.disabled = dis; if (act) b.className = 'active'; b.onclick = () => { page = p; render(); }; pager.appendChild(b); };
+            btn('<i class="fas fa-chevron-left"></i>', page - 1, page === 1);
+            for (let i = 1; i <= pages; i++) if (i === 1 || i === pages || Math.abs(i - page) <= 1) btn(i, i, false, i === page); else if (Math.abs(i - page) === 2) { const s = document.createElement('span'); s.className = 'muted'; s.textContent = '…'; pager.appendChild(s); }
+            btn('<i class="fas fa-chevron-right"></i>', page + 1, page === pages);
         }
-    </script>
+        syncChecks();
+    }
+    Object.values(f).forEach(el => el.addEventListener(el.type === 'search' ? 'input' : 'change', () => apply()));
+    pageSizeEl.addEventListener('change', () => { try { localStorage.setItem('adm_ps', pageSizeEl.value); } catch (e) {} apply(); });
+    document.getElementById('fReset').addEventListener('click', () => { f.q.value = ''; f.company.value = ''; f.stage.value = ''; f.job.value = ''; f.pending.checked = false; apply(); });
+    document.querySelectorAll('#candTable th.sortable').forEach(th => th.addEventListener('click', () => {
+        sortDir = sortKey === th.dataset.sort ? -sortDir : 1; sortKey = th.dataset.sort;
+        document.querySelectorAll('#candTable th.sortable').forEach(x => { x.classList.toggle('sorted', x === th); x.querySelector('.si').className = 'fas si ' + (x === th ? (sortDir === 1 ? 'fa-sort-up' : 'fa-sort-down') : 'fa-sort'); });
+        apply(false);
+    }));
+
+    // Panodaki kısayollar (aşama/şirket filtresiyle aday listesine git)
+    document.querySelectorAll('[data-filter-stage],[data-filter-company]').forEach(a => a.addEventListener('click', () => {
+        f.q.value = ''; f.job.value = ''; f.pending.checked = false;
+        f.stage.value = a.dataset.filterStage || ''; f.company.value = a.dataset.filterCompany || '';
+        apply();
+    }));
+
+    // Üst arama -> aday listesi
+    const gs = document.getElementById('globalSearch');
+    gs.addEventListener('input', () => { if (location.hash !== '#candidates') location.hash = 'candidates'; f.q.value = gs.value; apply(); });
+    document.addEventListener('keydown', e => { if (e.key === '/' && !/INPUT|TEXTAREA|SELECT/.test(document.activeElement.tagName)) { e.preventDefault(); gs.focus(); } });
+
+    // Satıra tıklayınca detaya git
+    tbody.addEventListener('click', e => {
+        if (e.target.closest('.no-row, a, button, select, input')) return;
+        const r = e.target.closest('.cand-row'); if (r) location.href = r.dataset.href;
+    });
+
+    // ---------- Seçim & toplu işlem ----------
+    const bulkBar = document.getElementById('bulkBar'), checkAll = document.getElementById('checkAll');
+    const selected = () => rows.filter(r => r.querySelector('.row-check').checked);
+    function syncChecks() {
+        const sel = selected();
+        rows.forEach(r => r.classList.toggle('selected', r.querySelector('.row-check').checked));
+        document.getElementById('selCount').textContent = sel.length;
+        bulkBar.classList.toggle('show', sel.length > 0);
+        const vis = rows.filter(r => r.style.display !== 'none');
+        checkAll.checked = vis.length > 0 && vis.every(r => r.querySelector('.row-check').checked);
+        checkAll.indeterminate = !checkAll.checked && vis.some(r => r.querySelector('.row-check').checked);
+    }
+    tbody.addEventListener('change', e => { if (e.target.classList.contains('row-check')) syncChecks(); });
+    checkAll.addEventListener('change', () => { rows.filter(r => r.style.display !== 'none').forEach(r => r.querySelector('.row-check').checked = checkAll.checked); syncChecks(); });
+    document.getElementById('bulkClear').addEventListener('click', () => { rows.forEach(r => r.querySelector('.row-check').checked = false); syncChecks(); });
+    const bulkAction = document.getElementById('bulkAction');
+    const sub = { company: 'bulkCompany', stage: 'bulkStage', germanyStage: 'bulkGStage' };
+    bulkAction.addEventListener('change', () => Object.entries(sub).forEach(([k, id]) => document.getElementById(id).classList.toggle('d-none', bulkAction.value !== k)));
+    bulkBar.addEventListener('submit', async e => {
+        e.preventDefault();
+        const ids = selected().map(r => r.dataset.id), act = bulkAction.value;
+        if (!act) return Swal.fire({ icon: 'info', title: 'Bir işlem seçin', confirmButtonColor: '#2F54EB' });
+        if (act === 'export') { location.href = '/admin/export.csv?ids=' + ids.join(','); return; }
+        let value = '';
+        if (sub[act]) value = document.getElementById(sub[act]).value;
+        if (act === 'message') {
+            const r = await Swal.fire({ title: `${ids.length} adaya panel mesajı`, input: 'textarea', inputPlaceholder: 'Mesajınızı yazın…', showCancelButton: true, confirmButtonText: 'Gönder', cancelButtonText: 'Vazgeç', confirmButtonColor: '#2F54EB', inputValidator: v => !v.trim() && 'Mesaj boş olamaz' });
+            if (!r.isConfirmed) return; value = r.value;
+        } else {
+            const txt = act === 'delete' ? `${ids.length} aday ve bunlara ait tüm mesaj ve randevular kalıcı olarak silinecek.` : `${ids.length} aday için işlem uygulanacak${value ? ': ' + value : ''}.`;
+            if (!(await window.adminAsk(txt, act === 'delete'))) return;
+        }
+        document.getElementById('bulkIds').value = ids.join(',');
+        document.getElementById('bulkValue').value = value;
+        bulkBar.submit();
+    });
+
+    // ---------- Mesaj modalı ----------
+    const msgModal = new bootstrap.Modal(document.getElementById('msgModal'));
+    let msgEmail = '';
+    function setMsgTab(t) {
+        document.querySelectorAll('#msgSeg button').forEach(b => b.classList.toggle('active', b.dataset.t === t));
+        document.getElementById('msgPanel').classList.toggle('d-none', t !== 'panel');
+        document.getElementById('msgMail').classList.toggle('d-none', t !== 'mail');
+    }
+    document.querySelectorAll('#msgSeg button').forEach(b => b.addEventListener('click', () => setMsgTab(b.dataset.t)));
+    tbody.addEventListener('click', e => {
+        const b = e.target.closest('.js-msg'); if (!b) return;
+        const r = b.closest('.cand-row');
+        document.querySelectorAll('#msgModal .js-cid').forEach(i => i.value = r.dataset.id);
+        document.getElementById('msgName').textContent = r.dataset.fullname;
+        msgEmail = r.dataset.email;
+        document.getElementById('msgEmail').innerHTML = msgEmail ? msgEmail : '<span style="color:var(--bad)">Kayıtlı e-posta yok</span>';
+        document.getElementById('msgMailBtn').disabled = !msgEmail;
+        setMsgTab('panel'); msgModal.show();
+    });
+
+    // ---------- Belge & randevu filtreleri ----------
+    function segFilter(segId, bodyId, emptyId, searchId) {
+        const seg = document.getElementById(segId), body = document.getElementById(bodyId), search = searchId && document.getElementById(searchId);
+        let v = seg.querySelector('.active').dataset.v;
+        const run = () => {
+            const q = search ? trLower(search.value.trim()) : '';
+            let n = 0;
+            body.querySelectorAll('tr').forEach(tr => { const ok = (!v || tr.dataset.status === v) && (!q || tr.dataset.search.includes(q)); tr.style.display = ok ? '' : 'none'; if (ok) n++; });
+            document.getElementById(emptyId).style.display = n ? 'none' : 'block';
+        };
+        seg.querySelectorAll('button').forEach(b => b.addEventListener('click', () => { seg.querySelectorAll('button').forEach(x => x.classList.toggle('active', x === b)); v = b.dataset.v; run(); }));
+        search && search.addEventListener('input', run);
+        run();
+    }
+    segFilter('docSeg', 'docBody', 'docEmpty', 'docSearch');
+    segFilter('appSeg', 'appBody', 'appEmpty');
+
+    // ---------- Şirket yeniden adlandırma ----------
+    document.querySelectorAll('.js-rename').forEach(b => b.addEventListener('click', async () => {
+        const r = await Swal.fire({ title: 'Şirketi yeniden adlandır', input: 'text', inputValue: b.dataset.name, showCancelButton: true, confirmButtonText: 'Kaydet', cancelButtonText: 'Vazgeç', confirmButtonColor: '#2F54EB',
+            footer: '<small class="text-muted">Bu şirkete bağlı adaylar otomatik olarak güncellenir.</small>', inputValidator: v => !v.trim() && 'İsim boş olamaz' });
+        if (!r.isConfirmed) return;
+        const fm = document.getElementById('renameForm'); fm.elements['id'].value = b.dataset.id; fm.elements['name'].value = r.value.trim(); fm.submit();
+    }));
+
+    // ---------- Hedef kitle sayacı ----------
+    document.querySelectorAll('.js-audience').forEach(sel => {
+        const upd = () => { const a = AUDIENCE[sel.value] || { total: 0, mail: 0 }; document.getElementById(sel.dataset.out).textContent = a[sel.dataset.kind]; };
+        sel.addEventListener('change', upd); upd();
+    });
+
+    apply();
+})();
+</script>
 </body>
 </html>

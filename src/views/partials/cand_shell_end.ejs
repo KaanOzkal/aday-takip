@@ -1,0 +1,54 @@
+<% const _p2 = (typeof page !== 'undefined') ? page : ''; const _u2 = (typeof unreadCount !== 'undefined' && unreadCount) ? unreadCount : 0; %>
+    </main>
+</div>
+
+<nav class="c-bottom" aria-label="Hızlı menü">
+    <a href="/panel" class="<%= _p2 === 'panel' ? 'active' : '' %>"><i class="fas fa-house"></i>Ana Sayfa</a>
+    <a href="/processes" class="<%= _p2 === 'processes' || _p2 === 'germany_process' ? 'active' : '' %>"><i class="fas fa-list-check"></i>Süreç</a>
+    <a href="/documents" class="<%= _p2 === 'documents' ? 'active' : '' %>"><i class="fas fa-folder-open"></i>Belgeler</a>
+    <a href="/messages" class="<%= _p2 === 'messages' ? 'active' : '' %>"><i class="fas fa-comments"></i>Mesajlar<% if (_u2) { %><span class="dot"><%= _u2 %></span><% } %></a>
+    <button type="button" id="cMore"><i class="fas fa-grip"></i>Menü</button>
+</nav>
+
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+<script>
+(function () {
+    const side = document.getElementById('cSide'), bd = document.getElementById('cBackdrop');
+    const open = () => { side.classList.add('open'); bd.classList.add('show'); };
+    const close = () => { side.classList.remove('open'); bd.classList.remove('show'); };
+    document.getElementById('cToggle').addEventListener('click', open);
+    document.getElementById('cMore').addEventListener('click', open);
+    bd.addEventListener('click', close);
+    const top = document.getElementById('cTop');
+    const onScroll = () => top.classList.toggle('scrolled', window.scrollY > 4);
+    window.addEventListener('scroll', onScroll, { passive: true }); onScroll();
+
+    // Ortak bildirim yardımcısı: ?status=xxx / ?error=xxx
+    window.cToast = Swal.mixin({ toast: true, position: 'top-end', showConfirmButton: false, timer: 3200, timerProgressBar: true });
+    window.cNotify = function (map) {
+        const p = new URLSearchParams(location.search);
+        const st = p.get('status'), er = p.get('error');
+        if (st && map.ok && map.ok[st]) cToast.fire({ icon: 'success', title: map.ok[st] });
+        if (er) Swal.fire({ icon: 'error', title: 'İşlem tamamlanamadı', text: (map.err && map.err[er]) || 'Beklenmeyen bir hata oluştu. Lütfen tekrar deneyin.', confirmButtonColor: '#2F54EB' });
+        if (st || er) { p.delete('status'); p.delete('error'); const q = p.toString(); history.replaceState(null, '', location.pathname + (q ? '?' + q : '') + location.hash); }
+    };
+    // Onaylı linkler/formlar: data-confirm
+    document.addEventListener('click', async e => {
+        const a = e.target.closest('a[data-confirm]'); if (!a) return;
+        e.preventDefault();
+        const r = await Swal.fire({ icon: 'warning', title: 'Emin misiniz?', text: a.dataset.confirm, showCancelButton: true, confirmButtonText: 'Evet', cancelButtonText: 'Vazgeç', confirmButtonColor: '#F04438', reverseButtons: true });
+        if (r.isConfirmed) location.href = a.href;
+    });
+    document.addEventListener('submit', async e => {
+        const f = e.target;
+        if (f.matches('form[data-confirm]') && !f.dataset.ok) {
+            e.preventDefault();
+            const r = await Swal.fire({ icon: 'question', title: 'Emin misiniz?', text: f.dataset.confirm, showCancelButton: true, confirmButtonText: 'Evet', cancelButtonText: 'Vazgeç', confirmButtonColor: '#2F54EB', reverseButtons: true });
+            if (r.isConfirmed) { f.dataset.ok = '1'; f.requestSubmit ? f.requestSubmit() : f.submit(); }
+            return;
+        }
+        const b = f.querySelector('button[type=submit],button:not([type])');
+        if (b && !f.hasAttribute('data-no-busy')) { setTimeout(() => { b.disabled = true; b.innerHTML = '<span class="spinner-border spinner-border-sm me-2"></span>İşleniyor…'; }, 0); }
+    });
+})();
+</script>

@@ -1,0 +1,79 @@
+<%
+    const _p = (typeof page !== 'undefined') ? page : '';
+    const _unread = (typeof unreadCount !== 'undefined' && unreadCount) ? unreadCount : 0;
+    const _ini = ((user.firstName || '?').charAt(0) + (user.lastName || '').charAt(0)).toLocaleUpperCase('tr-TR');
+    const _nav = [
+        { lbl: 'Genel', items: [
+            { k: 'panel', href: '/panel', i: 'fa-house', t: 'Ana Sayfa' },
+            { k: 'processes', href: '/processes', i: 'fa-list-check', t: 'Süreç Takibi' },
+            { k: 'germany_process', href: '/germany-process', i: 'fa-plane-departure', t: 'Almanya Süreci' }
+        ]},
+        { lbl: 'Başvurum', items: [
+            { k: 'documents', href: '/documents', i: 'fa-folder-open', t: 'Belgelerim' },
+            { k: 'application_form', href: '/application-form', i: 'fa-file-signature', t: 'Başvuru Formu' },
+            { k: 'cv-builder', href: '/cv-builder', i: 'fa-id-badge', t: 'CV Oluşturucu' },
+            { k: 'appointments', href: '/appointments', i: 'fa-calendar-check', t: 'Randevular' },
+            { k: 'messages', href: '/messages', i: 'fa-comments', t: 'Mesajlar', badge: _unread }
+        ]},
+        { lbl: 'Almanya Rehberi', items: [
+            { k: 'german', href: '/german', i: 'fa-language', t: 'Almanca Öğren' },
+            { k: 'life_germany', href: '/life-in-germany', i: 'fa-city', t: "Almanya'da Hayat" },
+            { k: 'game', href: '/game', i: 'fa-gamepad', t: 'Oyun Alanı' }
+        ]},
+        { lbl: 'Hesap', items: [
+            { k: 'profile', href: '/profile', i: 'fa-user', t: 'Profilim' },
+            { k: 'settings', href: '/settings', i: 'fa-gear', t: 'Ayarlar' },
+            { k: 'help', href: '/help', i: 'fa-circle-question', t: 'Yardım' }
+        ]}
+    ];
+%>
+<aside class="c-side" id="cSide">
+    <a href="/panel" class="c-brand">
+        <img src="/images/BERLINERLOGO.webp" alt="" onerror="this.outerHTML='<div class=&quot;mk&quot;>B</div>'">
+        <div><strong>BERLINER</strong><small>Aday Portalı</small></div>
+    </a>
+    <nav class="c-nav">
+        <% _nav.forEach(g => { %>
+            <div class="lbl"><%= g.lbl %></div>
+            <% g.items.forEach(it => { %>
+                <a href="<%= it.href %>" class="<%= _p === it.k ? 'active' : '' %>"><i class="fas <%= it.i %>"></i><span><%= it.t %></span>
+                    <% if (it.badge) { %><span class="badge-n"><%= it.badge %></span><% } %></a>
+            <% }) %>
+        <% }) %>
+        <a href="/logout" class="mt-2" style="color:var(--bad)"><i class="fas fa-arrow-right-from-bracket" style="color:var(--bad)"></i><span>Çıkış Yap</span></a>
+    </nav>
+    <div class="c-side-foot">
+        <div class="c-help">
+            <div class="fw-semibold mb-1"><i class="fas fa-headset me-1"></i> Yardıma mı ihtiyacınız var?</div>
+            <div style="opacity:.75" class="mb-2">Danışmanınızla randevu oluşturun.</div>
+            <a href="/appointments">Randevu al <i class="fas fa-arrow-right ms-1"></i></a>
+        </div>
+    </div>
+</aside>
+<div class="c-backdrop" id="cBackdrop"></div>
+
+<div class="c-main">
+    <header class="c-top" id="cTop">
+        <button class="c-icon-btn c-toggle" id="cToggle" aria-label="Menüyü aç"><i class="fas fa-bars"></i></button>
+        <div class="flex-grow-1" style="min-width:0">
+            <h1 class="text-truncate"><%= typeof title !== 'undefined' ? title : 'BERLINER' %></h1>
+            <% if (typeof subtitle !== 'undefined' && subtitle) { %><div class="sub text-truncate d-none d-sm-block"><%= subtitle %></div><% } %>
+        </div>
+        <a href="/messages" class="c-icon-btn" title="Mesajlar"><i class="far fa-bell"></i><% if (_unread) { %><span class="dot"><%= _unread %></span><% } %></a>
+        <div class="dropdown">
+            <a href="#" class="c-user" data-bs-toggle="dropdown" aria-expanded="false">
+                <span class="av"><%= _ini %></span>
+                <span class="fw-semibold d-none d-md-inline" style="font-size:13.5px"><%= user.firstName %> <%= user.lastName %></span>
+                <i class="fas fa-chevron-down muted d-none d-md-inline" style="font-size:11px"></i>
+            </a>
+            <ul class="dropdown-menu dropdown-menu-end shadow-sm" style="border-radius:14px;border-color:var(--line);min-width:220px">
+                <li class="px-3 py-2"><div class="fw-semibold text-dark"><%= user.firstName %> <%= user.lastName %></div><div class="muted small"><%= user.email || user.passportNo %></div></li>
+                <li><hr class="dropdown-divider"></li>
+                <li><a class="dropdown-item py-2" href="/profile"><i class="far fa-user me-2 muted"></i>Profilim</a></li>
+                <li><a class="dropdown-item py-2" href="/settings"><i class="fas fa-gear me-2 muted"></i>Ayarlar</a></li>
+                <li><hr class="dropdown-divider"></li>
+                <li><a class="dropdown-item py-2 text-danger" href="/logout"><i class="fas fa-arrow-right-from-bracket me-2"></i>Çıkış Yap</a></li>
+            </ul>
+        </div>
+    </header>
+    <main class="c-content fade-up">

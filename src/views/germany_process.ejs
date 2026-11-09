@@ -1,197 +1,86 @@
 <!DOCTYPE html>
 <html lang="tr">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Almanya Süreci | BERLINER</title>
-    
-    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
-    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
-    
+    <title>Almanya Süreci | BERLINER Aday Portalı</title>
+    <%- include('partials/cand_head') %>
     <style>
-        body { background-color: #f8fafc; font-family: 'Plus Jakarta Sans', sans-serif; color: #334155; }
-        .brandd-logo { width: 70px; height: 90px; }
-        .brani-logo { width: 90px; height: 80px; border-radius: 100%; padding: 10px; margin-right: 40px; }
-
-        /* Sidebar & Layout */
-        .sidebar { min-height: 100vh; background: white; border-right: 1px solid #e2e8f0; }
-        .nav-link, .menu-text { color: #64748b; font-weight: 500; padding: 0.75rem 1rem; border-radius: 10px; margin-bottom: 0.25rem; transition: all 0.2s; display: block; text-decoration: none; }
-        .nav-link:hover, .nav-link.active, .menu-text:hover, .menu-text.active { background-color: #f1f5f9; color: #0f172a; }
-        .nav-link.active, .menu-text.active { background-color: #e0f2fe; color: #0284c7; }
-        .nav-link i, .menu-text i { width: 24px; text-align: center; margin-right: 8px; }
-
-        .page-header-card {
-            background: linear-gradient(135deg, #0f172a 0%, #1e293b 100%);
-            color: white; border-radius: 20px; padding: 2.5rem; position: relative; overflow: hidden;
-            box-shadow: 0 10px 15px -3px rgba(15, 23, 42, 0.2);
-        }
-
-        .process-container { background: white; border-radius: 20px; border: 1px solid #e2e8f0; padding: 2rem; }
+        .gs { display: flex; flex-direction: column; gap: 8px; }
+        .gs-i { display: flex; align-items: center; gap: 12px; padding: 12px 14px; border-radius: 12px; border: 1px solid var(--line); background: #fff; }
+        .gs-i .n { width: 30px; height: 30px; border-radius: 50%; display: grid; place-items: center; font-weight: 700; font-size: 13px; background: #F2F4F7; color: #98A2B3; flex-shrink: 0; }
+        .gs-i.done .n { background: var(--brand); color: #fff; }
+        .gs-i.cur { border-color: var(--brand); background: var(--brand-50); }
+        .gs-i.cur .n { background: #fff; color: var(--brand); border: 2px solid var(--brand); }
+        .int { padding: 18px; text-align: center; height: 100%; display: flex; flex-direction: column; align-items: center; gap: 8px; }
+        .int .c-ic { width: 52px; height: 52px; font-size: 20px; }
+        .int.done { background: var(--ok-50); border-color: #A6F4C5; }
     </style>
 </head>
 <body>
+<%
+    const intSteps = [
+        { key: 'telefonTemini', name: 'Telefon Temini', german: 'SIM-Karte', icon: 'fa-sim-card' },
+        { key: 'lojmanYerlesimi', name: 'Lojman Yerleşimi', german: 'Unterkunft', icon: 'fa-house' },
+        { key: 'anmeldung', name: 'İkamet Kaydı', german: 'Anmeldung', icon: 'fa-stamp' },
+        { key: 'bankaHesabi', name: 'Banka Hesabı', german: 'Bankkonto', icon: 'fa-building-columns' },
+        { key: 'saglikSigortasi', name: 'Sağlık Sigortası', german: 'Krankenversicherung', icon: 'fa-heart-pulse' },
+        { key: 'kod95', name: 'Kod 95 Ehliyet', german: 'Code 95 / Führerschein', icon: 'fa-id-card' },
+        { key: 'dilKursu', name: 'Almanca Kursu', german: 'Deutschkurs', icon: 'fa-language' },
+        { key: 'genelEntegrasyon', name: 'Genel Entegrasyon', german: 'Integration', icon: 'fa-people-group' }
+    ];
+    const done = intSteps.filter(s => user.integrationSteps && user.integrationSteps[s.key]).length;
+    const pct = Math.round(done / intSteps.length * 100);
+    const gi = germanyStages.indexOf(user.germanyStage);
+%>
+<%- include('partials/cand_shell_start', { page: 'germany_process', title: 'Almanya Süreci', subtitle: 'Almanya tarafındaki ilerleme ve yerleşim adımların' }) %>
 
-    <nav class="navbar navbar-dark bg-dark d-lg-none sticky-top shadow-sm">
-        <div class="container-fluid">
-            <span class="navbar-brand fw-bold"><img src="/images/BERLINERLOGO.webp" class="brani-logo" onerror="this.style.display='none'">BERLINER</span>
-            <button class="navbar-toggler" type="button" data-bs-toggle="offcanvas" data-bs-target="#mobileSidebar">
-                <span class="navbar-toggler-icon"></span>
-            </button>
+<section class="hero mb-3">
+    <div class="row align-items-center g-4 position-relative" style="z-index:1">
+        <div class="col-lg-8">
+            <span class="pill mb-3" style="background:rgba(255,255,255,.1);color:#fff"><i class="fas fa-plane-departure"></i> Almanya Yolculuğu</span>
+            <h2 class="mb-2" style="font-size:26px"><%= user.germanyStage || germanyStages[0] %></h2>
+            <p class="mb-0" style="color:rgba(255,255,255,.75)">Genel başvuru aşaman: <strong style="color:#fff"><%= user.currentStage %></strong>. Almanya'ya vardığında entegrasyon adımların burada işaretlenir.</p>
         </div>
-    </nav>
-
-    <div class="container-fluid">
-        <div class="row">
-            
-            <div class="col-lg-2 d-none d-lg-block sidebar p-4 sticky-top">
-                <div class="d-flex align-items-center gap-2 mb-5">
-                    <img src="/images/BERLINERLOGO.webp" class="brandd-logo" onerror="this.style.display='none'">
-                    <span class="fw-bold fs-5 text-dark">BERLINER</span>
-                </div>
-                
-                <nav class="nav flex-column gap-1">
-                    <a href="/panel" class="nav-link"><i class="fas fa-home"></i> Ana Sayfa</a>
-                    <a href="/profile" class="nav-link"><i class="fas fa-user-circle"></i> Profilim</a>
-                    <a href="/processes" class="nav-link"><i class="fas fa-tasks"></i> Genel Süreçler</a>
-                    <a href="/germany-process" class="nav-link active"><i class="fas fa-route"></i> Almanya Süreci</a>
-                    <a href="/documents" class="nav-link"><i class="fas fa-file-alt"></i> Dokümanlar</a>
-                    <a href="/messages" class="nav-link"><i class="fas fa-comments"></i> Mesajlar</a>
-                    <a href="/life-in-germany" class="nav-link"><i class="fas fa-city"></i> Almanya'da Hayat</a>
-                    <a href="/cv-builder" class="nav-link"><i class="fas fa-file-contract"></i> Akıllı CV</a>
-                    <a href="/application-form" class="nav-link"><i class="fas fa-file-signature"></i> Form</a>
-                    <a href="/german" class="nav-link"><i class="fas fa-graduation-cap"></i> Almanca</a>
-                    <a href="/appointments" class="nav-link"><i class="fas fa-calendar-alt"></i> Randevular</a>
-                    <a href="/settings" class="nav-link"><i class="fas fa-cog"></i> Ayarlar</a>
-                    <a href="/game" class="menu-text"><i class="fas fa-gamepad"></i> <span class="menu-text p-0">Oyun Alanı</span></a>
-                    <hr>
-                    <a href="/logout" class="nav-link text-danger"><i class="fas fa-sign-out-alt"></i> Çıkış Yap</a>
-                </nav>
-            </div>
-
-            <div class="col-12 col-lg-10 p-4">
-                
-                <div class="d-flex justify-content-between align-items-center mb-4">
-                    <div class="d-none d-md-block">
-                        <h4 class="fw-bold mb-0">Almanya Süreci</h4>
-                        <small class="text-muted">Bağımsız Almanya kariyer planı ve entegrasyonu</small>
-                    </div>
-                    <div class="d-flex align-items-center gap-2 bg-white px-3 py-2 rounded-pill shadow-sm border">
-                        <div class="bg-primary text-white rounded-circle d-flex align-items-center justify-content-center" style="width: 32px; height: 32px;">
-                            <%= user.firstName.charAt(0) %><%= user.lastName.charAt(0) %>
-                        </div>
-                        <span class="fw-bold small d-none d-sm-inline"><%= user.firstName %> <%= user.lastName %></span>
-                    </div>
-                </div>
-
-                <% 
-                    // Entegrasyon kutucuklarına göre yüzde hesaplama
-                    const intKeys = ['telefonTemini', 'lojmanYerlesimi', 'genelEntegrasyon', 'bankaHesabi', 'kod95', 'saglikSigortasi', 'anmeldung', 'dilKursu'];
-                    let completedCount = 0;
-                    intKeys.forEach(k => {
-                        if(user.integrationSteps && user.integrationSteps[k]) completedCount++;
-                    });
-                    let progressPercent = Math.round((completedCount / 8) * 100);
-                %>
-
-                <div class="page-header-card mb-4">
-                    <div class="row align-items-center position-relative" style="z-index: 2;">
-                        <div class="col-lg-8">
-                            <span class="badge bg-primary bg-opacity-25 text-light mb-2 px-3 py-2 border border-primary">
-                                <i class="fas fa-plane-departure me-2"></i> Almanya Yolculuğu
-                            </span>
-                            <!-- BURASI GENEL SÜRECİ GÖSTERECEK ŞEKİLDE DEĞİŞTİRİLDİ -->
-                            <h2 class="fw-bold mb-2">Mevcut Aşamanız: <%= user.currentStage %></h2>
-                            <p class="mb-0 opacity-75">Genel süreciniz şu anda <strong><%= user.currentStage %></strong> aşamasındadır. Entegrasyon işlemlerini aşağıdan takip edebilirsiniz.</p>
-                        </div>
-                        <div class="col-lg-4 mt-4 mt-lg-0">
-                            <div class="bg-white bg-opacity-10 p-4 rounded-4 border border-white border-opacity-10">
-                                <div class="d-flex justify-content-between align-items-end mb-2">
-                                    <span class="small text-uppercase fw-bold opacity-75">Entegrasyon İlerlemesi</span>
-                                    <span class="fs-4 fw-bold"><%= progressPercent %>%</span>
-                                </div>
-                                <div class="progress" style="height: 8px; background-color: rgba(255,255,255,0.1); border-radius: 10px;">
-                                    <div class="progress-bar bg-success" style="width: <%= progressPercent %>%; border-radius: 10px;"></div>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-
-                <div class="process-container">
-                    
-                    <h5 class="fw-bold text-dark mb-4 mt-2 border-bottom pb-3"><i class="fas fa-boxes text-primary me-2"></i> Almanya'da Entegrasyon ve Yerleşim Süreci</h5>
-                    <div class="row g-3">
-                        <% 
-                            const intSteps = [
-                                { key: 'telefonTemini', name: 'Telefon Temini', german: 'SIM-Karte / Telefon', icon: 'fa-mobile-alt' },
-                                { key: 'lojmanYerlesimi', name: 'Lojman Yerleşimi', german: 'Unterkunft', icon: 'fa-home' },
-                                { key: 'genelEntegrasyon', name: 'Genel Entegrasyon', german: 'Integration', icon: 'fa-users' },
-                                { key: 'bankaHesabi', name: 'Banka Hesabı Açılımı', german: 'Bankkonto', icon: 'fa-university' },
-                                { key: 'kod95', name: 'Kod95 Ehliyet Dönüşümü', german: 'Code 95 / Führerschein', icon: 'fa-id-card' },
-                                { key: 'saglikSigortasi', name: 'Sağlık Sigortası Kartı', german: 'Krankenversicherung', icon: 'fa-notes-medical' },
-                                { key: 'anmeldung', name: 'İkamet Kaydı', german: 'Anmeldung', icon: 'fa-map-marker-alt' },
-                                { key: 'dilKursu', name: 'Almanca Dil Kursu', german: 'Deutschkurs', icon: 'fa-language' }
-                            ];
-                        %>
-                        <% intSteps.forEach(step => { 
-                            const isCompleted = user.integrationSteps && user.integrationSteps[step.key];
-                        %>
-                            <div class="col-6 col-md-3">
-                                <div class="card border-0 shadow-sm h-100 <%= isCompleted ? 'bg-success bg-opacity-10' : 'bg-light' %>" style="border-radius: 16px;">
-                                    <div class="card-body text-center p-3 d-flex flex-column justify-content-center">
-                                        <div class="mb-3 mt-2">
-                                            <i class="fas <%= step.icon %> fa-2x <%= isCompleted ? 'text-success' : 'text-secondary opacity-50' %>"></i>
-                                        </div>
-                                        <h6 class="fw-bold mb-3 <%= isCompleted ? 'text-success' : 'text-dark' %>" style="min-height: 45px; font-size: 0.95rem;">
-                                            <%= step.name %> <br>
-                                            <span class="text-muted fw-normal opacity-75" style="font-size: 0.75rem;"><%= step.german %></span>
-                                        </h6>
-                                        <div class="mt-auto">
-                                            <% if(isCompleted) { %>
-                                                <span class="badge bg-success w-100 py-2 rounded-pill"><i class="fas fa-check-circle me-1"></i>Tamamlandı</span>
-                                            <% } else { %>
-                                                <span class="badge bg-secondary bg-opacity-25 text-secondary w-100 py-2 rounded-pill"><i class="fas fa-hourglass-half me-1"></i>Bekliyor</span>
-                                            <% } %>
-                                        </div>
-                                    </div>
-                                </div>
-                            </div>
-                        <% }) %>
-                    </div>
-
-                </div>
-
+        <div class="col-lg-4">
+            <div class="p-3" style="background:rgba(255,255,255,.08);border:1px solid rgba(255,255,255,.12);border-radius:14px">
+                <div class="d-flex justify-content-between align-items-end mb-2"><span class="small" style="color:rgba(255,255,255,.7)">Entegrasyon</span><span class="fs-4 fw-bold text-white"><%= done %>/<%= intSteps.length %></span></div>
+                <div class="bar" style="background:rgba(255,255,255,.12)"><span style="width:<%= pct %>%;background:#32D583"></span></div>
             </div>
         </div>
     </div>
+</section>
 
-    <div class="offcanvas offcanvas-start" tabindex="-1" id="mobileSidebar">
-        <div class="offcanvas-header bg-dark text-white">
-            <h5 class="offcanvas-title">Menü</h5>
-            <button type="button" class="btn-close btn-close-white" data-bs-dismiss="offcanvas"></button>
-        </div>
-        <div class="offcanvas-body">
-            <nav class="nav flex-column gap-2">
-                <a href="/panel" class="nav-link"><i class="fas fa-home"></i> Ana Sayfa</a>
-                <a href="/profile" class="nav-link"><i class="fas fa-user-circle"></i> Profilim</a>
-                <a href="/processes" class="nav-link"><i class="fas fa-tasks"></i> Genel Süreçler</a>
-                <a href="/germany-process" class="nav-link active"><i class="fas fa-route"></i> Almanya Süreci</a>
-                <a href="/documents" class="nav-link"><i class="fas fa-file-alt"></i> Dokümanlar</a>
-                <a href="/messages" class="nav-link"><i class="fas fa-comments"></i> Mesajlar</a>
-                <a href="/life-in-germany" class="nav-link"><i class="fas fa-city"></i> Almanya'da Hayat</a>
-                <a href="/cv-builder" class="nav-link"><i class="fas fa-file-contract"></i> Akıllı CV</a>
-                <a href="/application-form" class="nav-link"><i class="fas fa-file-signature"></i> Form</a>
-                <a href="/german" class="nav-link"><i class="fas fa-graduation-cap"></i> Almanca</a>
-                <a href="/appointments" class="nav-link"><i class="fas fa-calendar-alt"></i> Randevular</a>
-                <a href="/settings" class="nav-link"><i class="fas fa-cog"></i> Ayarlar</a>
-                <a href="/game" class="menu-text"><i class="fas fa-gamepad"></i> <span class="menu-text p-0">Oyun Alanı</span></a>
-                <hr>
-                <a href="/logout" class="nav-link text-danger"><i class="fas fa-sign-out-alt"></i> Çıkış Yap</a>
-            </nav>
+<div class="row g-3">
+    <div class="col-lg-4">
+        <div class="c-card h-100">
+            <div class="c-card-h"><h2>Almanya Aşamaları</h2></div>
+            <div class="c-card-b gs">
+                <% germanyStages.forEach((s, i) => { const st = i < gi ? 'done' : i === gi ? 'cur' : ''; %>
+                <div class="gs-i <%= st %>"><div class="n"><% if (st === 'done') { %><i class="fas fa-check"></i><% } else { %><%= i + 1 %><% } %></div><div class="fw-650 <%= st ? 'text-dark' : 'muted' %>" style="font-size:13.5px"><%= s.replace(/^\d+\.\s*/, '') %></div></div>
+                <% }) %>
+            </div>
         </div>
     </div>
+    <div class="col-lg-8">
+        <div class="c-card h-100">
+            <div class="c-card-h"><div><h2>Entegrasyon ve Yerleşim</h2><p class="sub">Danışmanın tamamlanan adımları işaretler.</p></div></div>
+            <div class="c-card-b">
+                <div class="row g-2">
+                    <% intSteps.forEach(s => { const ok = user.integrationSteps && user.integrationSteps[s.key]; %>
+                    <div class="col-6 col-md-3">
+                        <div class="c-card int <%= ok ? 'done' : '' %>">
+                            <div class="c-ic <%= ok ? 't-ok' : 't-gray' %>"><i class="fas <%= s.icon %>"></i></div>
+                            <div class="fw-650 text-dark" style="font-size:13.5px;line-height:1.25"><%= s.name %></div>
+                            <div class="small muted" style="font-size:11.5px"><%= s.german %></div>
+                            <span class="pill <%= ok ? 't-ok' : 't-gray' %> mt-auto"><i class="fas <%= ok ? 'fa-check' : 'fa-hourglass-half' %>"></i><%= ok ? 'Tamam' : 'Bekliyor' %></span>
+                        </div>
+                    </div>
+                    <% }) %>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
 
-    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+<%- include('partials/cand_shell_end', { page: 'germany_process' }) %>
 </body>
 </html>

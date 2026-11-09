@@ -1,0 +1,77 @@
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+<script>
+(function () {
+    // ---- Mobil menü ----
+    const sb = document.getElementById('sidebar'), bd = document.getElementById('backdrop');
+    document.querySelectorAll('.menu-toggle').forEach(b => b.addEventListener('click', () => { sb.classList.toggle('open'); bd.classList.toggle('show'); }));
+    bd && bd.addEventListener('click', () => { sb.classList.remove('open'); bd.classList.remove('show'); });
+
+    // ---- Bildirimler ----
+    const Toast = Swal.mixin({ toast: true, position: 'top-end', showConfirmButton: false, timer: 3200, timerProgressBar: true });
+    const OK = {
+        bulk_success: 'Duyuru adayların paneline gönderildi.',
+        bulk_mail_success: 'Toplu e-postalar gönderildi.',
+        bulk_done: 'Toplu işlem tamamlandı.',
+        note_added: 'Not eklendi.', note_deleted: 'Not silindi.',
+        company_created: 'Şirket oluşturuldu.', company_deleted: 'Şirket silindi.', company_updated: 'Şirket bilgisi güncellendi.',
+        mail_success: 'E-posta iletildi.', message_sent: 'Mesaj adayın paneline gönderildi.', message_deleted: 'Mesaj silindi.',
+        integration_updated: 'Entegrasyon adımları kaydedildi.', updated: 'Süreç güncellendi.',
+        document_updated: 'Belge durumu güncellendi.', document_deleted: 'Belge kaydı silindi.',
+        appointment_updated: 'Randevu durumu güncellendi.',
+        candidate_created: 'Aday oluşturuldu. Giriş bilgisi: Ad + Soyad + Pasaport No.',
+        candidate_updated: 'Aday bilgileri kaydedildi.', candidate_deleted: 'Aday silindi.'
+    };
+    const ERR = {
+        company_exists: 'Bu isimde bir şirket zaten var.',
+        mail_yok: 'Adayın kayıtlı e-posta adresi yok.',
+        mail_fail: 'E-posta gönderilemedi. SMTP ayarlarını (EMAIL_USER / EMAIL_PASS) kontrol edin.',
+        bulk_mail_fail: 'Toplu e-posta gönderilemedi. SMTP ayarlarını kontrol edin.',
+        no_candidates: 'Seçilen kitlede aday bulunamadı.',
+        passport_exists: 'Bu pasaport numarasıyla kayıtlı bir aday zaten var.',
+        missing_fields: 'Lütfen zorunlu alanları doldurun.',
+        no_selection: 'Önce en az bir aday seçin.',
+        not_found: 'Kayıt bulunamadı.',
+        drive_empty: 'Drive klasöründe dosya bulunamadı.',
+        sync_failed: 'Drive eşitleme başarısız. Eski Drive kimlik bilgilerini kontrol edin.'
+    };
+    const p = new URLSearchParams(location.search);
+    const st = p.get('status'), er = p.get('error');
+    if (st) {
+        let m;
+        if (st.startsWith('sync_')) m = `Drive eşitlendi: ${st.split('_')[1]} yeni dosya eşleşti.`;
+        else if (st.startsWith('bulk_mail_partial_')) { const [, , , a, b] = st.split('_'); m = `${a} e-posta gönderildi, ${b} başarısız.`; }
+        else m = OK[st] || 'İşlem başarılı.';
+        Toast.fire({ icon: st.startsWith('bulk_mail_partial_') ? 'warning' : 'success', title: m });
+    } else if (er) {
+        Swal.fire({ icon: 'error', title: 'İşlem tamamlanamadı', text: ERR[er] || 'Beklenmeyen bir sorun oluştu. Lütfen tekrar deneyin.', confirmButtonColor: '#2F54EB' });
+    }
+    if (st || er) { p.delete('status'); p.delete('error'); const q = p.toString(); history.replaceState(null, '', location.pathname + (q ? '?' + q : '') + location.hash); }
+
+    // ---- Onay pencereleri (form ve linkler) ----
+    async function ask(text, danger) {
+        const r = await Swal.fire({ icon: danger ? 'warning' : 'question', title: 'Emin misiniz?', text, showCancelButton: true,
+            confirmButtonText: danger ? 'Evet, devam et' : 'Onayla', cancelButtonText: 'Vazgeç',
+            confirmButtonColor: danger ? '#F04438' : '#2F54EB', reverseButtons: true });
+        return r.isConfirmed;
+    }
+    window.adminAsk = ask;
+    document.addEventListener('submit', async e => {
+        const f = e.target;
+        if (!f.matches('form[data-confirm]') || f.dataset.confirmed) return;
+        e.preventDefault();
+        if (await ask(f.dataset.confirm, f.hasAttribute('data-danger'))) { f.dataset.confirmed = '1'; showBusy(f); f.submit(); }
+    });
+    document.addEventListener('click', async e => {
+        const a = e.target.closest('a.js-confirm');
+        if (!a) return;
+        e.preventDefault();
+        if (await ask(a.dataset.confirm)) location.href = a.href;
+    });
+    // Gönderimde butonu kilitle (çift tıklamayı engelle)
+    function showBusy(f) {
+        const b = f.querySelector('button[type=submit], button:not([type])');
+        if (b && !b.dataset.noBusy) { b.disabled = true; b.dataset.orig = b.innerHTML; b.innerHTML = '<span class="spinner-border spinner-border-sm me-1"></span> İşleniyor'; }
+    }
+    document.addEventListener('submit', e => { if (!e.defaultPrevented && !e.target.matches('form[data-confirm]')) showBusy(e.target); });
+})();
+</script>

@@ -26,8 +26,9 @@ const noteSchema = new mongoose.Schema({
 const candidateSchema = new mongoose.Schema({
     firstName: String,
     lastName: String,
-    email: { type: String, required: true },
-    password: { type: String, required: true }, 
+    email: { type: String, default: '' },
+    password: { type: String, default: '' }, 
+    phone: { type: String, default: '' },
     phoneNumber: { type: String, default: '' }, 
     
     job: String,
@@ -51,6 +52,12 @@ const candidateSchema = new mongoose.Schema({
         saglikSigortasi: { type: Boolean, default: false },
         anmeldung: { type: Boolean, default: false },
         dilKursu: { type: Boolean, default: false }
+    },
+
+    preferences: {
+        emailNotifications: { type: Boolean, default: true },
+        smsNotifications: { type: Boolean, default: true },
+        whatsappNotifications: { type: Boolean, default: false }
     },
 
     applicationDate: { type: Date, default: Date.now },

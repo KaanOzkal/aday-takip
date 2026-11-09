@@ -1,0 +1,476 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+    <title><%= candidate.firstName %> <%= candidate.lastName %> | BERLINER Yönetim</title>
+    <%- include('partials/admin_head') %>
+    <style>
+        .hero { padding: 20px; display: flex; gap: 18px; align-items: center; flex-wrap: wrap; }
+        .hero .avatar { width: 64px; height: 64px; font-size: 22px; }
+        .hero h2 { font-size: 22px; font-weight: 800; margin: 0 0 6px; letter-spacing: -.3px; }
+        .meta { display: flex; flex-wrap: wrap; gap: 6px 16px; color: var(--muted); font-size: 13px; }
+        .meta i { opacity: .6; margin-right: 5px; }
+        .stepper { display: flex; gap: 0; overflow-x: auto; padding: 18px 20px 20px; border-top: 1px solid var(--line); }
+        .step { flex: 1; min-width: 92px; text-align: center; position: relative; }
+        .step::before { content: ''; position: absolute; top: 13px; left: -50%; width: 100%; height: 3px; background: #E4E7EC; z-index: 0; }
+        .step:first-child::before { display: none; }
+        .step.done::before, .step.current::before { background: var(--brand); }
+        .step .b { width: 28px; height: 28px; border-radius: 50%; margin: 0 auto 6px; display: grid; place-items: center; font-size: 12px; font-weight: 700; position: relative; z-index: 1; background: #fff; border: 2px solid #D0D5DD; color: #98A2B3; }
+        .step.done .b { background: var(--brand); border-color: var(--brand); color: #fff; }
+        .step.current .b { border-color: var(--brand); color: var(--brand); box-shadow: 0 0 0 4px rgba(47,84,235,.15); }
+        .step .t { font-size: 11.5px; color: var(--muted); font-weight: 500; line-height: 1.25; padding: 0 4px; }
+        .step.current .t { color: var(--ink); font-weight: 700; }
+        .tabs-x { display: flex; gap: 4px; border-bottom: 1px solid var(--line); margin-bottom: 18px; overflow-x: auto; }
+        .tabs-x a { padding: 10px 14px; color: var(--muted); font-weight: 600; text-decoration: none; border-bottom: 2px solid transparent; margin-bottom: -1px; white-space: nowrap; }
+        .tabs-x a:hover { color: var(--ink); }
+        .tabs-x a.active { color: var(--brand); border-bottom-color: var(--brand); }
+        .tabs-x .n { background: #F2F4F7; color: #475467; border-radius: 99px; font-size: 11px; padding: 1px 7px; margin-left: 4px; }
+        .tabs-x .n.warn { background: var(--warn-50); color: var(--warn); }
+        .pane { display: none; } .pane.active { display: block; }
+        .kv { display: grid; grid-template-columns: 150px 1fr; gap: 10px 16px; }
+        .kv dt { color: var(--muted); font-weight: 500; font-size: 13px; } .kv dd { margin: 0; font-weight: 600; word-break: break-word; }
+        .toggle-card { display: flex; align-items: center; gap: 12px; padding: 12px 14px; border: 1px solid var(--line); border-radius: 12px; cursor: pointer; transition: all .15s; background: #fff; }
+        .toggle-card:hover { border-color: #C7D2FE; }
+        .toggle-card.on { background: var(--ok-50); border-color: #A6F4C5; }
+        .toggle-card .form-check-input { margin: 0; width: 2.4em; height: 1.3em; cursor: pointer; }
+        .toggle-card .form-check-input:checked { background-color: var(--ok); border-color: var(--ok); }
+        .note { background: #FFFCF5; border: 1px solid #FEDF89; border-radius: 12px; padding: 12px 14px; }
+        .msg { border: 1px solid var(--line); border-radius: 12px; padding: 12px 14px; background: #fff; }
+        .msg.admin { background: #F8FAFF; border-color: #DDE5FF; }
+        .qa { border-bottom: 1px dashed var(--line); padding: 12px 0; } .qa:last-child { border-bottom: 0; }
+        .qa .q { color: var(--muted); font-size: 12.5px; font-weight: 600; margin-bottom: 4px; }
+        .qa .a { white-space: pre-wrap; }
+        @media (max-width: 575.98px) { .kv { grid-template-columns: 1fr; gap: 2px; } .kv dd { margin-bottom: 10px; } }
+    </style>
+</head>
+<body>
+<%
+    const c = candidate;
+    const PALETTE = [['#EEF2FF','#2F54EB'],['#ECFDF3','#039855'],['#FFFAEB','#B54708'],['#FDF2FA','#C11574'],['#F0F9FF','#026AA2'],['#F4F3FF','#5925DC'],['#FEF3F2','#B42318']];
+    const fullName = `${c.firstName || ''} ${c.lastName || ''}`.trim();
+    const avatarStyle = (n) => { let h = 0; for (const ch of String(n || '')) h = (h * 31 + ch.charCodeAt(0)) >>> 0; const p = PALETTE[h % PALETTE.length]; return `background:${p[0]};color:${p[1]}`; };
+    const initials = (((c.firstName || '?').charAt(0)) + ((c.lastName || '').charAt(0))).toLocaleUpperCase('tr-TR');
+    const fmtDate = (d, withTime) => { if (!d) return '—'; const x = new Date(d); if (isNaN(x)) return String(d); return withTime ? x.toLocaleString('tr-TR', { day: '2-digit', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit' }) : x.toLocaleDateString('tr-TR', { day: '2-digit', month: 'short', year: 'numeric' }); };
+    const statusTone = (s) => s === 'Onaylandı' ? 't-ok' : s === 'Reddedildi' ? 't-bad' : 't-warn';
+    const docUrl = (d) => d.fileId ? `/documents/view/${d._id}` : (d.driveLink || (d.filename ? `/uploads/${encodeURIComponent(d.filename)}` : '#'));
+    const cur = stages.indexOf(c.currentStage);
+    const docs = (c.documents || []).slice().sort((a, b) => new Date(b.date || 0) - new Date(a.date || 0));
+    const notes = (c.notes || []).slice().sort((a, b) => new Date(b.date || 0) - new Date(a.date || 0));
+    const pendDocs = docs.filter(d => d.status === 'İnceleniyor').length;
+    const intKeys = [
+        { k: 'telefonTemini', n: 'Telefon Temini', i: 'fa-sim-card' }, { k: 'lojmanYerlesimi', n: 'Lojman Yerleşimi', i: 'fa-house' },
+        { k: 'genelEntegrasyon', n: 'Genel Entegrasyon', i: 'fa-people-group' }, { k: 'bankaHesabi', n: 'Banka Hesabı', i: 'fa-building-columns' },
+        { k: 'kod95', n: 'Kod 95 Ehliyet', i: 'fa-id-card' }, { k: 'saglikSigortasi', n: 'Sağlık Sigortası', i: 'fa-heart-pulse' },
+        { k: 'anmeldung', n: 'Anmeldung (İkamet)', i: 'fa-stamp' }, { k: 'dilKursu', n: 'Almanca Kursu', i: 'fa-language' }
+    ];
+    const intDone = intKeys.filter(x => c.integrationSteps && c.integrationSteps[x.k]).length;
+    const formLabels = {
+        'A. Kişisel Bilgiler': { birthPlace: 'Doğum yeri ve tarihi', maritalStatus: 'Medeni hali', address: 'Adres / İletişim', militaryService: 'Askerlik durumu', drivingLicenseClass: 'Sürücü belgesi sınıfı' },
+        'B. Eğitim ve İş Geçmişi': { highSchool: 'Mezun olunan lise', university: 'Mezun olunan yüksekokul', workHistory: 'Geçmiş iş tecrübeleri' },
+        'C. Mesleki Motivasyon': { meaningOfJob: 'Mesleğin anlamı', dailyRoutine: 'Bir çalışma günü', germanyDesire: 'Almanya isteği', definitionDiff: 'Türkiye–Almanya farkları', challenges: 'Karşılaşılacak zorluklar', languageImportance: 'Dilin önemi', friendsInGermany: "Almanya'daki tanıdıklar" },
+        'D. Almanca Dil Bilgisi': { germanLevel: 'Mevcut seviye', germanEducationPlace: 'Eğitim yeri', levelAwareness: 'Seviye farkındalığı', languagePlan: 'Öğrenme planı', failPlan: 'Başarısızlık planı', budgetForCourse: 'Kurs bütçesi', familyLanguage: 'Aile dil durumu' },
+        'E. Almanya Vizyonu': { migrationTime: 'Göç düşüncesi', cityChoice: 'Şehir tercihi', cityFlexibility: 'Şehir esnekliği', expertiseArea: 'Uzmanlık alanı', germanyKnowledge: 'Almanya bilgisi', germanyChallenges: "Almanya'daki zorluklar", expectations: 'Beklentiler', familyBring: 'Aile planı', accommodation: 'Konaklama', migrationBudget: 'Göç bütçesi', visitHistory: 'Ziyaret geçmişi' },
+        'F. BERLINER': { berlinerMeet: 'Tanışma hikayesi', berlinerKnowledge: 'BERLINER hakkında bilgi', berlinerTrust: 'Güven düşüncesi', berlinerSocial: 'Sosyal medya' }
+    };
+    const af = c.applicationForm || {};
+    const formFilled = Object.values(formLabels).some(g => Object.keys(g).some(k => af[k] && String(af[k]).trim()));
+    const ret = (tab) => `/admin/candidate/${c._id}#${tab}`;
+%>
+<div class="app">
+    <%- include('partials/admin_sidebar', { active: 'candidates', onMain: false }) %>
+
+    <div class="main">
+        <header class="topbar">
+            <button class="btn btn-soft btn-icon menu-toggle" aria-label="Menü"><i class="fas fa-bars"></i></button>
+            <a href="/admin#candidates" class="btn btn-soft btn-icon" title="Aday listesine dön"><i class="fas fa-arrow-left"></i></a>
+            <div>
+                <div class="crumb"><a href="/admin#candidates" class="text-decoration-none muted">Adaylar</a> / Aday Detayı</div>
+                <h1><%= fullName %></h1>
+            </div>
+            <div class="ms-auto d-flex gap-2">
+                <a href="#messages" class="btn btn-soft tab-link" data-tab="messages"><i class="far fa-paper-plane me-1"></i><span class="d-none d-sm-inline">Mesaj Gönder</span></a>
+                <div class="dropdown">
+                    <button class="btn btn-soft btn-icon" data-bs-toggle="dropdown" title="Diğer"><i class="fas fa-ellipsis-vertical"></i></button>
+                    <ul class="dropdown-menu dropdown-menu-end shadow-sm" style="border-radius:12px;border-color:var(--line)">
+                        <li><a class="dropdown-item" href="/admin/export.csv?ids=<%= c._id %>"><i class="fas fa-download me-2 muted"></i>CSV olarak indir</a></li>
+                        <li><hr class="dropdown-divider"></li>
+                        <li>
+                            <form action="/admin/candidate/<%= c._id %>/delete" method="POST" class="m-0" data-confirm="<%= fullName %> ve bu adaya ait tüm mesaj ve randevular kalıcı olarak silinecek." data-danger>
+                                <button class="dropdown-item text-danger" data-no-busy="1"><i class="fas fa-trash me-2"></i>Adayı sil</button>
+                            </form>
+                        </li>
+                    </ul>
+                </div>
+            </div>
+        </header>
+
+        <main class="content">
+            <div class="card-x mb-3">
+                <div class="hero">
+                    <div class="avatar" style="<%= avatarStyle(fullName) %>"><%= initials %></div>
+                    <div class="flex-grow-1" style="min-width:240px">
+                        <h2><%= fullName %></h2>
+                        <div class="meta">
+                            <span><i class="fas fa-passport"></i><%= c.passportNo || 'Pasaport yok' %></span>
+                            <span><i class="fas fa-briefcase"></i><%= c.job || 'Meslek belirtilmedi' %></span>
+                            <span><i class="fas fa-location-dot"></i><%= c.location || '—' %></span>
+                            <span><i class="fas fa-envelope"></i><%= c.email || 'E-posta yok' %></span>
+                            <span><i class="fas fa-phone"></i><%= c.phone || c.phoneNumber || 'Telefon yok' %></span>
+                        </div>
+                    </div>
+                    <div class="d-flex flex-column gap-2 align-items-start">
+                        <form action="/admin/candidate/company" method="POST" class="m-0 d-flex align-items-center gap-2">
+                            <input type="hidden" name="returnTo" value="<%= ret('overview') %>"><input type="hidden" name="candidateId" value="<%= c._id %>">
+                            <span class="muted small fw-semibold" style="width:56px">Şirket</span>
+                            <select name="newCompany" class="form-select form-select-sm" style="min-width:180px" onchange="this.form.submit()">
+                                <option value="Atanmadı" <%= (!c.company || c.company === 'Atanmadı') ? 'selected' : '' %>>Atanmadı</option>
+                                <% companies.forEach(co => { %><option value="<%= co.name %>" <%= c.company === co.name ? 'selected' : '' %>><%= co.name %></option><% }) %>
+                            </select>
+                        </form>
+                        <div class="d-flex align-items-center gap-2"><span class="muted small fw-semibold" style="width:56px">Puan</span><span class="pill t-brand"><%= c.score ?? '—' %> / 100</span></div>
+                    </div>
+                </div>
+                <div class="stepper">
+                    <% stages.forEach((s, i) => { %>
+                        <div class="step <%= i < cur ? 'done' : i === cur ? 'current' : '' %>">
+                            <div class="b"><% if (i < cur) { %><i class="fas fa-check"></i><% } else { %><%= i + 1 %><% } %></div>
+                            <div class="t"><%= s %></div>
+                        </div>
+                    <% }) %>
+                </div>
+            </div>
+
+            <nav class="tabs-x">
+                <a href="#overview" class="tab-link" data-tab="overview">Genel Bilgiler</a>
+                <a href="#process" class="tab-link" data-tab="process">Süreç &amp; Entegrasyon <span class="n"><%= intDone %>/8</span></a>
+                <a href="#documents" class="tab-link" data-tab="documents">Belgeler <span class="n <%= pendDocs ? 'warn' : '' %>"><%= pendDocs ? pendDocs + ' bekliyor' : docs.length %></span></a>
+                <a href="#notes" class="tab-link" data-tab="notes">Notlar <span class="n"><%= notes.length %></span></a>
+                <a href="#messages" class="tab-link" data-tab="messages">Mesajlar <span class="n"><%= messages.length %></span></a>
+                <a href="#appointments" class="tab-link" data-tab="appointments">Randevular <span class="n"><%= appointments.length %></span></a>
+                <a href="#form" class="tab-link" data-tab="form">Başvuru Formu <% if (formFilled) { %><span class="n" style="background:var(--ok-50);color:var(--ok)">dolu</span><% } %></a>
+            </nav>
+
+            <!-- GENEL -->
+            <div class="pane" id="pane-overview">
+                <div class="row g-3">
+                    <div class="col-lg-8">
+                        <form class="card-x" action="/admin/candidate/<%= c._id %>/edit" method="POST">
+                            <input type="hidden" name="returnTo" value="<%= ret('overview') %>">
+                            <div class="card-h"><div><h3>Aday Bilgileri</h3><p class="sub">Değişiklikleri yapıp kaydedin.</p></div></div>
+                            <div class="card-b">
+                                <div class="row g-3">
+                                    <div class="col-md-6"><label class="form-label">Ad</label><input name="firstName" class="form-control" value="<%= c.firstName %>" required></div>
+                                    <div class="col-md-6"><label class="form-label">Soyad</label><input name="lastName" class="form-control" value="<%= c.lastName %>" required></div>
+                                    <div class="col-md-6"><label class="form-label">Pasaport No</label><input name="passportNo" class="form-control text-uppercase" value="<%= c.passportNo %>"><div class="form-text">Değiştirirseniz aday yeni numarayla giriş yapar.</div></div>
+                                    <div class="col-md-6"><label class="form-label">Başvuru No</label><input name="applicationNo" class="form-control" value="<%= c.applicationNo || '' %>"></div>
+                                    <div class="col-md-6"><label class="form-label">E-posta</label><input type="email" name="email" class="form-control" value="<%= c.email || '' %>"></div>
+                                    <div class="col-md-6"><label class="form-label">Telefon</label><input name="phone" class="form-control" value="<%= c.phone || c.phoneNumber || '' %>"></div>
+                                    <div class="col-md-4"><label class="form-label">Meslek</label><input name="job" class="form-control" value="<%= c.job || '' %>"></div>
+                                    <div class="col-md-4"><label class="form-label">Lokasyon</label><input name="location" class="form-control" value="<%= c.location || '' %>"></div>
+                                    <div class="col-md-4"><label class="form-label">Hedef şehir</label>
+                                        <select name="targetState" class="form-select">
+                                            <option value="Belirtilmedi">Belirtilmedi</option>
+                                            <% stateNames.forEach(s => { %><option value="<%= s %>" <%= c.targetState === s ? 'selected' : '' %>><%= s %></option><% }) %>
+                                            <% if (c.targetState && c.targetState !== 'Belirtilmedi' && !stateNames.includes(c.targetState)) { %><option selected value="<%= c.targetState %>"><%= c.targetState %></option><% } %>
+                                        </select></div>
+                                    <div class="col-md-4"><label class="form-label">Puan (0–100)</label><input type="number" min="0" max="100" name="score" class="form-control" value="<%= c.score ?? '' %>"></div>
+                                </div>
+                            </div>
+                            <div class="d-flex justify-content-end gap-2 px-3 py-3 border-top" style="border-color:var(--line)!important">
+                                <button type="reset" class="btn btn-soft">Geri al</button>
+                                <button class="btn btn-brand"><i class="fas fa-check me-1"></i>Kaydet</button>
+                            </div>
+                        </form>
+                    </div>
+                    <div class="col-lg-4">
+                        <div class="card-x mb-3">
+                            <div class="card-h"><h3>Özet</h3></div>
+                            <div class="card-b">
+                                <dl class="kv mb-0">
+                                    <dt>Genel aşama</dt><dd><%= c.currentStage %></dd>
+                                    <dt>Almanya aşaması</dt><dd><%= c.germanyStage || '—' %></dd>
+                                    <dt>Entegrasyon</dt><dd><%= intDone %> / 8 adım</dd>
+                                    <dt>Belgeler</dt><dd><%= docs.length %> (<%= pendDocs %> bekliyor)</dd>
+                                    <dt>Başvuru tarihi</dt><dd><%= fmtDate(c.applicationDate) %></dd>
+                                </dl>
+                            </div>
+                        </div>
+                        <div class="card-x">
+                            <div class="card-h"><h3>Son Not</h3><a href="#notes" class="tab-link ms-auto small" data-tab="notes">Tümü</a></div>
+                            <div class="card-b">
+                                <% if (notes.length) { %><div class="note"><div style="white-space:pre-wrap"><%= notes[0].content %></div><div class="muted small mt-2"><%= fmtDate(notes[0].date, true) %></div></div>
+                                <% } else { %><div class="muted">Henüz not yok.</div><% } %>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- SÜREÇ -->
+            <div class="pane" id="pane-process">
+                <div class="row g-3">
+                    <div class="col-lg-5">
+                        <div class="card-x mb-3">
+                            <div class="card-h"><div><h3>Genel Süreç Aşaması</h3><p class="sub">Aday panelindeki ilerleme çubuğunu belirler.</p></div></div>
+                            <form class="card-b d-flex gap-2" action="/admin/candidate/update" method="POST">
+                                <input type="hidden" name="returnTo" value="<%= ret('process') %>"><input type="hidden" name="candidateId" value="<%= c._id %>">
+                                <select name="newStage" class="form-select">
+                                    <% stages.forEach((s, i) => { %><option value="<%= s %>" <%= c.currentStage === s ? 'selected' : '' %>><%= i + 1 %>. <%= s %></option><% }) %>
+                                </select>
+                                <button class="btn btn-brand">Kaydet</button>
+                            </form>
+                        </div>
+                        <div class="card-x">
+                            <div class="card-h"><div><h3>Almanya Süreci</h3><p class="sub">Almanya tarafındaki ilerleme.</p></div></div>
+                            <form class="card-b d-flex gap-2" action="/admin/candidate/update-germany" method="POST">
+                                <input type="hidden" name="returnTo" value="<%= ret('process') %>"><input type="hidden" name="candidateId" value="<%= c._id %>">
+                                <select name="newGermanyStage" class="form-select">
+                                    <% germanyStages.forEach(s => { %><option value="<%= s %>" <%= c.germanyStage === s ? 'selected' : '' %>><%= s %></option><% }) %>
+                                </select>
+                                <button class="btn btn-brand">Kaydet</button>
+                            </form>
+                        </div>
+                    </div>
+                    <div class="col-lg-7">
+                        <form class="card-x" action="/admin/candidate/update-integration" method="POST">
+                            <input type="hidden" name="returnTo" value="<%= ret('process') %>"><input type="hidden" name="candidateId" value="<%= c._id %>">
+                            <div class="card-h">
+                                <div><h3>Almanya Entegrasyon Adımları</h3><p class="sub">Tamamlanan adımları işaretleyip kaydedin.</p></div>
+                                <div class="ms-auto text-end" style="min-width:120px"><div class="fw-bold"><span id="intCount"><%= intDone %></span> / 8</div><div class="bar mt-1"><span id="intBar" style="width:<%= intDone / 8 * 100 %>%;background:var(--ok)"></span></div></div>
+                            </div>
+                            <div class="card-b">
+                                <div class="row g-2">
+                                    <% intKeys.forEach(x => { const on = c.integrationSteps && c.integrationSteps[x.k]; %>
+                                    <div class="col-md-6">
+                                        <label class="toggle-card <%= on ? 'on' : '' %>">
+                                            <i class="fas <%= x.i %> muted" style="width:18px;text-align:center"></i>
+                                            <span class="flex-grow-1 fw-650"><%= x.n %></span>
+                                            <input class="form-check-input int-check" type="checkbox" role="switch" name="<%= x.k %>" <%= on ? 'checked' : '' %>>
+                                        </label>
+                                    </div>
+                                    <% }) %>
+                                </div>
+                            </div>
+                            <div class="d-flex justify-content-end px-3 py-3 border-top" style="border-color:var(--line)!important">
+                                <button class="btn btn-brand"><i class="fas fa-save me-1"></i>Entegrasyonu Kaydet</button>
+                            </div>
+                        </form>
+                    </div>
+                </div>
+            </div>
+
+            <!-- BELGELER -->
+            <div class="pane" id="pane-documents">
+                <div class="card-x">
+                    <div class="card-h"><div><h3>Belgeler</h3><p class="sub">Aday tarafından yüklenen veya Drive'dan eşleşen belgeler.</p></div></div>
+                    <% if (!docs.length) { %>
+                        <div class="empty"><i class="fas fa-folder-open"></i>Henüz belge yüklenmemiş.</div>
+                    <% } else { %>
+                    <div class="table-responsive">
+                        <table class="table table-x">
+                            <thead><tr><th>Belge</th><th class="d-none d-md-table-cell">Tarih</th><th>Durum</th><th class="text-end">İşlem</th></tr></thead>
+                            <tbody>
+                            <% docs.forEach(d => { %>
+                                <tr>
+                                    <td style="max-width:380px"><div class="fw-650 text-truncate-1"><%= d.name || 'Belge' %></div><div class="muted small text-truncate-1"><%= d.filename %></div></td>
+                                    <td class="d-none d-md-table-cell muted"><%= fmtDate(d.date) %></td>
+                                    <td><span class="pill <%= statusTone(d.status) %>"><span class="dot"></span><%= d.status %></span></td>
+                                    <td class="text-end" style="white-space:nowrap">
+                                        <a href="<%= docUrl(d) %>" target="_blank" class="btn btn-soft btn-sm"><i class="fas fa-eye me-1"></i>Görüntüle</a>
+                                        <% if (d.status !== 'Onaylandı') { %>
+                                        <form action="/admin/document/status" method="POST" class="d-inline m-0">
+                                            <input type="hidden" name="returnTo" value="<%= ret('documents') %>"><input type="hidden" name="candidateId" value="<%= c._id %>"><input type="hidden" name="docId" value="<%= d._id %>"><input type="hidden" name="status" value="Onaylandı">
+                                            <button class="btn btn-ok btn-sm btn-icon" title="Onayla"><i class="fas fa-check"></i></button>
+                                        </form><% } %>
+                                        <% if (d.status !== 'Reddedildi') { %>
+                                        <form action="/admin/document/status" method="POST" class="d-inline m-0">
+                                            <input type="hidden" name="returnTo" value="<%= ret('documents') %>"><input type="hidden" name="candidateId" value="<%= c._id %>"><input type="hidden" name="docId" value="<%= d._id %>"><input type="hidden" name="status" value="Reddedildi">
+                                            <button class="btn btn-bad-soft btn-sm btn-icon" title="Reddet"><i class="fas fa-xmark"></i></button>
+                                        </form><% } %>
+                                        <% if (d.status !== 'İnceleniyor') { %>
+                                        <form action="/admin/document/status" method="POST" class="d-inline m-0">
+                                            <input type="hidden" name="returnTo" value="<%= ret('documents') %>"><input type="hidden" name="candidateId" value="<%= c._id %>"><input type="hidden" name="docId" value="<%= d._id %>"><input type="hidden" name="status" value="İnceleniyor">
+                                            <button class="btn btn-soft btn-sm btn-icon" title="İncelemeye geri al"><i class="fas fa-rotate-left"></i></button>
+                                        </form><% } %>
+                                        <form action="/admin/document/delete" method="POST" class="d-inline m-0" data-confirm="Belge kaydı adayın listesinden kaldırılacak (Drive'daki dosya silinmez)." data-danger>
+                                            <input type="hidden" name="returnTo" value="<%= ret('documents') %>"><input type="hidden" name="candidateId" value="<%= c._id %>"><input type="hidden" name="docId" value="<%= d._id %>">
+                                            <button class="btn btn-soft btn-sm btn-icon text-danger" title="Kaydı sil"><i class="fas fa-trash"></i></button>
+                                        </form>
+                                    </td>
+                                </tr>
+                            <% }) %>
+                            </tbody>
+                        </table>
+                    </div>
+                    <% } %>
+                </div>
+            </div>
+
+            <!-- NOTLAR -->
+            <div class="pane" id="pane-notes">
+                <div class="row g-3">
+                    <div class="col-lg-5">
+                        <form class="card-x" action="/admin/candidate/add-note" method="POST">
+                            <input type="hidden" name="returnTo" value="<%= ret('notes') %>"><input type="hidden" name="candidateId" value="<%= c._id %>">
+                            <div class="card-h"><div><h3>Yeni Not</h3><p class="sub">Notlar yalnızca yöneticiler tarafından görülür.</p></div></div>
+                            <div class="card-b">
+                                <textarea name="noteContent" class="form-control mb-3" rows="5" required placeholder="Örn: Pasaport fotokopisi eksik, 12.11'de tekrar aranacak."></textarea>
+                                <button class="btn btn-brand w-100"><i class="fas fa-plus me-1"></i>Not Ekle</button>
+                            </div>
+                        </form>
+                    </div>
+                    <div class="col-lg-7">
+                        <div class="card-x">
+                            <div class="card-h"><h3>Not Geçmişi</h3></div>
+                            <div class="card-b d-flex flex-column gap-2">
+                                <% if (!notes.length) { %><div class="empty"><i class="far fa-note-sticky"></i>Henüz not yok.</div><% } %>
+                                <% notes.forEach(n => { %>
+                                <div class="note d-flex gap-3">
+                                    <div class="flex-grow-1"><div style="white-space:pre-wrap"><%= n.content %></div><div class="muted small mt-2"><i class="far fa-clock me-1"></i><%= fmtDate(n.date, true) %> · <%= n.author || 'Admin' %></div></div>
+                                    <form action="/admin/candidate/<%= c._id %>/note/<%= n._id %>/delete" method="POST" class="m-0" data-confirm="Bu not silinecek." data-danger>
+                                        <input type="hidden" name="returnTo" value="<%= ret('notes') %>">
+                                        <button class="btn btn-sm btn-icon text-danger" style="background:transparent" title="Notu sil"><i class="fas fa-trash-can"></i></button>
+                                    </form>
+                                </div>
+                                <% }) %>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- MESAJLAR -->
+            <div class="pane" id="pane-messages">
+                <div class="row g-3">
+                    <div class="col-lg-5">
+                        <div class="card-x mb-3">
+                            <div class="card-h"><div class="avatar t-brand" style="border-radius:10px"><i class="far fa-comment-dots"></i></div><div><h3>Panel Mesajı</h3><p class="sub">Adayın panelindeki “Mesajlar”a düşer.</p></div></div>
+                            <form class="card-b" action="/admin/message/internal" method="POST">
+                                <input type="hidden" name="returnTo" value="<%= ret('messages') %>"><input type="hidden" name="candidateId" value="<%= c._id %>">
+                                <textarea name="content" class="form-control mb-3" rows="4" required placeholder="Mesajınız…"></textarea>
+                                <button class="btn btn-brand w-100"><i class="fas fa-paper-plane me-1"></i>Panele Gönder</button>
+                            </form>
+                        </div>
+                        <div class="card-x">
+                            <div class="card-h"><div class="avatar t-bad" style="border-radius:10px"><i class="far fa-envelope"></i></div><div><h3>E-posta</h3><p class="sub"><%= c.email ? 'Alıcı: ' + c.email : 'Bu adayın e-posta adresi yok.' %></p></div></div>
+                            <form class="card-b" action="/admin/message/email" method="POST">
+                                <input type="hidden" name="returnTo" value="<%= ret('messages') %>"><input type="hidden" name="candidateId" value="<%= c._id %>">
+                                <fieldset <%= c.email ? '' : 'disabled' %>>
+                                    <input type="text" name="subject" class="form-control mb-2" required placeholder="Konu">
+                                    <textarea name="content" class="form-control mb-3" rows="4" required placeholder="E-posta içeriği…"></textarea>
+                                    <button class="btn btn-brand w-100"><i class="fas fa-paper-plane me-1"></i>E-posta Gönder</button>
+                                </fieldset>
+                                <% if (!c.email) { %><div class="form-text mt-2"><a href="#overview" class="tab-link" data-tab="overview">Genel Bilgiler</a> sekmesinden e-posta ekleyebilirsiniz.</div><% } %>
+                            </form>
+                        </div>
+                    </div>
+                    <div class="col-lg-7">
+                        <div class="card-x">
+                            <div class="card-h"><h3>Mesaj Geçmişi</h3><span class="muted small ms-auto">Panel mesajları</span></div>
+                            <div class="card-b d-flex flex-column gap-2" style="max-height:640px;overflow:auto">
+                                <% if (!messages.length) { %><div class="empty"><i class="far fa-comments"></i>Bu adaya henüz mesaj gönderilmemiş.</div><% } %>
+                                <% messages.forEach(m => { %>
+                                <div class="msg <%= m.sender === 'Admin' ? 'admin' : '' %> d-flex gap-3">
+                                    <div class="flex-grow-1">
+                                        <div class="d-flex align-items-center gap-2 mb-1">
+                                            <span class="fw-650"><%= m.sender === 'Admin' ? 'Yönetici' : fullName %></span>
+                                            <% if (m.sender === 'Admin') { %><span class="pill <%= m.isRead ? 't-ok' : 't-gray' %>" style="font-size:11px"><%= m.isRead ? 'Okundu' : 'Okunmadı' %></span><% } %>
+                                            <span class="muted small ms-auto"><%= fmtDate(m.date, true) %></span>
+                                        </div>
+                                        <div style="white-space:pre-wrap"><%= m.content %></div>
+                                    </div>
+                                    <form action="/admin/message/delete" method="POST" class="m-0" data-confirm="Mesaj adayın panelinden de kaldırılacak." data-danger>
+                                        <input type="hidden" name="returnTo" value="<%= ret('messages') %>"><input type="hidden" name="messageId" value="<%= m._id %>">
+                                        <button class="btn btn-sm btn-icon text-danger" style="background:transparent" title="Mesajı sil"><i class="fas fa-trash-can"></i></button>
+                                    </form>
+                                </div>
+                                <% }) %>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- RANDEVULAR -->
+            <div class="pane" id="pane-appointments">
+                <div class="card-x">
+                    <div class="card-h"><h3>Randevular</h3></div>
+                    <% if (!appointments.length) { %>
+                        <div class="empty"><i class="far fa-calendar"></i>Bu adayın randevu talebi yok.</div>
+                    <% } else { %>
+                    <div class="table-responsive">
+                        <table class="table table-x">
+                            <thead><tr><th>Tür</th><th>Tarih / Saat</th><th class="d-none d-md-table-cell">Talep tarihi</th><th>Durum</th><th class="text-end">İşlem</th></tr></thead>
+                            <tbody>
+                            <% appointments.forEach(a => { %>
+                                <tr>
+                                    <td class="fw-650"><%= a.type || '—' %></td>
+                                    <td><%= fmtDate(a.date) %> <span class="muted"><%= a.time || '' %></span></td>
+                                    <td class="d-none d-md-table-cell muted"><%= fmtDate(a.createdAt) %></td>
+                                    <td><span class="pill <%= statusTone(a.status) %>"><span class="dot"></span><%= a.status %></span></td>
+                                    <td class="text-end" style="white-space:nowrap">
+                                        <% ['Onaylandı', 'Reddedildi'].filter(s => s !== a.status).forEach(s => { %>
+                                        <form action="/admin/appointment/status" method="POST" class="d-inline m-0">
+                                            <input type="hidden" name="returnTo" value="<%= ret('appointments') %>"><input type="hidden" name="appId" value="<%= a._id %>"><input type="hidden" name="status" value="<%= s %>">
+                                            <button class="btn btn-sm <%= s === 'Onaylandı' ? 'btn-ok' : 'btn-bad-soft' %>"><%= s === 'Onaylandı' ? 'Onayla' : 'Reddet' %></button>
+                                        </form>
+                                        <% }) %>
+                                    </td>
+                                </tr>
+                            <% }) %>
+                            </tbody>
+                        </table>
+                    </div>
+                    <% } %>
+                </div>
+            </div>
+
+            <!-- BAŞVURU FORMU -->
+            <div class="pane" id="pane-form">
+                <% if (!formFilled) { %>
+                    <div class="card-x"><div class="empty"><i class="far fa-file-lines"></i>Aday başvuru ve motivasyon formunu henüz doldurmamış.</div></div>
+                <% } else { %>
+                <div class="row g-3">
+                    <% Object.entries(formLabels).forEach(([title, fields]) => { %>
+                    <div class="col-lg-6">
+                        <div class="card-x h-100">
+                            <div class="card-h"><h3><%= title %></h3></div>
+                            <div class="card-b py-1">
+                                <% Object.entries(fields).forEach(([k, label]) => { %>
+                                <div class="qa"><div class="q"><%= label %></div><div class="a"><%= (af[k] && String(af[k]).trim()) ? af[k] : '—' %></div></div>
+                                <% }) %>
+                            </div>
+                        </div>
+                    </div>
+                    <% }) %>
+                </div>
+                <% } %>
+            </div>
+        </main>
+    </div>
+</div>
+
+<%- include('partials/admin_scripts') %>
+<script>
+(function () {
+    const panes = [...document.querySelectorAll('.pane')];
+    function show(t) {
+        if (!document.getElementById('pane-' + t)) t = 'overview';
+        panes.forEach(p => p.classList.toggle('active', p.id === 'pane-' + t));
+        document.querySelectorAll('.tabs-x a').forEach(a => a.classList.toggle('active', a.dataset.tab === t));
+    }
+    window.addEventListener('hashchange', () => show(location.hash.slice(1)));
+    show(location.hash.slice(1));
+
+    // Entegrasyon anahtarları: canlı sayaç ve renk
+    const checks = [...document.querySelectorAll('.int-check')];
+    const upd = () => {
+        const n = checks.filter(c => c.checked).length;
+        document.getElementById('intCount').textContent = n;
+        document.getElementById('intBar').style.width = (n / 8 * 100) + '%';
+        checks.forEach(c => c.closest('.toggle-card').classList.toggle('on', c.checked));
+    };
+    checks.forEach(c => c.addEventListener('change', upd));
+})();
+</script>
+</body>
+</html>

@@ -1,47 +1,9 @@
 <!DOCTYPE html>
 <html lang="tr">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Almanca Eğitimi | Almanya Kariyer</title>
-    
-    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
-    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
-    
+    <title>Almanca Eğitimi | BERLINER Aday Portalı</title>
+    <%- include('partials/cand_head') %>
     <style>
-        body {
-            background-color: #f8fafc;
-            font-family: 'Plus Jakarta Sans', sans-serif;
-            color: #334155;
-        }
-
-        /* Sidebar & Layout */
-        .sidebar {
-            min-height: 100vh;
-            background: white;
-            border-right: 1px solid #e2e8f0;
-        }
-        
-        .nav-link {
-            color: #64748b;
-            font-weight: 500;
-            padding: 0.75rem 1rem;
-            border-radius: 10px;
-            margin-bottom: 0.25rem;
-            transition: all 0.2s;
-        }
-        .nav-link:hover, .nav-link.active {
-            background-color: #f1f5f9;
-            color: #0f172a;
-        }
-        .nav-link.active {
-            background-color: #e0f2fe;
-            color: #0284c7;
-        }
-        .nav-link i { width: 24px; text-align: center; margin-right: 8px; }
-
-        /* Günün Kelimesi Kartı */
         .daily-word-card {
             background: linear-gradient(135deg, #1e293b 0%, #0f172a 100%);
             color: white;
@@ -64,8 +26,6 @@
             background-image: url('https://www.transparenttextures.com/patterns/cubes.png');
             opacity: 0.05;
         }
-
-        /* Cümle Kartları */
         .sentence-card {
             background: white;
             border: 1px solid #f1f5f9;
@@ -79,8 +39,6 @@
             background-color: #f8fafc;
             box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05);
         }
-        
-        /* Kategori Kartları */
         .category-card {
             background: white;
             border-radius: 16px;
@@ -98,63 +56,8 @@
     </style>
 </head>
 <body>
-
-    <nav class="navbar navbar-dark bg-dark d-lg-none sticky-top shadow-sm">
-        <div class="container-fluid">
-            <span class="navbar-brand fw-bold"><i class="fas fa-flag me-2"></i>AlmanyaKariyer</span>
-            <button class="navbar-toggler" type="button" data-bs-toggle="offcanvas" data-bs-target="#mobileSidebar">
-                <span class="navbar-toggler-icon"></span>
-            </button>
-        </div>
-    </nav>
-
-    <div class="container-fluid">
-        <div class="row">
-            
-            <div class="col-lg-2 d-none d-lg-block sidebar p-4 sticky-top">
-                <div class="d-flex align-items-center gap-2 mb-5">
-                    <div class="bg-primary text-white rounded p-2"><i class="fas fa-flag"></i></div>
-                    <span class="fw-bold fs-5 text-dark">AlmanyaKariyer</span>
-                </div>
-                
-                <nav class="nav flex-column gap-1">
-                    <a href="/panel" class="nav-link <%= page === 'panel' ? 'active' : '' %>"><i class="fas fa-home"></i> Ana Sayfa</a>
-                    <a href="/profile" class="nav-link <%= page === 'profile' ? 'active' : '' %>"><i class="fas fa-user-circle"></i> Profilim</a>
-                    <a href="/processes" class="nav-link <%= page === 'processes' ? 'active' : '' %>"><i class="fas fa-tasks"></i> Süreçler</a>
-                    <a href="/documents" class="nav-link <%= page === 'documents' ? 'active' : '' %>"><i class="fas fa-file-alt"></i> Dokümanlar</a>
-                    <a href="/messages" class="nav-link <%= page === 'messages' ? 'active' : '' %>"><i class="fas fa-comments"></i> Mesajlar</a>
-                    <a href="/cv-builder" class="nav-link"><i class="fas fa-file-contract"></i> Akıllı CV oluşturucu </a>
-                    <a href="/application-form" class="nav-link"><i class="fas fa-file-signature"></i>Form</a>
-                    <a href="/life-in-germany" class="nav-link <%= page === 'life_germany' ? 'active' : '' %>">
-    <i class="fas fa-city"></i> Almanya'da Hayat
-</a>
-                    <a href="/german" class="nav-link active"><i class="fas fa-graduation-cap"></i> Almanca</a>
-                    <a href="/appointments" class="nav-link <%= page === 'appointments' ? 'active' : '' %>"><i class="fas fa-calendar-alt"></i> Randevular</a>
-                    <a href="/settings" class="nav-link <%= page === 'settings' ? 'active' : '' %>"><i class="fas fa-cog"></i> Ayarlar</a>
-                    <a href="/game" class="menu-item <%= page === 'game' ? 'active' : '' %>">
-    <i class="fas fa-gamepad"></i> <span class="menu-text">Oyun Alanı</span>
-</a>
-                    <hr>
-                    <a href="/logout" class="nav-link text-danger"><i class="fas fa-sign-out-alt"></i> Çıkış Yap</a>
-                </nav>
-            </div>
-
-            <div class="col-12 col-lg-10 p-4">
-                
-                <div class="d-flex justify-content-between align-items-center mb-4">
-                    <div>
-                        <h2 class="fw-bold text-dark mb-1">Almanca Eğitimi</h2>
-                        <p class="text-muted mb-0">Lojistik sektörüne özel kelime ve cümle çalışmaları.</p>
-                    </div>
-                    <div class="d-none d-md-flex align-items-center gap-2 bg-white px-3 py-2 rounded-pill shadow-sm border">
-                        <div class="bg-primary text-white rounded-circle d-flex align-items-center justify-content-center" style="width: 32px; height: 32px;">
-                            <%= user.firstName.charAt(0) %><%= user.lastName.charAt(0) %>
-                        </div>
-                        <span class="fw-bold small"><%= user.firstName %> <%= user.lastName %></span>
-                    </div>
-                </div>
-
-                <div class="card border-0 shadow-sm rounded-4 p-4 mb-5 bg-white">
+<%- include('partials/cand_shell_start', { page: 'german', title: 'Almanca Öğren', subtitle: 'Lojistik ve günlük hayat için temel Almanca' }) %>
+<div class="card border-0 shadow-sm rounded-4 p-4 mb-5 bg-white">
                     <div class="d-flex align-items-center justify-content-between mb-2">
                         <div class="d-flex align-items-center gap-2">
                             <span class="bg-primary text-white rounded p-1"><i class="fas fa-chart-line"></i></span>
@@ -255,40 +158,7 @@
                         </div>
                     </div>
                 </div>
+<%- include('partials/cand_shell_end', { page: 'german' }) %>
 
-            </div>
-        </div>
-    </div>
-
-    <div class="offcanvas offcanvas-start" tabindex="-1" id="mobileSidebar">
-        <div class="offcanvas-header bg-dark text-white">
-            <h5 class="offcanvas-title">Menü</h5>
-            <button type="button" class="btn-close btn-close-white" data-bs-dismiss="offcanvas"></button>
-        </div>
-        <div class="offcanvas-body">
-            <nav class="nav flex-column gap-2">
-                <a href="/panel" class="nav-link"><i class="fas fa-home"></i> Ana Sayfa</a>
-                <a href="/profile" class="nav-link"><i class="fas fa-user-circle"></i> Profilim</a>
-                <a href="/processes" class="nav-link"><i class="fas fa-tasks"></i> Süreçler</a>
-                <a href="/documents" class="nav-link"><i class="fas fa-file-alt"></i> Dokümanlar</a>
-                <a href="/messages" class="nav-link"><i class="fas fa-comments"></i> Mesajlar</a>
-                <a href="/cv-builder" class="nav-link"><i class="fas fa-file-contract"></i> Akıllı CV oluşturucu </a>
-                <a href="/application-form" class="nav-link"><i class="fas fa-file-signature"></i>Form</a>
-                <a href="/life-in-germany" class="nav-link <%= page === 'life_germany' ? 'active' : '' %>">
-    <i class="fas fa-city"></i> Almanya'da Hayat
-</a>
-                <a href="/german" class="nav-link active"><i class="fas fa-graduation-cap"></i> Almanca</a>
-                <a href="/appointments" class="nav-link"><i class="fas fa-calendar-alt"></i> Randevular</a>
-                <a href="/settings" class="nav-link"><i class="fas fa-cog"></i> Ayarlar</a>
-                <a href="/game" class="menu-item <%= page === 'game' ? 'active' : '' %>">
-    <i class="fas fa-gamepad"></i> <span class="menu-text">Oyun Alanı</span>
-</a>
-                <hr>
-                <a href="/logout" class="nav-link text-danger"><i class="fas fa-sign-out-alt"></i> Çıkış Yap</a>
-            </nav>
-        </div>
-    </div>
-   
-    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
 </body>
 </html>

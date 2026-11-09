@@ -1,69 +1,100 @@
 <!DOCTYPE html>
 <html lang="tr">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Giriş - Almanya İstihdam Takibi</title>
-    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
-    <link rel="stylesheet" href="/css/style.css">
+    <title>Aday Girişi | BERLINER</title>
+    <%- include('partials/cand_head') %>
+    <style>
+        body { min-height: 100vh; }
+        .auth { display: grid; grid-template-columns: 1.05fr 1fr; min-height: 100vh; }
+        .auth-art {
+            position: relative; overflow: hidden; color: #fff; padding: 48px; display: flex; flex-direction: column;
+            background: radial-gradient(900px 400px at 110% -10%, rgba(59,108,255,.55), transparent 60%), linear-gradient(160deg, #0B1220 0%, #172554 100%);
+        }
+        .auth-art::before { content: ''; position: absolute; width: 520px; height: 520px; right: -180px; bottom: -180px; border-radius: 50%; border: 70px solid rgba(255,255,255,.04); }
+        .auth-art .brand { display: flex; align-items: center; gap: 12px; font-weight: 800; letter-spacing: .8px; font-size: 18px; }
+        .auth-art .brand img { width: 46px; height: 46px; object-fit: contain; background: #fff; border-radius: 12px; padding: 4px; }
+        .auth-art h1 { color: #fff; font-size: 38px; font-weight: 800; letter-spacing: -1px; line-height: 1.15; margin: auto 0 16px; max-width: 480px; }
+        .auth-art p { color: rgba(255,255,255,.72); font-size: 15.5px; max-width: 460px; }
+        .flag { display: flex; width: 72px; height: 5px; border-radius: 4px; overflow: hidden; margin-bottom: 22px; }
+        .flag span { flex: 1; }
+        .feat { display: flex; gap: 22px; margin-top: 34px; flex-wrap: wrap; }
+        .feat div { display: flex; align-items: center; gap: 10px; color: rgba(255,255,255,.85); font-size: 13.5px; font-weight: 500; }
+        .feat i { width: 34px; height: 34px; border-radius: 10px; background: rgba(255,255,255,.08); display: grid; place-items: center; }
+        .auth-form { display: flex; align-items: center; justify-content: center; padding: 40px 24px; background: #fff; }
+        .auth-box { width: 100%; max-width: 400px; }
+        .auth-box h2 { font-size: 26px; font-weight: 800; letter-spacing: -.5px; margin-bottom: 6px; }
+        .input-ic { position: relative; }
+        .input-ic i { position: absolute; left: 14px; top: 50%; transform: translateY(-50%); color: #98A2B3; }
+        .input-ic .form-control { padding-left: 40px; height: 48px; }
+        .btn-lg-x { height: 50px; font-size: 15px; border-radius: 12px; }
+        .mob-brand { display: none; }
+        @media (max-width: 991.98px) {
+            .auth { grid-template-columns: 1fr; }
+            .auth-art { display: none; }
+            .auth-form { align-items: flex-start; padding-top: 48px; background: var(--bg); }
+            .auth-box { background: #fff; border: 1px solid var(--line); border-radius: 20px; padding: 28px 22px; }
+            .mob-brand { display: flex; align-items: center; gap: 10px; margin-bottom: 22px; font-weight: 800; letter-spacing: .6px; color: var(--ink); }
+            .mob-brand img { width: 38px; height: 38px; object-fit: contain; }
+        }
+    </style>
 </head>
-<body class="d-flex align-items-center justify-content-center vh-100 bg-light">
+<body>
+<% const v = (typeof values !== 'undefined' && values) ? values : {}; const err = (typeof error !== 'undefined') ? error : null; %>
+<div class="auth">
+    <section class="auth-art">
+        <div class="brand"><img src="/images/BERLINERLOGO.webp" alt="" onerror="this.style.display='none'"> BERLINER</div>
+        <h1>Almanya'daki kariyerine giden yol burada başlıyor.</h1>
+        <div class="flag"><span style="background:#111"></span><span style="background:#DD0000"></span><span style="background:#FFCE00"></span></div>
+        <p>Başvurunu, belgelerini ve vize sürecini tek ekrandan takip et. Danışmanınla mesajlaş, randevu al, Almanca çalış.</p>
+        <div class="feat">
+            <div><i class="fas fa-list-check"></i> Canlı süreç takibi</div>
+            <div><i class="fas fa-folder-open"></i> Güvenli belge yükleme</div>
+            <div><i class="fas fa-comments"></i> Danışman desteği</div>
+        </div>
+    </section>
 
-    <div class="card card-custom p-4 shadow-lg" style="max-width: 400px; width: 100%;">
-        <div class="german-stripe mb-3"></div>
-        <div class="text-center mb-4">
-            <h4>🇩🇪 Aday Takip Sistemi</h4>
-            <p class="text-muted small">Almanya İstihdam Süreci Giriş Ekranı</p>
-        </div>
+    <section class="auth-form">
+        <div class="auth-box fade-up">
+            <div class="mob-brand"><img src="/images/BERLINERLOGO.webp" alt="" onerror="this.style.display='none'"> BERLINER</div>
+            <h2>Aday Girişi</h2>
+            <p class="muted mb-4">Başvuru sırasında verdiğiniz bilgilerle giriş yapın.</p>
 
-        <form action="/login" method="POST">
-            <div class="mb-3">
-                <label class="form-label">İsim</label>
-                <input type="text" name="firstName" class="form-control" placeholder="Adınız" required>
+            <% if (err) { %>
+            <div class="d-flex gap-2 align-items-start p-3 mb-3" style="background:var(--bad-50);color:#B42318;border:1px solid #FECDCA;border-radius:12px;font-size:13.5px">
+                <i class="fas fa-circle-exclamation mt-1"></i><div><%= err %></div>
             </div>
-            <div class="mb-3">
-                <label class="form-label">Soyisim</label>
-                <input type="text" name="lastName" class="form-control" placeholder="Soyadınız" required>
+            <% } %>
+
+            <form action="/login" method="POST" novalidate id="loginForm">
+                <div class="mb-3">
+                    <label class="form-label" for="fn">Adınız</label>
+                    <div class="input-ic"><i class="far fa-user"></i><input id="fn" type="text" name="firstName" class="form-control" placeholder="Örn: Mehmet Ali" value="<%= v.firstName || '' %>" required autocomplete="given-name"></div>
+                </div>
+                <div class="mb-3">
+                    <label class="form-label" for="ln">Soyadınız</label>
+                    <div class="input-ic"><i class="far fa-user"></i><input id="ln" type="text" name="lastName" class="form-control" placeholder="Örn: Yılmaz" value="<%= v.lastName || '' %>" required autocomplete="family-name"></div>
+                </div>
+                <div class="mb-4">
+                    <label class="form-label" for="pp">Pasaport Numarası</label>
+                    <div class="input-ic"><i class="fas fa-passport"></i><input id="pp" type="text" name="passportNo" class="form-control text-uppercase" placeholder="Örn: U12345678" value="<%= v.passportNo || '' %>" required autocomplete="off" autocapitalize="characters"></div>
+                    <div class="form-text">Birden fazla adınız varsa tamamını yazın. Büyük/küçük harf fark etmez.</div>
+                </div>
+                <button type="submit" class="btn btn-brand w-100 btn-lg-x">Giriş Yap <i class="fas fa-arrow-right ms-1"></i></button>
+            </form>
+
+            <div class="text-center mt-4 small muted">
+                Giriş yapamıyor musunuz? Danışmanınızla iletişime geçin.
             </div>
-            <div class="mb-3">
-                <label class="form-label">Pasaport Numarası</label>
-                <input type="text" name="passportNo" class="form-control" placeholder="U12345678" required>
-            </div>
-            <div class="d-grid">
-                <button type="submit" class="btn btn-primary">Sisteme Giriş Yap</button>
-            </div>
-        </form>
-         <div class="text-center mt-3">
-            <small  class="text-muted">Lütfen isim soyisim baş harflerini büyük ve pasaportun U harfini büyük giriniz.</small>
         </div>
-        <div class="text-center mt-3">
-            <small class="text-muted">Giriş sorunu yaşıyorsanız danışmanınızla iletişime geçin.</small>
-        </div>
-       <div class="container mt-4">
-  <div class="card shadow-sm rounded-4">
-    <div class="card-header bg-white fw-bold">
-      <i class="bi bi-person-badge me-2"></i> Örnek Giriş Bilgileri
-    </div>
-    <div class="card-body">
-      <table class="table table-borderless mb-0">
-        <tr>
-          <th class="text-muted">İsim</th>
-          <td><b style="color: red; font-size: 1.5rem;">K</b>aan</td>
-        </tr>
-        <tr>
-          <th class="text-muted">Soyisim</th>
-          <td><b style="color: red; font-size: 1.5rem;">Ö</b>zkal</td>
-        </tr>
-        <tr>
-          <th class="text-muted">Pasaport No</th>
-          <td><b style="color: red; font-size: 1.5rem;">U</b>2555555</td>
-        </tr>
-      </table>
-    </div>
-  </div>
+    </section>
 </div>
-
-    </div>
-
+<script>
+    document.getElementById('loginForm').addEventListener('submit', function (e) {
+        const empty = [...this.querySelectorAll('[required]')].find(i => !i.value.trim());
+        if (empty) { e.preventDefault(); empty.classList.add('is-invalid'); empty.focus(); return; }
+        const b = this.querySelector('button'); b.disabled = true; b.innerHTML = '<span class="spinner-border spinner-border-sm me-2"></span>Giriş yapılıyor…';
+    });
+    document.querySelectorAll('#loginForm input').forEach(i => i.addEventListener('input', () => i.classList.remove('is-invalid')));
+</script>
 </body>
 </html>

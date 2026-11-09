@@ -1,332 +1,163 @@
 <!DOCTYPE html>
 <html lang="tr">
-
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Dokümanlar | Almanya Kariyer</title>
-
-    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&display=swap"
-        rel="stylesheet">
-    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
-
+    <title>Belgelerim | BERLINER Aday Portalı</title>
+    <%- include('partials/cand_head') %>
     <style>
-        body {
-            background-color: #f8fafc;
-            font-family: 'Plus Jakarta Sans', sans-serif;
-            color: #334155;
-        }
-
-        /* Sidebar & Layout */
-        .sidebar {
-            min-height: 100vh;
-            background: white;
-            border-right: 1px solid #e2e8f0;
-        }
-
-        .nav-link {
-            color: #64748b;
-            font-weight: 500;
-            padding: 0.75rem 1rem;
-            border-radius: 10px;
-            margin-bottom: 0.25rem;
-            transition: all 0.2s;
-        }
-
-        .nav-link:hover,
-        .nav-link.active {
-            background-color: #f1f5f9;
-            color: #0f172a;
-        }
-
-        .nav-link.active {
-            background-color: #e0f2fe;
-            color: #0284c7;
-        }
-
-        .nav-link i {
-            width: 24px;
-            text-align: center;
-            margin-right: 8px;
-        }
-
-        /* Dosya Yükleme Alanı */
-        .upload-card {
-            background: white;
-            border-radius: 16px;
-            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05);
-            border: 2px dashed #cbd5e1;
-            transition: all 0.2s;
-        }
-
-        .upload-card:hover {
-            border-color: #3b82f6;
-        }
-
-        /* Dosya Kartları */
-        .doc-card {
-            background: white;
-            border-radius: 16px;
-            border: 1px solid #f1f5f9;
-            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.02);
-            transition: transform 0.2s, box-shadow 0.2s;
-            height: 100%;
-        }
-
-        .doc-card:hover {
-            transform: translateY(-3px);
-            box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1);
-        }
+        .drop { border: 2px dashed #C7D2FE; background: #F8FAFF; border-radius: 14px; padding: 26px; text-align: center; cursor: pointer; transition: all .15s; }
+        .drop:hover, .drop.over { border-color: var(--brand); background: var(--brand-50); }
+        .drop .c-ic { margin: 0 auto 10px; width: 52px; height: 52px; font-size: 20px; }
+        .drop.has { border-style: solid; border-color: var(--ok); background: var(--ok-50); }
+        .req { display: flex; align-items: center; gap: 10px; padding: 10px 0; border-bottom: 1px dashed var(--line); }
+        .req:last-child { border-bottom: 0; }
+        .doc { display: flex; align-items: center; gap: 14px; padding: 14px 20px; border-bottom: 1px solid #F0F2F5; }
+        .doc:last-child { border-bottom: 0; }
+        .seg { display: inline-flex; background: #F2F4F7; border-radius: 10px; padding: 3px; gap: 2px; }
+        .seg button { border: 0; background: transparent; padding: 6px 12px; border-radius: 8px; font-weight: 600; font-size: 13px; color: #475467; }
+        .seg button.active { background: #fff; color: var(--ink); box-shadow: 0 1px 2px rgba(16,24,40,.08); }
     </style>
 </head>
-
 <body>
+<%
+    const docs = (user.documents || []).slice().sort((a, b) => new Date(b.date || 0) - new Date(a.date || 0));
+    const required = [
+        { v: 'Pasaport', i: 'fa-passport' }, { v: 'Kimlik Kartı', i: 'fa-id-card' }, { v: 'Ehliyet', i: 'fa-id-card-clip' },
+        { v: 'Biyometrik Fotoğraf', i: 'fa-camera' }, { v: 'Adli Sicil', i: 'fa-gavel' }, { v: 'Diploma', i: 'fa-graduation-cap' },
+        { v: 'SGK Hizmet Dökümü', i: 'fa-briefcase' }, { v: 'Sağlık Raporu', i: 'fa-file-medical' }
+    ];
+    const latest = (name) => docs.find(d => d.name === name);
+    const reqDone = required.filter(r => { const d = latest(r.v); return d && d.status !== 'Reddedildi'; }).length;
+    const groups = [
+        ['Kimlik ve Kişisel', [['Pasaport','Pasaport'],['Kimlik Kartı','Kimlik Kartı / Nüfus Cüzdanı'],['Ehliyet','Sürücü Belgesi (Ehliyet)'],['Biyometrik Fotoğraf','Biyometrik Fotoğraf']]],
+        ['Resmi Kayıtlar', [['Adli Sicil','Adli Sicil Kaydı'],['Nüfus Kayıt Örneği','Nüfus Kayıt Örneği (Vukuatlı)'],['İkametgah','İkametgah (Yerleşim Yeri Belgesi)'],['SGK Hizmet Dökümü','SGK Hizmet Dökümü'],['Sağlık Raporu','Sağlık Raporu']]],
+        ['Eğitim ve Mesleki', [['Diploma','Diploma'],['Mezuniyet Belgesi','Mezuniyet Belgesi'],['Transkript','Transkript (Not Dökümü)'],['Diploma Eki','Diploma Eki (Supplement)'],['Sertifika','Sertifika (Dil, SRC, Mesleki Yeterlilik vb.)'],['Cv','CV']]],
+        ['Diğer', [['form','Form Belgesi'],['Diğer','Diğer']]]
+    ];
+    const iconFor = (n) => { const r = required.find(x => x.v === n); if (r) return r.i; if (/Nüfus/.test(n)) return 'fa-users'; if (/İkamet/.test(n)) return 'fa-house'; if (/Transkript|Diploma Eki/.test(n)) return 'fa-list-ol'; if (/Sertifika/.test(n)) return 'fa-award'; if (/Mezuniyet/.test(n)) return 'fa-graduation-cap'; return 'fa-file-lines'; };
+    const tone = (s) => s === 'Onaylandı' ? 't-ok' : s === 'Reddedildi' ? 't-bad' : 't-warn';
+    const viewUrl = (d) => d.fileId ? `/documents/view/${d._id}` : (d.driveLink || `/uploads/${encodeURIComponent(d.filename || '')}`);
+%>
+<%- include('partials/cand_shell_start', { page: 'documents', title: 'Belgelerim', subtitle: 'Vize ve başvuru süreci için gerekli belgelerini yükle ve takip et' }) %>
 
-    <nav class="navbar navbar-dark bg-dark d-lg-none sticky-top shadow-sm">
-        <div class="container-fluid">
-            <span class="navbar-brand fw-bold"><i class="fas fa-flag me-2"></i>AlmanyaKariyer</span>
-            <button class="navbar-toggler" type="button" data-bs-toggle="offcanvas" data-bs-target="#mobileSidebar">
-                <span class="navbar-toggler-icon"></span>
-            </button>
-        </div>
-    </nav>
-
-    <div class="container-fluid">
-        <div class="row">
-
-            <div class="col-lg-2 d-none d-lg-block sidebar p-4 sticky-top">
-                <div class="d-flex align-items-center gap-2 mb-5">
-                    <div class="bg-primary text-white rounded p-2"><i class="fas fa-flag"></i></div>
-                    <span class="fw-bold fs-5 text-dark">AlmanyaKariyer</span>
-                </div>
-
-                <nav class="nav flex-column gap-1">
-                    <a href="/panel" class="nav-link <%= page === 'panel' ? 'active' : '' %>"><i
-                            class="fas fa-home"></i> Ana Sayfa</a>
-                    <a href="/profile" class="nav-link <%= page === 'profile' ? 'active' : '' %>"><i
-                            class="fas fa-user-circle"></i> Profilim</a>
-                    <a href="/processes" class="nav-link <%= page === 'processes' ? 'active' : '' %>"><i
-                            class="fas fa-tasks"></i> Süreçler</a>
-                    <a href="/germany-process" class="nav-link <%= page === 'germany_process' ? 'active' : '' %>"><i
-                            class="fas fa-route"></i> Almanya Süreci</a>
-                    <a href="/documents" class="nav-link <%= page === 'documents' ? 'active' : '' %>"><i
-                            class="fas fa-file-alt"></i> Dokümanlar</a>
-                    <a href="/messages" class="nav-link <%= page === 'messages' ? 'active' : '' %>"><i
-                            class="fas fa-comments"></i> Mesajlar</a>
-                    <a href="/german" class="nav-link <%= page === 'german' ? 'active' : '' %>"><i
-                            class="fas fa-graduation-cap"></i> Almanca</a>
-                            <a href="/life-in-germany" class="nav-link <%= page === 'life_germany' ? 'active' : '' %>">
-    <i class="fas fa-city"></i> Almanya'da Hayat
-</a>
-                            <a href="/cv-builder" class="nav-link"><i class="fas fa-file-contract"></i> Akıllı CV oluşturucu </a>
-                    <a href="/appointments" class="nav-link <%= page === 'appointments' ? 'active' : '' %>"><i
-                            class="fas fa-calendar-alt"></i> Randevular</a>
-                    <a href="/settings" class="nav-link <%= page === 'settings' ? 'active' : '' %>"><i
-                            class="fas fa-cog"></i> Ayarlar</a>
-                    <a href="/game" class="menu-item <%= page === 'game' ? 'active' : '' %>">
-                        <i class="fas fa-gamepad"></i> <span class="menu-text">Oyun Alanı</span>
-                    </a>
-                    <hr>
-                    <a href="/logout" class="nav-link text-danger"><i class="fas fa-sign-out-alt"></i> Çıkış Yap</a>
-                </nav>
+<div class="row g-3 mb-3">
+    <div class="col-lg-7">
+        <form class="c-card h-100" action="/documents/upload" method="POST" enctype="multipart/form-data" id="upForm">
+            <div class="c-card-h"><div class="c-ic t-brand"><i class="fas fa-cloud-arrow-up"></i></div><div><h2>Yeni Belge Yükle</h2><p class="sub">PDF, JPG veya PNG · en fazla 5 MB</p></div></div>
+            <div class="c-card-b">
+                <label class="form-label" for="docType">1. Belge türünü seç</label>
+                <select name="docType" id="docType" class="form-select mb-3" required>
+                    <option value="" selected disabled>Belge türü seçin…</option>
+                    <% groups.forEach(([g, opts]) => { %>
+                        <optgroup label="<%= g %>"><% opts.forEach(([v, t]) => { %><option value="<%= v %>"><%= t %></option><% }) %></optgroup>
+                    <% }) %>
+                </select>
+                <label class="form-label">2. Dosyanı seç</label>
+                <label class="drop d-block mb-3" id="drop">
+                    <input type="file" name="file" id="file" accept=".pdf,.jpg,.jpeg,.png,.webp,.heic,application/pdf,image/*" hidden>
+                    <div class="c-ic t-brand" id="dropIc"><i class="fas fa-file-arrow-up"></i></div>
+                    <div class="fw-650 text-dark" id="dropT">Dosyayı buraya sürükle veya <span style="color:var(--brand)">seç</span></div>
+                    <div class="small muted" id="dropS">Telefonundan fotoğraf da çekebilirsin</div>
+                </label>
+                <button class="btn btn-brand w-100"><i class="fas fa-upload me-1"></i> Belgeyi Yükle</button>
             </div>
-
-            <div class="col-12 col-lg-10 p-4">
-
-                <div
-                    class="d-flex flex-column flex-md-row justify-content-between align-items-start align-items-md-center mb-4 gap-3">
-                    <div>
-                        <h2 class="fw-bold text-dark mb-1">Doküman Yönetimi</h2>
-                        <p class="text-muted mb-0">Vize ve başvuru süreciniz için gerekli belgeleri buradan
-                            yönetebilirsiniz.</p>
-                    </div>
-                    <div class="d-flex align-items-center gap-2 bg-white px-3 py-2 rounded-pill shadow-sm border">
-                        <div class="bg-primary text-white rounded-circle d-flex align-items-center justify-content-center"
-                            style="width: 32px; height: 32px;">
-                            <%= user.firstName.charAt(0) %>
-                                <%= user.lastName.charAt(0) %>
-                        </div>
-                        <span class="fw-bold small d-none d-sm-inline">
-                            <%= user.firstName %>
-                                <%= user.lastName %>
-                        </span>
-                    </div>
+        </form>
+    </div>
+    <div class="col-lg-5">
+        <div class="c-card h-100">
+            <div class="c-card-h">
+                <div class="flex-grow-1"><h2>Temel Belgeler</h2><p class="sub"><%= reqDone %> / <%= required.length %> belge yüklendi</p></div>
+                <div style="width:80px"><div class="bar"><span style="width:<%= reqDone / required.length * 100 %>%;background:var(--ok)"></span></div></div>
+            </div>
+            <div class="c-card-b py-2">
+                <% required.forEach(r => { const d = latest(r.v); %>
+                <div class="req">
+                    <i class="fas <%= r.i %> muted" style="width:18px;text-align:center"></i>
+                    <span class="flex-grow-1 fw-650 text-dark" style="font-size:13.5px"><%= r.v %></span>
+                    <% if (!d) { %><button type="button" class="btn btn-soft btn-sm js-pick" data-v="<%= r.v %>">Yükle</button>
+                    <% } else { %><span class="pill <%= tone(d.status) %>"><span class="d"></span><%= d.status %></span><% } %>
                 </div>
-
-                <div class="upload-card p-4 mb-5">
-                    <h5 class="fw-bold mb-3 text-primary"><i class="fas fa-cloud-upload-alt me-2"></i> Yeni Belge Yükle
-                    </h5>
-                    <form action="/documents/upload" method="POST" enctype="multipart/form-data"
-                        class="row g-3 align-items-end">
-
-                        <div class="col-md-4">
-                            <label class="form-label small fw-bold text-muted">Belge Türü</label>
-                            <select name="docType" class="form-select bg-light border-0" required>
-                                <option value="" selected disabled>Yüklenecek belge türünü seçiniz...</option>
-
-                                <option value="Pasaport">Pasaport</option>
-                                <option value="Kimlik Kartı">Kimlik Kartı / Nüfus Cüzdanı</option>
-                                <option value="Ehliyet">Sürücü Belgesi (Ehliyet)</option>
-                                <option value="Biyometrik Fotoğraf">Biyometrik Fotoğraf</option>
-
-                                <option value="Adli Sicil">Adli Sicil Kaydı</option>
-                                <option value="Nüfus Kayıt Örneği">Nüfus Kayıt Örneği (Vukuatlı)</option>
-                                <option value="İkametgah">İkametgah (Yerleşim Yeri Belgesi)</option>
-                                <option value="SGK Hizmet Dökümü">SGK Hizmet Dökümü</option>
-                                <option value="Sağlık Raporu">Sağlık Raporu</option>
-
-                                <option value="Diploma">Diploma</option>
-                                <option value="Cv">CV</option>
-                                <option value="Mezuniyet Belgesi"> Mezuniyet Belgesi</option>
-                                <option value="Transkript">Transkript (Not Dökümü)</option>
-                                <option value="Diploma Eki">Diploma Eki (Supplement)</option>
-                                <option value="form">Form Belgesi</option>
-                                <option value="Sertifika">Sertifika (Dil, Mesleki Yeterlilik , SRC vb.)</option>
-
-                                <option value="Diğer">Diğer</option>
-                            </select>
-                        </div>
-
-                        <div class="col-md-5">
-                            <label class="form-label small fw-bold text-muted">Dosya Seç (PDF, JPG, PNG)</label>
-                            <input type="file" name="file" class="form-control" required>
-                        </div>
-
-                        <div class="col-md-3">
-                            <button type="submit" class="btn btn-primary w-100 rounded-pill fw-bold">
-                                <i class="fas fa-upload me-2"></i> Sisteme Yükle
-                            </button>
-                        </div>
-                    </form>
-                </div>
-
-                <h5 class="fw-bold mb-3 text-dark border-bottom pb-2">Dosyalarım <span
-                        class="badge bg-secondary rounded-pill ms-2">
-                        <!-- SADECE KENDİ DOSYA SAYISI BURADA BASILIYOR -->
-                        <%= user.documents.length %>
-                    </span></h5>
-
-                <div class="row g-3">
-                    <% if(user.documents.length> 0) { %>
-                        <!-- DÖNGÜ SADECE BU ADAYIN DİZİSİ İÇİNDE DÖNÜYOR -->
-                        <% user.documents.forEach(doc=> { %>
-                            <div class="col-md-6 col-lg-4">
-                                <div class="doc-card p-3">
-                                    <div class="d-flex align-items-center mb-3">
-                                        <% let icon='fa-file-alt' ; let color='text-secondary' ; let bg='bg-secondary' ;
-                                            if(doc.name==='Pasaport' ) { icon='fa-passport' ; color='text-danger' ;
-                                            bg='bg-danger' ; } else if(doc.name.includes('Kimlik') ||
-                                            doc.name.includes('Ehliyet')) { icon='fa-id-card' ; color='text-primary' ;
-                                            bg='bg-primary' ; } else if(doc.name==='Biyometrik Fotoğraf' ) {
-                                            icon='fa-camera' ; color='text-dark' ; bg='bg-dark' ; } else
-                                            if(doc.name==='İkametgah' ) { icon='fa-home' ; color='text-info' ;
-                                            bg='bg-info' ; } else if(doc.name.includes('Nüfus')) { icon='fa-users' ;
-                                            color='text-danger' ; bg='bg-danger' ; } else
-                                            if(doc.name==='SGK Hizmet Dökümü' ) { icon='fa-briefcase' ;
-                                            color='text-warning' ; bg='bg-warning' ; } else if(doc.name==='Diploma' ||
-                                            doc.name==='Mezuniyet Belgesi' ) { icon='fa-graduation-cap' ;
-                                            color='text-success' ; bg='bg-success' ; } else if(doc.name==='Transkript'
-                                            || doc.name==='Diploma Eki' ) { icon='fa-list-ol' ; color='text-success' ;
-                                            bg='bg-success' ; } else if(doc.name==='Adli Sicil' ) { icon='fa-gavel' ;
-                                            color='text-dark' ; bg='bg-dark' ; } else if(doc.name==='Sağlık Raporu' ) {
-                                            icon='fa-file-medical' ; color='text-danger' ; bg='bg-danger' ; } else
-                                            if(doc.name==='Sertifika' ) { icon='fa-award' ; color='text-warning' ;
-                                            bg='bg-warning' ; } %>
-
-                                            <div
-                                                class="<%= bg %> bg-opacity-10 p-3 rounded-3 me-3 <%= color %> shadow-sm">
-                                                <i class="fas <%= icon %> fa-2x"></i>
-                                            </div>
-                                            <div class="flex-grow-1 overflow-hidden">
-                                                <h6 class="fw-bold mb-1 text-truncate" title="<%= doc.name %>">
-                                                    <%= doc.name %>
-                                                </h6>
-                                                <small class="text-muted d-block">
-                                                    <%= new Date(doc.date).toLocaleDateString('tr-TR') %>
-                                                </small>
-                                            </div>
-
-                                            <div class="ms-2">
-                                                <% if(doc.status==='Onaylandı' ) { %>
-                                                    <i class="fas fa-check-circle text-success fa-lg"
-                                                        title="Onaylandı"></i>
-                                                    <% } else if(doc.status==='Reddedildi' ) { %>
-                                                        <i class="fas fa-times-circle text-danger fa-lg"
-                                                            title="Reddedildi"></i>
-                                                        <% } else { %>
-                                                            <span class="spinner-grow spinner-grow-sm text-warning"
-                                                                role="status"></span>
-                                                            <% } %>
-                                            </div>
-                                    </div>
-
-                                    <div class="d-flex gap-2">
-                                        <% if (doc.driveLink) { %>
-                                            <a href="/documents/view/<%= doc._id %>" target="_blank">Dosyayı Gör</a>
-                                            <% } else { %>
-                                                <a href="/uploads/<%= doc.filename %>" target="_blank">Dosyayı Gör</a>
-                                                <% } %>
-                                                    <a href="/documents/delete/<%= doc._id %>"
-                                                        class="btn btn-sm btn-light border text-danger"
-                                                        onclick="return confirm('Bu belgeyi silmek istediğinize emin misiniz?')">
-                                                        <i class="fas fa-trash-alt"></i>
-                                                    </a>
-                                    </div>
-                                </div>
-                            </div>
-                            <% }) %>
-                                <% } else { %>
-                                    <div class="col-12">
-                                        <div
-                                            class="text-center py-5 text-muted border border-dashed rounded-4 bg-white">
-                                            <div class="mb-3 opacity-25 text-primary">
-                                                <i class="fas fa-folder-open fa-4x"></i>
-                                            </div>
-                                            <h6 class="fw-bold">Henüz belge yüklemediniz.</h6>
-                                            <p class="small mb-0">Yukarıdaki form alanını kullanarak ilk belgenizi
-                                                yükleyebilirsiniz.</p>
-                                        </div>
-                                    </div>
-                                    <% } %>
-                </div>
-
+                <% }) %>
             </div>
         </div>
     </div>
+</div>
 
-    <div class="offcanvas offcanvas-start" tabindex="-1" id="mobileSidebar">
-        <div class="offcanvas-header bg-dark text-white">
-            <h5 class="offcanvas-title">Menü</h5>
-            <button type="button" class="btn-close btn-close-white" data-bs-dismiss="offcanvas"></button>
-        </div>
-        <div class="offcanvas-body">
-            <nav class="nav flex-column gap-2">
-                <a href="/panel" class="nav-link"><i class="fas fa-home"></i> Ana Sayfa</a>
-                <a href="/profile" class="nav-link"><i class="fas fa-user-circle"></i> Profilim</a>
-                <a href="/processes" class="nav-link"><i class="fas fa-tasks"></i> Süreçler</a>
-                <a href="/germany-process" class="nav-link"><i class="fas fa-route"></i> Almanya Süreci</a>
-                <a href="/germany-process" class="nav-link"><i class="fas fa-route"></i> Almanya Süreci</a>
-                <a href="/documents" class="nav-link active"><i class="fas fa-file-alt"></i> Dokümanlar</a>
-                <a href="/messages" class="nav-link"><i class="fas fa-comments"></i> Mesajlar</a>
-                <a href="/life-in-germany" class="nav-link <%= page === 'life_germany' ? 'active' : '' %>">
-    <i class="fas fa-city"></i> Almanya'da Hayat
-</a>
-                <a href="/cv-builder" class="nav-link"><i class="fas fa-file-contract"></i> Akıllı CV oluşturucu </a>
-                <a href="/application-form" class="nav-link"><i class="fas fa-file-signature"></i>Form</a>
-                <a href="/german" class="nav-link"><i class="fas fa-graduation-cap"></i> Almanca</a>
-                <a href="/appointments" class="nav-link"><i class="fas fa-calendar-alt"></i> Randevular</a>
-                <a href="/settings" class="nav-link"><i class="fas fa-cog"></i> Ayarlar</a>
-                <a href="/game" class="menu-item <%= page === 'game' ? 'active' : '' %>">
-                    <i class="fas fa-gamepad"></i> <span class="menu-text">Oyun Alanı</span>
-                </a>
-                <hr>
-                <a href="/logout" class="nav-link text-danger"><i class="fas fa-sign-out-alt"></i> Çıkış Yap</a>
-            </nav>
+<div class="c-card">
+    <div class="c-card-h">
+        <div><h2>Yüklediğim Belgeler</h2><p class="sub">Toplam <%= docs.length %> belge</p></div>
+        <div class="seg ms-auto" id="seg">
+            <button class="active" data-v="">Tümü</button>
+            <button data-v="İnceleniyor">İncelemede</button>
+            <button data-v="Onaylandı">Onaylı</button>
+            <button data-v="Reddedildi">Reddedilen</button>
         </div>
     </div>
+    <div id="docList">
+        <% if (!docs.length) { %>
+            <div class="empty"><div class="c-ic t-gray"><i class="fas fa-folder-open"></i></div><div class="fw-650 text-dark">Henüz belge yüklemedin</div><div class="small">Yukarıdaki formdan ilk belgeni yükleyebilirsin.</div></div>
+        <% } %>
+        <% docs.forEach(d => { %>
+        <div class="doc" data-status="<%= d.status %>">
+            <div class="c-ic <%= tone(d.status) %>"><i class="fas <%= iconFor(d.name || '') %>"></i></div>
+            <div class="flex-grow-1" style="min-width:0">
+                <div class="fw-650 text-dark text-truncate"><%= d.name %></div>
+                <div class="small muted text-truncate"><%= new Date(d.date).toLocaleDateString('tr-TR', { day: 'numeric', month: 'long', year: 'numeric' }) %> · <%= d.filename %></div>
+                <% if (d.status === 'Reddedildi') { %><div class="small mt-1" style="color:var(--bad)"><i class="fas fa-rotate me-1"></i>Lütfen bu belgeyi yeniden yükle.</div><% } %>
+            </div>
+            <span class="pill <%= tone(d.status) %> d-none d-sm-inline-flex"><span class="d"></span><%= d.status %></span>
+            <a href="<%= viewUrl(d) %>" target="_blank" rel="noopener" class="btn btn-soft btn-sm"><i class="fas fa-eye"></i><span class="d-none d-md-inline ms-1">Görüntüle</span></a>
+            <% if (d.status !== 'Onaylandı') { %>
+            <form action="/documents/delete/<%= d._id %>" method="POST" class="m-0" data-confirm="“<%= d.name %>” belgesi silinecek.">
+                <button class="btn btn-soft btn-sm" style="color:var(--bad)" title="Sil" data-no-busy><i class="fas fa-trash-can"></i></button>
+            </form>
+            <% } else { %>
+            <span class="btn btn-sm disabled border-0" title="Onaylanan belgeler silinemez"><i class="fas fa-lock muted"></i></span>
+            <% } %>
+        </div>
+        <% }) %>
+        <div class="empty d-none" id="segEmpty">Bu filtrede belge yok.</div>
+    </div>
+</div>
 
-    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+<%- include('partials/cand_shell_end', { page: 'documents' }) %>
+<script>
+cNotify({
+    ok: { uploaded: 'Belgen yüklendi, danışmanın inceleyecek.', deleted: 'Belge silindi.' },
+    err: { no_file: 'Lütfen bir dosya seçin.', no_type: 'Lütfen belge türünü seçin.', bad_type: 'Yalnızca PDF, JPG veya PNG yükleyebilirsiniz.', too_large: 'Dosya 5 MB\'dan büyük olamaz.', upload_failed: 'Belge yüklenemedi. İnternet bağlantınızı kontrol edip tekrar deneyin.', approved_locked: 'Onaylanmış belgeler silinemez.', not_found: 'Belge bulunamadı.' }
+});
+(function () {
+    const drop = document.getElementById('drop'), file = document.getElementById('file');
+    const show = f => {
+        if (!f) return;
+        const big = f.size > 5 * 1024 * 1024;
+        drop.classList.toggle('has', !big);
+        document.getElementById('dropT').textContent = f.name;
+        document.getElementById('dropS').innerHTML = big ? '<span style="color:var(--bad)">Dosya 5 MB\'dan büyük</span>' : (f.size / 1024 / 1024).toFixed(2) + ' MB · değiştirmek için tıkla';
+        document.getElementById('dropIc').innerHTML = '<i class="fas ' + (big ? 'fa-triangle-exclamation' : 'fa-check') + '"></i>';
+    };
+    file.addEventListener('change', () => show(file.files[0]));
+    ['dragenter', 'dragover'].forEach(ev => drop.addEventListener(ev, e => { e.preventDefault(); drop.classList.add('over'); }));
+    ['dragleave', 'drop'].forEach(ev => drop.addEventListener(ev, e => { e.preventDefault(); drop.classList.remove('over'); }));
+    drop.addEventListener('drop', e => { if (e.dataTransfer.files.length) { file.files = e.dataTransfer.files; show(file.files[0]); } });
+    document.getElementById('upForm').addEventListener('submit', e => {
+        const f = file.files[0];
+        if (!document.getElementById('docType').value) { e.preventDefault(); e.stopImmediatePropagation(); Swal.fire({ icon: 'info', title: 'Belge türünü seçin', confirmButtonColor: '#2F54EB' }); return; }
+        if (!f) { e.preventDefault(); e.stopImmediatePropagation(); Swal.fire({ icon: 'info', title: 'Bir dosya seçin', confirmButtonColor: '#2F54EB' }); return; }
+        if (f.size > 5 * 1024 * 1024) { e.preventDefault(); e.stopImmediatePropagation(); Swal.fire({ icon: 'warning', title: 'Dosya çok büyük', text: 'En fazla 5 MB yükleyebilirsiniz.', confirmButtonColor: '#2F54EB' }); }
+    });
+    document.querySelectorAll('.js-pick').forEach(b => b.addEventListener('click', () => {
+        document.getElementById('docType').value = b.dataset.v;
+        document.getElementById('upForm').scrollIntoView({ behavior: 'smooth', block: 'start' });
+        setTimeout(() => file.click(), 350);
+    }));
+    const seg = document.getElementById('seg');
+    seg.querySelectorAll('button').forEach(b => b.addEventListener('click', () => {
+        seg.querySelectorAll('button').forEach(x => x.classList.toggle('active', x === b));
+        let n = 0;
+        document.querySelectorAll('#docList .doc').forEach(d => { const ok = !b.dataset.v || d.dataset.status === b.dataset.v; d.style.display = ok ? '' : 'none'; if (ok) n++; });
+        document.getElementById('segEmpty').classList.toggle('d-none', n > 0 || !document.querySelector('#docList .doc'));
+    }));
+})();
+</script>
 </body>
-
 </html>
