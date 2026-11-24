@@ -6,8 +6,8 @@
     <style>
         .nt { display: flex; gap: 12px; padding: 14px 20px; border-bottom: 1px solid #F0F2F5; text-decoration: none; color: inherit; align-items: flex-start; }
         .nt:last-child { border-bottom: 0; }
-        .nt:hover { background: #FAFBFF; }
-        .nt.unread { background: #F8FAFF; }
+        .nt:hover { background: #FFFAFA; }
+        .nt.unread { background: #FFF8F8; }
         .nt.unread .t::after { content: ''; display: inline-block; width: 8px; height: 8px; border-radius: 50%; background: var(--brand); margin-left: 8px; vertical-align: middle; }
         .seg a { border: 0; padding: 6px 12px; border-radius: 8px; font-weight: 600; font-size: 13px; color: #475467; text-decoration: none; }
         .seg a.active { background: #fff; color: var(--ink); box-shadow: 0 1px 2px rgba(16,24,40,.08); }
@@ -51,7 +51,7 @@
     const b = document.getElementById('pushBtn');
     if ('Notification' in window && Notification.permission === 'default') {
         b.classList.remove('d-none');
-        b.addEventListener('click', () => Notification.requestPermission().then(p => { b.classList.add('d-none'); if (p === 'granted') Swal.fire({ icon: 'success', title: 'Masaüstü bildirimleri açıldı', text: 'Panel açıkken yeni bildirimler masaüstünde de gösterilecek.', confirmButtonColor: '#2F54EB' }); }));
+        b.addEventListener('click', () => Notification.requestPermission().then(p => { b.classList.add('d-none'); if (p === 'granted') Swal.fire({ icon: 'success', title: 'Masaüstü bildirimleri açıldı', text: 'Panel açıkken yeni bildirimler masaüstünde de gösterilecek.', confirmButtonColor: '#D4111B' }); }));
     }
     document.addEventListener('admin:notification', () => setTimeout(() => location.reload(), 1500));
 })();

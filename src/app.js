@@ -8,6 +8,8 @@ const { google } = require('googleapis');
 const stream = require('stream');
 const multer = require('multer');
 require('dotenv').config(); 
+process.env.TZ = process.env.TZ || 'Europe/Istanbul'; // tarih/saatler Türkiye saatiyle
+require('./lib/log'); // loglarda hassas bilgileri maskele
 const PDFDocument = require('pdfkit'); 
 const fs = require('fs');
 const Appointment = require('./models/Appointment');
@@ -21,11 +23,7 @@ const GlobalFileSchema = new mongoose.Schema({
 const GlobalFile = mongoose.model('GlobalFile', GlobalFileSchema);
 
 // --- YENİ: ŞİRKETLER (FİRMALAR) MODELİ ---
-const CompanySchema = new mongoose.Schema({
-    name: { type: String, required: true, unique: true },
-    date: { type: Date, default: Date.now }
-});
-const Company = mongoose.model('Company', CompanySchema);
+const Company = require('./models/Company');
 
 // --- MODELLER ---
 const Candidate = require('./models/Candidate');
@@ -66,7 +64,7 @@ const uploadToGoogleDrive = async (fileObject, folderName) => {
         const driveService = google.drive({ version: 'v3', auth });
 
         const searchRes = await driveService.files.list({
-            q: `mimeType='application/vnd.google-apps.folder' and name='${folderName}' and '${process.env.DRIVE_FOLDER_ID}' in parents and trashed=false`,
+            q: `mimeType='application/vnd.google-apps.folder' and name='${String(folderName).replace(/\\/g, '\\\\').replace(/'/g, "\\'")}' and '${process.env.DRIVE_FOLDER_ID}' in parents and trashed=false`,
             fields: 'files(id, name)',
         });
 
@@ -125,8 +123,17 @@ const transporter = nodemailer.createTransport({
 app.set('views', path.join(__dirname, 'views'));
 app.set('view engine', 'ejs');
 app.use(express.static(path.join(process.cwd(), 'public')));
-app.use(bodyParser.urlencoded({ extended: true }));
+app.use(bodyParser.urlencoded({ extended: true, limit: '1mb' }));
+const { rateLimit, safeEqual } = require('./lib/security');
+const { isAllowedFile, safeName } = require('./lib/files');
+const CandidateContact = require('./models/CandidateContact');
 app.set('trust proxy', 1); // Render/Heroku gibi proxy arkasında doğru IP ve HTTPS algılama
+// İstek sınırlama: genel yazma işlemleri ve giriş uç noktaları
+app.use(rateLimit({ windowMs: 60 * 1000, max: 120, when: (req) => req.method !== 'GET' }));
+app.use(['/login', '/admin/login'], rateLimit({ windowMs: 15 * 60 * 1000, max: 20, when: (req) => req.method === 'POST', message: 'Çok fazla giriş denemesi yapıldı. Lütfen 15 dakika sonra tekrar deneyin.' }));
+app.use('/admin/asistan/ask', rateLimit({ windowMs: 60 * 1000, max: 20, message: 'Asistana çok sık soru gönderildi. Lütfen bir dakika bekleyin.' }));
+// Güvenlik başlıkları
+app.use((req, res, next) => { res.set({ 'X-Content-Type-Options': 'nosniff', 'X-Frame-Options': 'SAMEORIGIN', 'Referrer-Policy': 'same-origin' }); next(); });
 if (!process.env.SESSION_SECRET) console.warn('⚠️  SESSION_SECRET tanımlı değil! Canlı ortamda mutlaka güçlü bir değer belirleyin.');
 app.use(session({
     name: 'connect.sid',
@@ -195,6 +202,9 @@ require('./process')(app, { adminAuthCheck, Candidate });
 // --- AI YÖNETİCİ ASİSTANI ---
 require('./ai')(app, { adminAuthCheck, Candidate });
 
+// --- CRM: YÖNETİM PANELİ, İLETİŞİM, ŞİRKETLER, RAPORLAR ---
+require('./crm')(app, { adminAuthCheck, Candidate, Appointment });
+
 // ============================================
 //  ROTALAR
 // ============================================
@@ -248,7 +258,7 @@ app.get('/admin/login', (req, res) => {
 
 app.post('/admin/login', (req, res) => {
     const { username, password } = req.body;
-    if (username === (process.env.ADMIN_USER || 'admin') && password === (process.env.ADMIN_PASS || 'admin123')) {
+    if (safeEqual(String(username || ''), process.env.ADMIN_USER || 'admin') && safeEqual(String(password || ''), process.env.ADMIN_PASS || 'admin123')) {
         // Yeni oturum: personel/aday oturumu taşınmaz (yetkiler kesin ayrılır)
         req.session.regenerate((err) => {
             if (err) return res.render('admin_login', { error: 'Oturum başlatılamadı.' });
@@ -326,13 +336,15 @@ app.post('/documents/upload', authCheck, (req, res, next) => {
 }, async (req, res) => {
     if (!req.file) return res.redirect('/documents?error=no_file');
     if (!req.body.docType) return res.redirect('/documents?error=no_type');
-    if (!ALLOWED_UPLOAD.includes(req.file.mimetype)) return res.redirect('/documents?error=bad_type');
+    if (!isAllowedFile(req.file, ALLOWED_UPLOAD)) return res.redirect('/documents?error=bad_type');
+    req.file.originalname = safeName(req.file.originalname);
     try {
         const candidateFolderName = `${req.user.firstName} ${req.user.lastName}`;
         const driveFile = await uploadToGoogleDrive(req.file, candidateFolderName);
 
         await Candidate.findByIdAndUpdate(req.user._id, {
-            $push: { documents: { name: req.body.docType, filename: driveFile.name, driveLink: driveFile.webViewLink, fileId: driveFile.id, status: 'İnceleniyor', date: new Date() } }
+            $push: { documents: { name: req.body.docType, filename: driveFile.name, driveLink: driveFile.webViewLink, fileId: driveFile.id, status: 'İnceleniyor', date: new Date() } },
+            $set: { lastActivityAt: new Date() }
         });
         res.redirect('/documents?status=uploaded');
     } catch (error) {
@@ -411,7 +423,7 @@ app.post('/appointments/create', authCheck, async (req, res) => {
         if (pending >= 3) return res.redirect('/appointments?error=too_many');
 
         await Appointment.create({ candidateId: req.user._id, date, time, type, status: 'Beklemede' });
-        await Candidate.findByIdAndUpdate(req.user._id, { $push: { appointments: { date, time, type, status: 'Beklemede', createdAt: new Date() } } });
+        await Candidate.findByIdAndUpdate(req.user._id, { $push: { appointments: { date, time, type, status: 'Beklemede', createdAt: new Date() } }, $set: { lastActivityAt: new Date() } });
         res.redirect('/appointments?status=success');
     } catch (error) { res.redirect('/appointments?error=failed'); }
 });
@@ -522,24 +534,30 @@ app.get('/admin', adminAuthCheck, async (req, res) => {
         })));
         allDocuments.sort((a, b) => new Date(b.date || 0) - new Date(a.date || 0));
 
-        const stageCounts = STAGES.map(s => ({ name: s, count: candidates.filter(c => c.currentStage === s).length }));
-        const companyCounts = [{ name: 'Atanmadı', count: candidates.filter(c => !c.company || c.company === 'Atanmadı').length }]
-            .concat(companies.map(co => ({ name: co.name, _id: co._id, count: candidates.filter(c => c.company === co.name).length })));
+        // İptal edilen adaylar aktif sayımlara, hunilere ve şirket dağılımına dahil edilmez
+        const activeCands = candidates.filter(c => c.status !== 'cancelled');
+        const stageCounts = STAGES.map(s => ({ name: s, count: activeCands.filter(c => c.currentStage === s).length }));
+        const companyCounts = [{ name: 'Atanmadı', count: activeCands.filter(c => !c.company || c.company === 'Atanmadı').length }]
+            .concat(companies.map(co => ({ name: co.name, _id: co._id, count: activeCands.filter(c => c.company === co.name).length })));
         const jobs = [...new Set(candidates.map(c => c.job).filter(Boolean))].sort((a, b) => a.localeCompare(b, 'tr'));
 
         const stats = {
             total: candidates.length,
             pendingDocs: allDocuments.filter(d => d.status === 'İnceleniyor').length,
             pendingAppointments: appointments.filter(a => a.status === 'Beklemede').length,
-            inGermany: candidates.filter(c => c.currentStage === FINAL_STAGE).length,
+            active: activeCands.length,
+            cancelled: candidates.length - activeCands.length,
+            review: candidates.filter(c => c.stageReviewNeeded).length,
+            inGermany: activeCands.filter(c => c.currentStage === FINAL_STAGE).length,
             unassigned: companyCounts[0].count,
             noEmail: candidates.filter(c => !c.email || !c.email.trim()).length,
             unreadMessages: unreadFromCandidates
         };
 
         const processInfo = await app.locals.processService.dashboardInfo().catch(() => ({ stale: [], failedAutomations: 0 }));
+        const dash = await app.locals.crmDashboard();
         res.render('admin', {
-            candidates, appointments, companies, allDocuments, processInfo,
+            candidates, appointments, companies, allDocuments, processInfo, dash,
             stageCounts, companyCounts, jobs, stats,
             stages: STAGES, germanyStages: GERMANY_STAGES,
             user: { firstName: 'Admin' }
@@ -565,8 +583,9 @@ app.get('/admin/candidate/:id', adminAuthCheck, async (req, res) => {
 
         const wo = await app.locals.loadCandidateWorkOrders(candidate._id);
         const pipeline = await app.locals.processService.candidatePipeline(candidate._id);
+        const timeline = await app.locals.candidateTimeline(candidate._id);
         res.render('admin_candidate_detail', {
-            candidate, appointments, messages, companies, wo, pipeline,
+            candidate, appointments, messages, companies, wo, pipeline, timeline,
             stages: STAGES, germanyStages: GERMANY_STAGES,
             stateNames: Object.keys(STATE_DATA),
             user: { firstName: 'Admin' }
@@ -622,9 +641,22 @@ app.post('/admin/candidate/:id/edit', adminAuthCheck, async (req, res) => {
     } catch (error) { redirectBack(req, res, 'error', 'update_failed'); }
 });
 
+// Silinen adayın açık görevleri iptal edilir (görev geçmişi korunur), personel bilgilendirilir
+async function cancelOpenTasksOfDeleted(ids) {
+    const WorkOrder = mongoose.model('WorkOrder');
+    const open = await WorkOrder.find({ candidateId: { $in: ids }, status: { $in: ['Yeni', 'Devam Ediyor', 'Revizyon'] } });
+    for (const wo of open) {
+        wo.status = 'İptal'; wo.cancelledAt = new Date();
+        wo.history.push({ action: 'İptal edildi', byType: 'admin', byName: 'Yönetici', note: 'Aday kaydı silindi' });
+        await wo.save();
+        await app.locals.services.notify({ recipientType: 'staff', recipientId: wo.assignedTo, type: 'cancelled', title: 'Görev iptal edildi', message: `${wo.code} · ${wo.title} — aday kaydı silindi.`, workOrder: null });
+    }
+}
+
 app.post('/admin/candidate/:id/delete', adminAuthCheck, async (req, res) => {
     try {
         const id = req.params.id;
+        await cancelOpenTasksOfDeleted([id]);
         await Promise.all([
             Candidate.findByIdAndDelete(id),
             mongoose.model('CandidateStage').deleteMany({ candidateId: id }),
@@ -652,6 +684,7 @@ app.post('/admin/candidates/bulk', adminAuthCheck, async (req, res) => {
         } else if (action === 'message' && value && value.trim()) {
             await Message.insertMany(ids.map(id => ({ candidateId: id, content: value.trim(), sender: 'Admin', isRead: false, date: new Date() })));
         } else if (action === 'delete') {
+            await cancelOpenTasksOfDeleted(ids);
             await Promise.all([
                 Candidate.deleteMany({ _id: { $in: ids } }),
                 mongoose.model('CandidateStage').deleteMany({ candidateId: { $in: ids } }),
@@ -856,6 +889,8 @@ app.post('/admin/message/email', adminAuthCheck, async (req, res) => {
             subject: req.body.subject || 'Bilgilendirme',
             html: mailTemplate(candidate.firstName, req.body.content || '')
         });
+        await CandidateContact.create({ candidateId: candidate._id, type: 'email', direction: 'outgoing', subject: String(req.body.subject || 'Bilgilendirme').slice(0, 200), summary: String(req.body.content || '').slice(0, 4000), source: 'system', authorType: 'admin', authorId: 'admin', authorName: 'Yönetici' }).catch(() => {});
+        await Candidate.updateOne({ _id: candidate._id }, { $set: { lastActivityAt: new Date() } });
         redirectBack(req, res, 'status', 'mail_success');
     } catch (error) {
         console.error('Mail hatası:', error.message);
@@ -885,6 +920,7 @@ app.post('/admin/message/email/bulk', adminAuthCheck, async (req, res) => {
                 html: mailTemplate(c.firstName, content || '')
             })));
             results.forEach(r => r.status === 'fulfilled' ? sent++ : failed++);
+            await Promise.all(batch.map((c, k) => results[k].status === 'fulfilled' ? CandidateContact.create({ candidateId: c._id, type: 'email', direction: 'outgoing', subject: String(subject || 'Duyuru').slice(0, 200), summary: `[Toplu e-posta] ${String(content || '').slice(0, 3900)}`, source: 'system', authorType: 'admin', authorId: 'admin', authorName: 'Yönetici' }).catch(() => {}) : null));
         }
         if (sent === 0) return redirectBack(req, res, 'error', 'bulk_mail_fail');
         redirectBack(req, res, 'status', failed ? `bulk_mail_partial_${sent}_${failed}` : 'bulk_mail_success');

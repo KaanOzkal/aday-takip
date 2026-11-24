@@ -1,0 +1,104 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+    <title>Raporlar | BERLINER Yönetim</title>
+    <%- include('partials/admin_head') %>
+</head>
+<body>
+<%
+    const f = r.f, S = r.summary;
+    const fmtD = (v) => v == null ? '—' : v.toFixed(1);
+    const d10 = (d) => `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+    const maxSer = Math.max(1, ...r.series.map(x => Math.max(x.applications, x.arrivals, x.cancellations)));
+%>
+<div class="app">
+    <%- include('partials/admin_sidebar', { active: 'reports', onMain: false }) %>
+    <div class="main">
+        <header class="topbar">
+            <button class="btn btn-soft btn-icon menu-toggle" aria-label="Menü"><i class="fas fa-bars"></i></button>
+            <div><div class="crumb">Süreç &amp; Otomasyon</div><h1>Raporlar</h1></div>
+            <div class="ms-auto d-flex gap-2">
+                <a class="btn btn-soft" href="/admin/raporlar.csv?<%= qs %>"><i class="fas fa-file-csv me-1"></i><span class="d-none d-sm-inline">CSV</span></a>
+                <a class="btn btn-brand" href="/admin/raporlar.pdf?<%= qs %>"><i class="fas fa-file-pdf me-1"></i><span class="d-none d-sm-inline">PDF</span></a>
+            </div>
+        </header>
+        <main class="content">
+            <form class="card-x card-b mb-3" method="GET" action="/admin/raporlar">
+                <div class="row g-2 align-items-end">
+                    <div class="col-6 col-md-3 col-xl-2"><label class="form-label">Başlangıç</label><input type="date" name="from" class="form-control" value="<%= d10(f.from) %>"></div>
+                    <div class="col-6 col-md-3 col-xl-2"><label class="form-label">Bitiş</label><input type="date" name="to" class="form-control" value="<%= d10(f.to) %>"></div>
+                    <div class="col-6 col-md-3 col-xl-2"><label class="form-label">Personel</label><select name="staff" class="form-select"><option value="">Tümü</option><% staffList.forEach(s => { %><option value="<%= s._id %>" <%= f.staff === String(s._id) ? 'selected' : '' %>><%= s.fullName %><%= s.deletedAt ? ' (devre dışı)' : '' %></option><% }) %></select></div>
+                    <div class="col-6 col-md-3 col-xl-2"><label class="form-label">Şirket</label><select name="company" class="form-select"><option value="">Tümü</option><option value="Atanmadı" <%= f.company === 'Atanmadı' ? 'selected' : '' %>>Atanmadı</option><% companies.forEach(c => { %><option <%= f.company === c.name ? 'selected' : '' %>><%= c.name %></option><% }) %></select></div>
+                    <div class="col-6 col-md-3 col-xl-2"><label class="form-label">Aşama</label><select name="stage" class="form-select"><option value="">Tümü</option><% stages.forEach(s => { %><option <%= f.stage === s ? 'selected' : '' %>><%= s %></option><% }) %></select></div>
+                    <div class="col-6 col-md-3 col-xl-2"><label class="form-label">Aday durumu</label><select name="status" class="form-select"><option value="">Tümü</option><option value="active" <%= f.status === 'active' ? 'selected' : '' %>>Aktif</option><option value="arrived" <%= f.status === 'arrived' ? 'selected' : '' %>>Almanya'ya ulaşan</option><option value="cancelled" <%= f.status === 'cancelled' ? 'selected' : '' %>>İptal</option></select></div>
+                    <div class="col-6 col-md-3 col-xl-2"><label class="form-label">Dönem</label><select name="period" class="form-select"><option value="day" <%= f.period === 'day' ? 'selected' : '' %>>Günlük</option><option value="week" <%= f.period === 'week' ? 'selected' : '' %>>Haftalık</option><option value="month" <%= f.period === 'month' ? 'selected' : '' %>>Aylık</option></select></div>
+                    <div class="col-6 col-md-3 col-xl-2 d-flex gap-2"><button class="btn btn-brand flex-grow-1"><i class="fas fa-filter me-1"></i>Uygula</button><a href="/admin/raporlar" class="btn btn-soft" title="Sıfırla"><i class="fas fa-rotate-left"></i></a></div>
+                </div>
+            </form>
+
+            <div class="row g-3 mb-3">
+                <div class="col-6 col-md-3"><div class="stat-mini"><div class="v"><%= S.newInRange %></div><div class="l">Dönemde yeni aday</div></div></div>
+                <div class="col-6 col-md-3"><div class="stat-mini"><div class="v" style="color:var(--ok)"><%= S.arrivedInRange %></div><div class="l">Dönemde Almanya'ya ulaşan</div></div></div>
+                <div class="col-6 col-md-3"><div class="stat-mini"><div class="v" style="color:var(--bad)"><%= S.cancelledInRange %></div><div class="l">Dönemde iptal edilen</div></div></div>
+                <div class="col-6 col-md-3"><div class="stat-mini"><div class="v"><%= fmtD(S.avgCompletionDays) %></div><div class="l">Ort. tamamlanma (gün, başvuru → Almanya)</div></div></div>
+                <div class="col-6 col-md-3"><div class="stat-mini"><div class="v"><%= S.active %></div><div class="l">Filtredeki aktif aday</div></div></div>
+                <div class="col-6 col-md-3"><div class="stat-mini"><div class="v muted"><%= S.cancelledTotal %></div><div class="l">Filtredeki iptal (toplam)</div></div></div>
+                <div class="col-6 col-md-3"><div class="stat-mini"><div class="v"><%= S.cohortSuccessRate == null ? '—' : S.cohortSuccessRate + '%' %></div><div class="l">Dönem başvurularında başarı</div></div></div>
+                <div class="col-6 col-md-3"><div class="stat-mini"><div class="v"><%= S.cohortCancelRate == null ? '—' : S.cohortCancelRate + '%' %></div><div class="l">Dönem başvurularında iptal</div></div></div>
+            </div>
+
+            <div class="card-x mb-3">
+                <div class="card-h"><div><h2><%= ({ day: 'Günlük', week: 'Haftalık', month: 'Aylık' })[f.period] %> hareket</h2><p class="sub">Yeni aday · Almanya'ya ulaşan · İptal</p></div>
+                    <div class="ms-auto d-flex gap-3 small"><span><i class="fas fa-square" style="color:var(--brand)"></i> Yeni</span><span><i class="fas fa-square" style="color:var(--ok)"></i> Ulaşan</span><span><i class="fas fa-square" style="color:#98A2B3"></i> İptal</span></div></div>
+                <div class="card-b" style="overflow-x:auto">
+                    <div class="mchart" style="min-width:<%= Math.max(300, r.series.length * 34) %>px">
+                        <% r.series.forEach(x => { %>
+                        <div class="mcol" title="<%= x.label %>: <%= x.applications %> yeni, <%= x.arrivals %> ulaşan, <%= x.cancellations %> iptal">
+                            <div class="mbars">
+                                <div class="mbar b1" style="height:<%= Math.round(x.applications / maxSer * 100) %>%;width:30%"><% if (x.applications) { %><span><%= x.applications %></span><% } %></div>
+                                <div class="mbar b2" style="height:<%= Math.round(x.arrivals / maxSer * 100) %>%;width:30%"></div>
+                                <div class="mbar" style="background:#98A2B3;height:<%= Math.round(x.cancellations / maxSer * 100) %>%;width:30%"></div>
+                            </div>
+                            <div class="mlbl"><%= x.label %></div>
+                        </div>
+                        <% }) %>
+                    </div>
+                </div>
+            </div>
+
+            <div class="row g-3 mb-3">
+                <div class="col-lg-6">
+                    <div class="card-x h-100">
+                        <div class="card-h"><h2>Şirket bazlı</h2></div>
+                        <div class="table-responsive"><table class="table table-x mb-0">
+                            <thead><tr><th>Şirket</th><th class="text-end">Aktif</th><th class="text-end">Ulaşan</th><th class="text-end">İptal</th><th class="text-end">Dönemde yeni</th></tr></thead>
+                            <tbody><% r.byCompany.forEach(c => { %><tr><td class="fw-650"><%= c.name %></td><td class="text-end"><%= c.active %></td><td class="text-end"><%= c.arrived %></td><td class="text-end muted"><%= c.cancelled %></td><td class="text-end"><%= c.newInRange %></td></tr><% }) %>
+                            <% if (!r.byCompany.length) { %><tr><td colspan="5"><div class="empty py-3">Veri yok.</div></td></tr><% } %></tbody>
+                        </table></div>
+                    </div>
+                </div>
+                <div class="col-lg-6">
+                    <div class="card-x h-100">
+                        <div class="card-h"><div><h2>Aşama bekleme süreleri</h2><p class="sub">Dönemde tamamlanan aşamalar (atlananlar hariç)</p></div></div>
+                        <div class="table-responsive"><table class="table table-x mb-0">
+                            <thead><tr><th>Aşama</th><th class="text-end">Kayıt</th><th class="text-end">Ort. gün</th><th class="text-end">En uzun</th><th class="text-end">Şu an</th></tr></thead>
+                            <tbody><% r.stageWait.forEach(x => { %><tr><td><%= x.name %></td><td class="text-end"><%= x.count %></td><td class="text-end fw-bold"><%= fmtD(x.avg) %></td><td class="text-end"><%= fmtD(x.max) %></td><td class="text-end"><%= x.current %></td></tr><% }) %></tbody>
+                        </table></div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="card-x">
+                <div class="card-h"><div><h2>Personel performansı</h2><p class="sub">Seçili tarih aralığında atanan görevler</p></div></div>
+                <div class="table-responsive"><table class="table table-x mb-0">
+                    <thead><tr><th>Personel</th><th class="text-end">Görev</th><th class="text-end">Tamamlanan</th><th class="text-end">Devam eden</th><th class="text-end">Geciken</th><th class="text-end">Oran</th><th class="text-end d-none d-md-table-cell">Ort. süre</th><th class="text-end d-none d-md-table-cell">Aday</th></tr></thead>
+                    <tbody><% r.staffPerf.forEach(x => { %><tr><td class="fw-650"><%= x.name %></td><td class="text-end"><%= x.total %></td><td class="text-end"><%= x.completed %></td><td class="text-end"><%= x.inProgress + x.newCount %></td><td class="text-end <%= x.overdue ? 'text-danger fw-bold' : '' %>"><%= x.overdue %></td><td class="text-end"><%= x.rate == null ? '—' : x.rate + '%' %></td><td class="text-end d-none d-md-table-cell"><%= x.avgHours == null ? '—' : x.avgHours.toFixed(1) + ' sa' %></td><td class="text-end d-none d-md-table-cell"><%= x.candidates %></td></tr><% }) %>
+                    <% if (!r.staffPerf.length) { %><tr><td colspan="8"><div class="empty py-3">Bu aralıkta atanmış görev yok.</div></td></tr><% } %></tbody>
+                </table></div>
+            </div>
+        </main>
+    </div>
+</div>
+<%- include('partials/admin_scripts') %>
+</body>
+</html>

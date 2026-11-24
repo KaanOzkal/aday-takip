@@ -1,0 +1,63 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+    <title>Şirketler | BERLINER Yönetim</title>
+    <%- include('partials/admin_head') %>
+</head>
+<body>
+<%
+    const ctTone = (s) => ({ 'Aktif Sözleşme': 't-ok', 'Sözleşme Gönderildi': 't-info', 'Görüşülüyor': 't-warn', 'Askıda': 't-gray', 'Sona Erdi': 't-bad' })[s] || 't-gray';
+    const tot = rows.reduce((a, r) => ({ active: a.active + r.active, arrived: a.arrived + r.arrived, waiting: a.waiting + r.waitingApproval, open: a.open + r.openPositions }), { active: 0, arrived: 0, waiting: 0, open: 0 });
+%>
+<div class="app">
+    <%- include('partials/admin_sidebar', { active: 'companies', onMain: false }) %>
+    <div class="main">
+        <header class="topbar">
+            <button class="btn btn-soft btn-icon menu-toggle" aria-label="Menü"><i class="fas fa-bars"></i></button>
+            <div><div class="crumb">İş Akışı</div><h1>Şirketler / İşverenler</h1></div>
+            <div class="ms-auto"><button class="btn btn-brand" data-bs-toggle="collapse" data-bs-target="#addCo"><i class="fas fa-plus me-1"></i>Şirket ekle</button></div>
+        </header>
+        <main class="content">
+            <div class="collapse mb-3" id="addCo">
+                <form action="/admin/company/add" method="POST" class="card-x card-b row g-2 align-items-end m-0">
+                    <input type="hidden" name="returnTo" value="/admin/sirketler">
+                    <div class="col-md"><label class="form-label">Şirket adı</label><input name="name" class="form-control" required maxlength="80" placeholder="Örn: XYZ Logistik GmbH"></div>
+                    <div class="col-md-auto"><button class="btn btn-brand w-100">Ekle</button></div>
+                </form>
+            </div>
+            <div class="row g-3 mb-3">
+                <div class="col-6 col-md-3"><div class="card-x kpi"><div class="ic t-brand"><i class="fas fa-building"></i></div><div><div class="lbl">Şirket</div><div class="val"><%= rows.length %></div></div></div></div>
+                <div class="col-6 col-md-3"><div class="card-x kpi"><div class="ic t-info"><i class="fas fa-users"></i></div><div><div class="lbl">Atanmış aktif aday</div><div class="val"><%= tot.active %></div></div></div></div>
+                <div class="col-6 col-md-3"><div class="card-x kpi"><div class="ic t-warn"><i class="fas fa-hourglass-half"></i></div><div><div class="lbl">İşveren onayı bekleyen</div><div class="val"><%= tot.waiting %></div></div></div></div>
+                <div class="col-6 col-md-3"><div class="card-x kpi"><div class="ic t-ok"><i class="fas fa-briefcase"></i></div><div><div class="lbl">Açık pozisyon (kişi)</div><div class="val"><%= tot.open %></div></div></div></div>
+            </div>
+            <div class="card-x">
+                <div class="table-responsive">
+                    <table class="table table-x mb-0">
+                        <thead><tr><th>Şirket</th><th>Sözleşme</th><th class="text-end">Aktif aday</th><th class="text-end d-none d-md-table-cell">Süreçte</th><th class="text-end d-none d-md-table-cell">Onay bekleyen</th><th class="text-end">Almanya'da</th><th class="text-end d-none d-lg-table-cell">İptal</th><th class="text-end d-none d-lg-table-cell">Başarı</th><th class="text-end d-none d-lg-table-cell">Açık poz.</th></tr></thead>
+                        <tbody>
+                        <% if (!rows.length) { %><tr><td colspan="9"><div class="empty">Henüz şirket yok.</div></td></tr><% } %>
+                        <% rows.forEach(r => { %>
+                            <tr class="clickable" onclick="location.href='/admin/sirketler/<%= r._id %>'">
+                                <td><div class="fw-650 text-dark"><%= r.name %></div><div class="muted small"><%= [r.contactPerson, r.city].filter(Boolean).join(' · ') || '—' %></div></td>
+                                <td><span class="pill <%= ctTone(r.contractStatus) %>"><%= r.contractStatus || 'Görüşülüyor' %></span></td>
+                                <td class="text-end fw-bold"><%= r.active %></td>
+                                <td class="text-end d-none d-md-table-cell"><%= r.inProcess %></td>
+                                <td class="text-end d-none d-md-table-cell"><%= r.waitingApproval %></td>
+                                <td class="text-end"><%= r.arrived %></td>
+                                <td class="text-end d-none d-lg-table-cell muted"><%= r.cancelled %></td>
+                                <td class="text-end d-none d-lg-table-cell"><%= r.successRate == null ? '—' : r.successRate + '%' %></td>
+                                <td class="text-end d-none d-lg-table-cell"><%= r.openPositions %></td>
+                            </tr>
+                        <% }) %>
+                        </tbody>
+                    </table>
+                </div>
+                <div class="small muted p-3 border-top" style="border-color:var(--line)!important">“Aktif aday” iptal edilen adayları içermez; iptaller ayrı sütunda gösterilir. “Onay bekleyen”: Ön Onay Sözleşmesi ve Ön Onay aşamasındaki adaylar.</div>
+            </div>
+        </main>
+    </div>
+</div>
+<%- include('partials/admin_scripts') %>
+</body>
+</html>

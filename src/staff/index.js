@@ -9,6 +9,7 @@ const Notification = require('../models/Notification');
 const AuditLog = require('../models/AuditLog');
 const { hashPassword, verifyPassword, passwordProblem, randomToken, sha256, loginLimiter } = require('../lib/security');
 const rt = require('../lib/realtime');
+const { isAllowedFile, safeName } = require('../lib/files');
 
 const { STATUSES, PRIORITIES, CATEGORIES } = WorkOrder;
 const OPEN = ['Yeni', 'Devam Ediyor', 'Revizyon'];
@@ -125,8 +126,9 @@ module.exports = function mountStaffSystem(app, deps) {
 
     async function attachFile(req, wo, type) {
         if (!req.file) return null;
-        if (!ALLOWED.includes(req.file.mimetype)) throw Object.assign(new Error('bad_type'), { code: 'bad_type' });
+        if (!isAllowedFile(req.file, ALLOWED)) throw Object.assign(new Error('bad_type'), { code: 'bad_type' });
         const folder = `İş Emirleri - ${wo.candidateName || 'Aday'}`;
+        req.file.originalname = safeName(req.file.originalname);
         const f = await uploadToGoogleDrive(req.file, folder);
         const a = actorOf(req);
         wo.attachments.push({ name: req.file.originalname, fileId: f.id, driveLink: f.webViewLink, mimeType: req.file.mimetype, size: req.file.size, uploadedByType: type, uploadedByName: a.name });
@@ -270,7 +272,15 @@ module.exports = function mountStaffSystem(app, deps) {
         const orders = await WorkOrder.find({ assignedTo: staff._id }).sort({ createdAt: -1 }).select('-history -comments -attachments').lean();
         const logs = await AuditLog.find({ $or: [{ targetType: 'Staff', targetId: String(staff._id) }, { actorType: 'staff', actorId: String(staff._id) }] }).sort({ createdAt: -1 }).limit(40).lean();
         const flash = req.session.staffFlash || null; delete req.session.staffFlash;
-        res.render('admin_staff_detail', { staff, orders, stats: computeStats(orders), logs, flash, user: { firstName: 'Admin' } });
+        // İş yükü: bu personelin açık görevleri ile aktif ekip ortalaması; üzerinde çalıştığı adaylar
+        const teamOpen = await WorkOrder.aggregate([{ $match: { status: { $in: OPEN } } }, { $group: { _id: '$assignedTo', n: { $sum: 1 } } }]);
+        const activeStaffCount = Math.max(1, await Staff.countDocuments({ deletedAt: null, status: 'active' }));
+        const myOpen = orders.filter(o => OPEN.includes(o.status));
+        const candMap = {};
+        orders.forEach(o => { const k = String(o.candidateId); const e = candMap[k] || (candMap[k] = { id: k, name: o.candidateName, open: 0, total: 0 }); e.total++; if (OPEN.includes(o.status)) e.open++; });
+        const workload = { open: myOpen.length, overdue: myOpen.filter(isOverdue).length, teamAvg: teamOpen.reduce((a, x) => a + x.n, 0) / activeStaffCount, teamMax: Math.max(1, ...teamOpen.map(x => x.n)) };
+        const st = computeStats(orders);
+        res.render('admin_staff_detail', { staff, orders, stats: st, logs, flash, workload, workedCands: Object.values(candMap).sort((a, b) => b.open - a.open || b.total - a.total), completionRate: st.total ? Math.round(st.completed / Math.max(1, st.total) * 100) : null, user: { firstName: 'Admin' } });
     });
 
     app.post('/admin/personel/:id/edit', adminAuthCheck, async (req, res) => {
@@ -627,6 +637,9 @@ module.exports = function mountStaffSystem(app, deps) {
         } catch (e) { deny('login_required'); }
     }
 
+    app.locals.staffAuth = staffAuth;
+    app.locals.ownTask = (req, res) => ownTask(req, res);
+
     app.get('/personel', (req, res) => {
         if (req.session.staffId) return res.redirect('/personel/panel');
         res.render('staff_login', { error: null, username: '', reason: req.query.error || '', status: req.query.status || '' });
@@ -746,7 +759,9 @@ module.exports = function mountStaffSystem(app, deps) {
         }
         await Notification.updateMany({ recipientType: 'staff', recipientId: req.staff._id, workOrderId: wo._id, isRead: false }, { $set: { isRead: true, readAt: new Date() } });
         res.locals.staffUnread = await unreadFor('staff', req.staff._id);
-        res.render('staff_task', { wo: wo.toObject(), candidate, overdue: isOverdue(wo), page: 'panel', sensitive });
+        // İletişim geçmişi: yalnızca bu görevin adayı için ve görev iptal edilmemişse gösterilir
+        const contacts = candidate && app.locals.staffCandidateContacts ? await app.locals.staffCandidateContacts(wo.candidateId) : [];
+        res.render('staff_task', { wo: wo.toObject(), candidate, contacts, overdue: isOverdue(wo), page: 'panel', sensitive });
     });
 
     const staffBack = (req) => `/personel/gorev/${req.params.id}`;

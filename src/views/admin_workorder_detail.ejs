@@ -12,7 +12,7 @@
         .tl-i { position: relative; padding-bottom: 14px; }
         .tl-i::before { content: ''; position: absolute; left: -19px; top: 4px; width: 10px; height: 10px; border-radius: 50%; background: #fff; border: 2px solid var(--brand); }
         .cm { border: 1px solid var(--line); border-radius: 12px; padding: 12px 14px; }
-        .cm.admin { background: #F8FAFF; border-color: #DDE5FF; }
+        .cm.admin { background: #FFF8F8; border-color: #FCE0E1; }
         .cm.staff { background: #F6FEF9; border-color: #D1FADF; }
         .result { background: var(--ok-50); border: 1px solid #A6F4C5; border-radius: 12px; padding: 14px; }
         @media (max-width: 575.98px) { .kv { grid-template-columns: 1fr; gap: 2px; } .kv dd { margin-bottom: 8px; } }
@@ -44,7 +44,7 @@
                 <div class="col-lg-8">
                     <div class="card-x mb-3">
                         <div class="card-h">
-                            <span class="pill <%= woStatusTone(wo.status) %>"><span class="dot"></span><%= wo.status %></span>
+                            <span class="pill <%= woStatusTone(wo.status) %>"><span class="dot"></span><%= woStatusLabel(wo.status) %></span>
                             <span class="pill <%= woPriorityTone(wo.priority) %>"><i class="fas <%= woPriorityIcon(wo.priority) %>"></i><%= wo.priority %></span>
                             <span class="pill t-gray"><%= wo.category %></span>
                             <% if (due) { %><span class="pill <%= due.tone %>"><i class="far fa-clock"></i><%= due.text %></span><% } %>
@@ -54,7 +54,7 @@
                         <div class="card-b">
                             <h3 class="fs-6 fw-bold mb-2">Açıklama</h3>
                             <div class="pre mb-3"><%= wo.description || 'Açıklama girilmemiş.' %></div>
-                            <% if (wo.adminNote) { %><div class="p-3 mb-3" style="background:#F8FAFF;border:1px solid #DDE5FF;border-radius:12px"><div class="small fw-bold mb-1" style="color:var(--brand)"><i class="fas fa-note-sticky me-1"></i>Admin notu</div><div class="pre small"><%= wo.adminNote %></div></div><% } %>
+                            <% if (wo.adminNote) { %><div class="p-3 mb-3" style="background:#FFF8F8;border:1px solid #FCE0E1;border-radius:12px"><div class="small fw-bold mb-1" style="color:var(--brand)"><i class="fas fa-note-sticky me-1"></i>Admin notu</div><div class="pre small"><%= wo.adminNote %></div></div><% } %>
                             <% if (wo.resultNote) { %><div class="result"><div class="small fw-bold mb-1" style="color:#027A48"><i class="fas fa-flag-checkered me-1"></i>Personelin sonuç notu · <%= fmtDT(wo.completedAt) %></div><div class="pre"><%= wo.resultNote %></div></div><% } %>
                         </div>
                     </div>

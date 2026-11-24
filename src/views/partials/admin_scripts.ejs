@@ -30,7 +30,11 @@
         stage_moved_autofail: 'Aşama değiştirildi ancak bazı otomatik görevler oluşturulamadı. Otomasyon kayıtlarını kontrol edin.', stage_updated: 'Aşama bilgisi güncellendi.',
         auto_paused: 'Bu aday için otomasyon durduruldu.', auto_resumed: 'Otomasyon yeniden başlatıldı.', auto_ran: 'Otomasyon çalıştı, görevler oluşturuldu.',
         auto_nothing: 'Oluşturulacak yeni görev yok (görevler zaten mevcut veya otomasyon kapalı).', auto_failed: 'Otomasyon tamamlanamadı. Sorumlu personel ayarlarını kontrol edin.',
-        auto_saved: 'Otomasyon ayarları kaydedildi.', tpl_added: 'Görev şablonu eklendi.', tpl_saved: 'Görev şablonu güncellendi.', tpl_deleted: 'Görev şablonu silindi.', log_resolved: 'Kayıt çözüldü olarak işaretlendi.'
+        auto_saved: 'Otomasyon ayarları kaydedildi.', tpl_added: 'Görev şablonu eklendi.', tpl_saved: 'Görev şablonu güncellendi.', tpl_deleted: 'Görev şablonu silindi.', log_resolved: 'Kayıt çözüldü olarak işaretlendi.',
+        candidate_cancelled: 'Aday iptal durumuna alındı. Süreç geçmişi korunuyor.', candidate_reactivated: 'Aday yeniden aktifleştirildi.',
+        legacy_resolved: 'Seçilen adayların aşaması onaylandı (' + (new URLSearchParams(location.search).get('n') || 0) + ' aday).',
+        company_converted: 'Grup iptal durumuna dönüştürüldü (' + (new URLSearchParams(location.search).get('n') || 0) + ' aday iptal edildi).',
+        orphans_cleaned: 'Silinmiş adaylara ait açık görevler iptal edildi.', contact_added: 'İletişim kaydı eklendi.'
     };
     const ERR = {
         company_exists: 'Bu isimde bir şirket zaten var.',
@@ -54,7 +58,9 @@
         invalid_action: 'Bu işlem görevin mevcut durumunda yapılamaz.',
         no_file: 'Lütfen bir dosya seçin.', bad_type: 'Bu dosya türü desteklenmiyor (PDF, görsel, Word, Excel).',
         too_large: 'Dosya 5 MB\'dan büyük olamaz.', upload_failed: 'Dosya yüklenemedi. Google Drive bağlantısını kontrol edin.',
-        needs_confirm: 'Bu geçiş için onay ve gerekçe gerekiyor.', reason_required: 'Aşama atlamak veya geri almak için gerekçe yazmalısınız.', same_stage: 'Aday zaten bu aşamada.'
+        needs_confirm: 'Bu geçiş için onay ve gerekçe gerekiyor.', reason_required: 'Aşama atlamak veya geri almak için gerekçe yazmalısınız.', same_stage: 'Aday zaten bu aşamada.',
+        cancel_reason_required: 'İptal için en az 3 karakterlik bir neden yazmalısınız.', already_cancelled: 'Aday zaten iptal durumunda.',
+        candidate_cancelled_locked: 'İptal edilmiş adayda aşama değiştirilemez. Önce adayı yeniden aktifleştirin.', rate_limited: 'Çok fazla istek gönderildi. Lütfen biraz bekleyin.'
     };
     const p = new URLSearchParams(location.search);
     const st = p.get('status'), er = p.get('error');
@@ -65,7 +71,7 @@
         else m = OK[st] || 'İşlem başarılı.';
         Toast.fire({ icon: st.startsWith('bulk_mail_partial_') ? 'warning' : 'success', title: m });
     } else if (er) {
-        Swal.fire({ icon: 'error', title: 'İşlem tamamlanamadı', text: ERR[er] || 'Beklenmeyen bir sorun oluştu. Lütfen tekrar deneyin.', confirmButtonColor: '#2F54EB' });
+        Swal.fire({ icon: 'error', title: 'İşlem tamamlanamadı', text: ERR[er] || 'Beklenmeyen bir sorun oluştu. Lütfen tekrar deneyin.', confirmButtonColor: '#D4111B' });
     }
     if (st || er) { p.delete('status'); p.delete('error'); const q = p.toString(); history.replaceState(null, '', location.pathname + (q ? '?' + q : '') + location.hash); }
 
@@ -73,7 +79,7 @@
     async function ask(text, danger) {
         const r = await Swal.fire({ icon: danger ? 'warning' : 'question', title: 'Emin misiniz?', text, showCancelButton: true,
             confirmButtonText: danger ? 'Evet, devam et' : 'Onayla', cancelButtonText: 'Vazgeç',
-            confirmButtonColor: danger ? '#F04438' : '#2F54EB', reverseButtons: true });
+            confirmButtonColor: danger ? '#F04438' : '#D4111B', reverseButtons: true });
         return r.isConfirmed;
     }
     window.adminAsk = ask;

@@ -38,7 +38,7 @@
                     <div class="search flex-grow-1" style="min-width:200px;max-width:320px"><i class="fas fa-magnifying-glass"></i><input type="search" name="q" value="<%= f.q %>" class="form-control" placeholder="Kod, başlık, aday, personel…"></div>
                     <select name="status" class="form-select" style="width:auto" onchange="this.form.submit()">
                         <option value="">Tüm durumlar</option><option value="open" <%= f.status === 'open' ? 'selected' : '' %>>Açık (tümü)</option>
-                        <% STATUSES.forEach(s => { %><option <%= f.status === s ? 'selected' : '' %>><%= s %></option><% }) %>
+                        <% STATUSES.forEach(s => { %><option value="<%= s %>" <%= f.status === s ? 'selected' : '' %>><%= woStatusLabel(s) %></option><% }) %>
                     </select>
                     <select name="staff" class="form-select" style="width:auto" onchange="this.form.submit()">
                         <option value="">Tüm personel</option>
@@ -78,7 +78,7 @@
                                 <td><% if (w.assignedTo) { %><div class="fw-650"><%= w.assignedTo.fullName %></div><div class="muted small"><%= w.assignedTo.deletedAt ? 'Devre dışı' : (w.assignedTo.title || '') %></div><% } else { %><span class="muted">—</span><% } %></td>
                                 <td><span class="pill <%= woPriorityTone(w.priority) %>"><i class="fas <%= woPriorityIcon(w.priority) %>"></i><%= w.priority %></span></td>
                                 <td style="white-space:nowrap"><div><%= w.dueDate ? fmtDT(w.dueDate, false) : '—' %></div><% if (due) { %><span class="pill <%= due.tone %>" style="font-size:11px;padding:1px 8px"><%= due.text %></span><% } %></td>
-                                <td><span class="pill <%= woStatusTone(w.status) %>"><span class="dot"></span><%= w.status %></span></td>
+                                <td><span class="pill <%= woStatusTone(w.status) %>"><span class="dot"></span><%= woStatusLabel(w.status) %></span></td>
                                 <td class="text-end"><a href="/admin/is-emirleri/<%= w._id %>" class="btn btn-soft btn-icon" title="Aç"><i class="fas fa-chevron-right"></i></a></td>
                             </tr>
                         <% }) %>

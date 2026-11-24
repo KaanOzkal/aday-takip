@@ -40,6 +40,14 @@ const candidateSchema = new mongoose.Schema({
     
     currentStage: { type: String, default: 'Hizmet Sözleşmesi' }, 
     stageEnteredAt: { type: Date },
+    legacyStage: { type: String },              // 9 aşamaya geçişten önceki aşama adı (geri dönüş / denetim için)
+    stageReviewNeeded: { type: Boolean, default: false }, // eski aşama otomatik eşleşmediyse yönetici onayı bekler
+    // İptal, 9 aşamadan bağımsız aday durumudur
+    status: { type: String, enum: ['active', 'cancelled'], default: 'active', index: true },
+    cancelledAt: { type: Date },
+    cancelReason: { type: String, maxlength: 500, default: '' },
+    cancelledBy: { type: String, default: '' },
+    lastActivityAt: { type: Date },
     automationPaused: { type: Boolean, default: false },
     germanyStage: { type: String, default: '1. Başvuru ve Kayıt' }, 
     company: { type: String, default: 'Atanmadı' }, 

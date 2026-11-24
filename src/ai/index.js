@@ -79,6 +79,39 @@ module.exports = function mountAI(app, deps) {
         return cands.filter(c => norm(c.lastName).length > 2 && n.includes(norm(c.lastName)) && norm(c.firstName).split(' ').some(p => p.length > 2 && n.includes(p)));
     }
 
+    // Yönetim paneli ile aynı kaynaktan genel sayılar (iptaller aktif sayılmaz)
+    async function overview() {
+        const d = await app.locals.crmDashboard();
+        return { ...d.kpi, successRate: d.rates.success, cancelRate: d.rates.cancel, companyRanking: d.companyDist.filter(c => c.name !== 'Atanmadı').slice(0, 10) };
+    }
+    async function inactiveCandidates(days = 15) {
+        days = Math.max(1, Math.min(365, parseInt(days, 10) || 15));
+        const since = new Date(Date.now() - days * 864e5);
+        const list = await Candidate.find({ status: { $ne: 'cancelled' }, currentStage: { $ne: STAGE_DEFS[STAGE_DEFS.length - 1].name } }).select('firstName lastName currentStage company lastActivityAt stageEnteredAt applicationDate').lean();
+        const rows = list.map(c => ({ _id: c._id, name: `${c.firstName} ${c.lastName}`.trim(), stage: c.currentStage, company: c.company || 'Atanmadı', last: c.lastActivityAt || c.stageEnteredAt || c.applicationDate }))
+            .filter(r => !r.last || new Date(r.last) < since)
+            .map(r => ({ ...r, days: r.last ? Math.floor((Date.now() - new Date(r.last)) / 864e5) : null }))
+            .sort((a, b) => (b.days ?? 1e9) - (a.days ?? 1e9));
+        return { days, total: rows.length, rows };
+    }
+    async function arrivalsThisMonth() {
+        const som = new Date(); som.setDate(1); som.setHours(0, 0, 0, 0);
+        const d = await app.locals.crmDashboard(); // yönetim paneliyle aynı kaynak
+        const ids = d.ids.arrivedThisMonth;
+        const ProcessEvent = mongoose.model('ProcessEvent');
+        const [cands, ev] = await Promise.all([
+            Candidate.find({ _id: { $in: ids } }).select('firstName lastName company').lean(),
+            ProcessEvent.find({ candidateId: { $in: ids }, type: 'stage_change', stageKey: 'almanya' }).select('candidateId createdAt').sort({ createdAt: 1 }).lean()
+        ]);
+        const at = {}; ev.forEach(e => { at[String(e.candidateId)] = e.createdAt; });
+        return { month: som.toLocaleDateString('tr-TR', { month: 'long', year: 'numeric' }), total: cands.length, rows: cands.map(c => ({ _id: c._id, name: `${c.firstName} ${c.lastName}`.trim(), company: c.company || 'Atanmadı', date: at[String(c._id)] })) };
+    }
+    async function todayTasks() {
+        const d = await app.locals.crmDashboard();
+        const m = (o) => ({ _id: o._id, code: o.code, title: o.title, candidate: o.candidateName, staff: o.assignedTo ? o.assignedTo.fullName : 'Atanmamış', due: o.dueDate });
+        return { dueToday: d.today.dueToday.map(m), overdue: d.today.overdue.map(m), appointments: d.today.appointments.map(a => ({ time: a.time, type: a.type, status: a.status, candidate: a.candidateId ? `${a.candidateId.firstName} ${a.candidateId.lastName}` : 'Silinmiş aday' })), pendingDocuments: d.today.pendingDocCands };
+    }
+
     // ------------------------------------------------------------------
     //  Onay bekleyen işlemler (session'da tutulur, istemciden gelen veriye güvenilmez)
     // ------------------------------------------------------------------
@@ -121,7 +154,11 @@ module.exports = function mountAI(app, deps) {
     // ------------------------------------------------------------------
     const stageEnum = STAGE_DEFS.map(d => d.key);
     const TOOLS = [
-        { name: 'get_stage_summary', description: 'Her aşamadaki aday sayısını döndürür.', input_schema: { type: 'object', properties: {} } },
+        { name: 'get_overview', description: 'Genel sayılar: toplam, aktif (iptal hariç), Almanya\'ya ulaşan, bu ay Almanya\'ya giden, iptal, şirket atanmamış, işlem bekleyen, geciken görev sayıları; başarı ve iptal oranı; en çok aktif adayı olan şirketler (companyRanking).', input_schema: { type: 'object', properties: {} } },
+        { name: 'get_inactive_candidates', description: 'Son N gün içinde hiçbir işlem (aşama değişikliği, belge, mesaj, iletişim kaydı, randevu) yapılmayan aktif adayları döndürür.', input_schema: { type: 'object', properties: { days: { type: 'integer', minimum: 1, maximum: 365 } } } },
+        { name: 'get_arrivals_this_month', description: 'Bu ay Almanya aşamasına geçen (Almanya\'ya giden) adayları döndürür.', input_schema: { type: 'object', properties: {} } },
+        { name: 'get_today_tasks', description: 'Bugün teslim tarihi olan görevler, geciken görevler, bugünkü randevular ve onay bekleyen belgeler.', input_schema: { type: 'object', properties: {} } },
+        { name: 'get_stage_summary', description: 'Her aşamadaki aktif (iptal edilmemiş) aday sayısını döndürür.', input_schema: { type: 'object', properties: {} } },
         { name: 'list_candidates', description: 'Adayları listeler. stage_key ile aşamaya, stage_status ile o aşamadaki duruma (Bekliyor, Devam Ediyor, Tamamlandı, Sorun Var), name_query ile isme göre filtreler. Her satırda aday id, ad, aşama, aşama durumu ve aşamada geçen gün vardır.', input_schema: { type: 'object', properties: { stage_key: { type: 'string', enum: stageEnum }, stage_status: { type: 'string', enum: ['Bekliyor', 'Devam Ediyor', 'Tamamlandı', 'Sorun Var'] }, name_query: { type: 'string' }, limit: { type: 'integer', minimum: 1, maximum: 200 } } } },
         { name: 'get_stale_candidates', description: 'Aşama bekleme sınırını aşmış (uzun süredir aynı aşamada bekleyen) adayları döndürür.', input_schema: { type: 'object', properties: {} } },
         { name: 'get_staff_workload', description: 'Personel başına açık, yeni ve geciken görev sayılarını döndürür (personel id dahil).', input_schema: { type: 'object', properties: {} } },
@@ -134,6 +171,10 @@ module.exports = function mountAI(app, deps) {
     async function runTool(req, name, input, actions) {
         input = input || {};
         switch (name) {
+            case 'get_overview': return overview();
+            case 'get_inactive_candidates': return inactiveCandidates(input.days);
+            case 'get_arrivals_this_month': return arrivalsThisMonth();
+            case 'get_today_tasks': return todayTasks();
             case 'get_stage_summary': return P().stageSummary();
             case 'list_candidates': return P().listCandidates({ stageKey: input.stage_key, status: input.stage_status, q: input.name_query, limit: Math.min(200, input.limit || 50) });
             case 'get_stale_candidates': return P().staleCandidates();
@@ -152,6 +193,7 @@ module.exports = function mountAI(app, deps) {
 BERLINER, Türkiye'den Almanya'ya şoför ve kurye gibi meslek gruplarında aday yerleştirir. Her aday şu 9 aşamadan sırayla geçer:
 ${STAGE_DEFS.map((d, i) => `${i + 1}. ${d.name} (anahtar: ${d.key})`).join('\n')}
 Her aşamanın durumu Bekliyor, Devam Ediyor, Tamamlandı veya Sorun Var olabilir.
+"İptal" bir aşama değil, adayın durumudur: iptal edilen adaylar aktif sayılara dahil edilmez. Almanya aşamasındaki adaylar başarılı sayılır.
 
 Kurallar:
 - Her zaman Türkçe, kısa ve net yanıt ver. Sayıları ve isimleri araçlardan gelen GERÇEK verilere dayandır; tahmin etme, uydurma.
@@ -228,6 +270,45 @@ Kurallar:
             }
         }
 
+        // 1b) Aktif aday sayısı / genel sayılar
+        if (/aktif/.test(n) && /aday/.test(n) && !stageKey) {
+            const o = await overview();
+            out.text = `Şu anda **${o.active} aktif aday** var (toplam ${o.total} kayıt; ${o.cancelled} iptal, ${o.arrived} Almanya'ya ulaşan${o.review ? `, ${o.review} aşama onayı bekleyen` : ''}).`;
+            return out;
+        }
+        // 1c) Son N günde işlem yapılmayanlar
+        const mDays = n.match(/son (\d{1,3}) gun/);
+        if (/(islem yapilma|islem gorme|hareketsiz|hareket olmayan|islem olmayan|ilgilenilmeyen|dokunulmayan)/.test(n) || (mDays && /(islem|hareket)/.test(n))) {
+            const r = await inactiveCandidates(mDays ? mDays[1] : 15);
+            out.text = r.total ? `Son **${r.days} günde** işlem yapılmayan **${r.total} aktif aday** var.` : `Son ${r.days} günde işlem yapılmayan aktif aday yok.`;
+            if (r.total) out.tables.push({ title: `Son ${r.days} günde işlem görmeyen adaylar`, columns: ['Aday', 'Aşama', 'Şirket', 'Son işlem'], rows: r.rows.map(x => [x.name, x.stage, x.company, x.days != null ? x.days + ' gün önce' : 'kayıt yok']), links: r.rows.map(x => `/admin/candidate/${x._id}`) });
+            return out;
+        }
+        // 1d) Bu ay Almanya'ya gidenler
+        if (/bu ay/.test(n) && /(almanya|gid|ulas|var)/.test(n)) {
+            const r = await arrivalsThisMonth();
+            out.text = r.total ? `**${r.month}** içinde **${r.total} aday** Almanya'ya gitti.` : `${r.month} içinde Almanya'ya giden aday henüz yok.`;
+            if (r.total) out.tables.push({ title: `${r.month} — Almanya'ya gidenler`, columns: ['Aday', 'Şirket', 'Tarih'], rows: r.rows.map(x => [x.name, x.company, x.date ? new Date(x.date).toLocaleDateString('tr-TR') : '—']), links: r.rows.map(x => `/admin/candidate/${x._id}`) });
+            return out;
+        }
+        // 1e) Şirket sıralaması
+        if (/sirket/.test(n) && /(en cok|en fazla|hangi|sirala|dagilim)/.test(n)) {
+            const o = await overview();
+            const rk = o.companyRanking.filter(c => c.active);
+            out.text = rk.length ? `En fazla aktif adayı olan şirket: **${rk[0].name}** (${rk[0].active} aktif aday${rk[0].cancelled ? `; ayrıca ${rk[0].cancelled} iptal` : ''}).` : 'Şirketlere atanmış aktif aday yok.';
+            if (rk.length) out.tables.push({ title: 'Şirketlere göre aktif aday', columns: ['Şirket', 'Aktif', 'İptal'], rows: rk.map(c => [c.name, c.active, c.cancelled]), links: rk.map(c => c._id ? `/admin/sirketler/${c._id}` : null) });
+            return out;
+        }
+        // 1f) Bugün yapılacaklar
+        if (/bugun/.test(n) && /(gorev|yapil|is|randevu|teslim)/.test(n)) {
+            const t = await todayTasks();
+            out.text = `Bugün teslim: **${t.dueToday.length} görev** · Geciken: **${t.overdue.length} görev** · Bugünkü randevu: **${t.appointments.length}** · Onay bekleyen belge: **${t.pendingDocuments.reduce((a, c) => a + c.count, 0)}**.`;
+            const rows = t.dueToday.map(x => ['Bugün', x.title, x.candidate, x.staff]).concat(t.overdue.map(x => ['Gecikmiş', x.title, x.candidate, x.staff]));
+            if (rows.length) out.tables.push({ title: 'Bugün yapılması gereken görevler', columns: ['Durum', 'Görev', 'Aday', 'Personel'], rows, links: t.dueToday.concat(t.overdue).map(x => `/admin/is-emirleri/${x._id}`) });
+            if (t.appointments.length) out.tables.push({ title: 'Bugünkü randevular', columns: ['Saat', 'Aday', 'Tür', 'Durum'], rows: t.appointments.map(a => [a.time || '—', a.candidate, a.type || 'Randevu', a.status]), links: t.appointments.map(() => null) });
+            return out;
+        }
+
         // 2) Personel iş yükü
         if (/personel/.test(n) && /(gorev|yuk|bekleyen|fazla|en cok|performans)/.test(n)) {
             const w = await P().staffWorkload();
@@ -272,12 +353,12 @@ Kurallar:
         // 6) Genel özet ve öneriler
         if (/(ozet|genel|durum|oneri|analiz|tavsiye|ne yapmali|rapor|dagilim)/.test(n) || wantsCount) {
             const ins = await insights();
-            out.text = `Toplam **${ins.total} aday** var.\n\n**Öneriler ve dikkat edilmesi gerekenler:**\n${ins.notes.map(x => '- ' + x).join('\n')}`;
+            out.text = `Toplam **${ins.total} aktif aday** var (iptaller hariç).\n\n**Öneriler ve dikkat edilmesi gerekenler:**\n${ins.notes.map(x => '- ' + x).join('\n')}`;
             out.tables.push({ title: 'Aşamalara göre dağılım', columns: ['Aşama', 'Aday'], rows: ins.summary.map(s => [s.name, s.count]), links: ins.summary.map(() => null) });
             return out;
         }
 
-        out.text = 'Bu soruyu anlayamadım. Şunları sorabilirsiniz:\n- "Evrak teslimi bekleyen adaylar kimler?"\n- "Tercüme işlemleri devam eden kaç adayımız var?"\n- "Hangi adaylar uzun süredir aynı aşamada bekliyor?"\n- "Hangi personelin üzerinde en fazla bekleyen görev var?"\n- "Genel durum özeti ve öneriler"\n- "Ahmet Yılmaz\'ı sonraki aşamaya geçir" (onayınızla uygulanır)';
+        out.text = 'Bu soruyu anlayamadım. Şunları sorabilirsiniz:\n- "Şu anda kaç aktif aday var?"\n- "Ön onay aşamasındaki adaylar kimler?"\n- "Son 15 günde işlem yapılmayan adaylar"\n- "Bu ay Almanya\'ya giden adaylar"\n- "En fazla aday hangi şirkette?"\n- "Bugün yapılması gereken görevler"\n- "Evrak teslimi bekleyen adaylar kimler?"\n- "Tercüme işlemleri devam eden kaç adayımız var?"\n- "Hangi adaylar uzun süredir aynı aşamada bekliyor?"\n- "Hangi personelin üzerinde en fazla bekleyen görev var?"\n- "Genel durum özeti ve öneriler"\n- "Ahmet Yılmaz\'ı sonraki aşamaya geçir" (onayınızla uygulanır)';
         return out;
     }
 
@@ -343,3 +424,7 @@ Kurallar:
 
     app.locals.aiTools = { localAnswer, insights, TOOLS, runTool };
 };
+
+// Birim testleri için yardımcılar
+module.exports.detectStage = detectStage;
+module.exports.norm = norm;

@@ -18,3 +18,5 @@ Thumbs.db
 npm-debug.log*
 yarn-debug.log*
 yarn-error.log*
+# Veritabanı yedekleri (aday kişisel verileri içerir, ASLA yüklenmemeli)
+backups/

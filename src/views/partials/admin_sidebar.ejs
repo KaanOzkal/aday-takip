@@ -23,11 +23,12 @@
             <% if (s.pendingDocs) { %><span class="count"><%= s.pendingDocs %></span><% } %></a></li>
         <li><a href="<%= base %>#appointments" data-section="appointments" class="<%= act === 'appointments' ? 'active' : '' %>"><i class="fas fa-calendar-check"></i> Randevular
             <% if (s.pendingAppointments) { %><span class="count"><%= s.pendingAppointments %></span><% } %></a></li>
-        <li><a href="<%= base %>#companies" data-section="companies" class="<%= act === 'companies' ? 'active' : '' %>"><i class="fas fa-building"></i> Şirketler</a></li>
+        <li><a href="/admin/sirketler" class="<%= act === 'companies' ? 'active' : '' %>"><i class="fas fa-building"></i> Şirketler</a></li>
     </ul>
 
     <div class="side-label">Süreç &amp; Otomasyon</div>
     <ul class="side-nav">
+        <li><a href="/admin/raporlar" class="<%= act === 'reports' ? 'active' : '' %>"><i class="fas fa-chart-column"></i> Raporlar</a></li>
         <li><a href="/admin/surec-raporu" class="<%= act === 'process' ? 'active' : '' %>"><i class="fas fa-diagram-project"></i> Süreç Raporu</a></li>
         <li><a href="/admin/otomasyon" class="<%= act === 'automation' ? 'active' : '' %>"><i class="fas fa-robot"></i> Otomasyon</a></li>
         <li><a href="/admin/asistan" class="<%= act === 'ai' ? 'active' : '' %>"><i class="fas fa-wand-magic-sparkles"></i> AI Asistan</a></li>
@@ -50,6 +51,8 @@
 
     <div class="side-label">Araçlar</div>
     <ul class="side-nav">
+        <li><a href="/admin/veri-kontrol" class="<%= act === 'datachecks' ? 'active' : '' %>"><i class="fas fa-stethoscope"></i> Veri Kontrolü
+            <% if (s.review) { %><span class="count" style="background:#F79009" title="Aşama onayı bekleyen aday"><%= s.review %></span><% } %></a></li>
         <li><a href="/admin/export.csv"><i class="fas fa-file-csv"></i> Excel'e Aktar (CSV)</a></li>
         <li><a href="/admin/sync-drive-files" class="js-confirm" data-confirm="Eski Drive klasörü taranacak ve ad + soyad eşleşen dosyalar adaylara eklenecek. Bu işlem biraz sürebilir."><i class="fab fa-google-drive"></i> Drive Eşitle</a></li>
     </ul>

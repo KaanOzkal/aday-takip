@@ -40,7 +40,7 @@
             </nav>
 
             <% if (tab === 'rules') { %>
-                <div class="card-x p-3 mb-3 d-flex gap-3 align-items-start" style="background:#F8FAFF;border-color:#DDE5FF">
+                <div class="card-x p-3 mb-3 d-flex gap-3 align-items-start" style="background:#FFF8F8;border-color:#FCE0E1">
                     <i class="fas fa-circle-info mt-1" style="color:var(--brand)"></i>
                     <div class="small">Aday bir aşamaya <b>ileri</b> geçtiğinde, o aşamanın aktif şablonları iş emri olarak oluşturulur ve şablonda seçili personele — yoksa aşamanın <b>varsayılan sorumlusuna</b> — atanır. Aynı aday ve aşama için bir şablon yalnızca <b>bir kez</b> görev üretir (mükerrer koruma). Mevcut adaylar sisteme aktarılırken otomasyon çalıştırılmadı.</div>
                 </div>
@@ -176,7 +176,7 @@
         f.elements['active'].checked = !!t.active; document.getElementById('activeWrap').style.display = '';
         document.getElementById('tplTitle').textContent = 'Şablonu Düzenle'; modal.show();
     }));
-    if (location.hash) { const el = document.querySelector(location.hash); if (el) { el.style.boxShadow = '0 0 0 3px rgba(47,84,235,.25)'; setTimeout(() => el.style.boxShadow = '', 2500); } }
+    if (location.hash) { const el = document.querySelector(location.hash); if (el) { el.style.boxShadow = '0 0 0 3px rgba(212,17,27,.25)'; setTimeout(() => el.style.boxShadow = '', 2500); } }
 })();
 </script>
 </body>

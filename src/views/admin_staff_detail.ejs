@@ -7,7 +7,7 @@
         .stat { padding: 14px; border-radius: 12px; text-align: center; }
         .stat b { display: block; font-size: 22px; font-weight: 800; line-height: 1.2; }
         .stat span { font-size: 12px; color: var(--muted); }
-        .linkbox { background: #F8FAFF; border: 1px dashed #A5B4FC; border-radius: 12px; padding: 12px; font-family: ui-monospace, Menlo, monospace; font-size: 12.5px; word-break: break-all; }
+        .linkbox { background: #FFF8F8; border: 1px dashed #F49A9E; border-radius: 12px; padding: 12px; font-family: ui-monospace, Menlo, monospace; font-size: 12.5px; word-break: break-all; }
     </style>
 </head>
 <body>
@@ -22,7 +22,7 @@
         </header>
         <main class="content">
             <% if (flash && flash.link) { %>
-            <div class="card-x mb-3 p-3" style="border-color:#A5B4FC">
+            <div class="card-x mb-3 p-3" style="border-color:#F49A9E">
                 <div class="d-flex gap-3 align-items-start">
                     <div class="avatar t-brand" style="border-radius:10px"><i class="fas fa-link"></i></div>
                     <div class="flex-grow-1" style="min-width:0">
@@ -80,13 +80,40 @@
                         <div class="card-h"><h3>Performans</h3></div>
                         <div class="card-b"><div class="row g-2">
                             <div class="col-4 col-md-2"><div class="stat t-gray"><b><%= stats.total %></b><span>Toplam</span></div></div>
-                            <div class="col-4 col-md-2"><div class="stat t-brand"><b><%= stats.newCount %></b><span>Yeni</span></div></div>
+                            <div class="col-4 col-md-2"><div class="stat t-brand"><b><%= stats.newCount %></b><span>Atandı</span></div></div>
                             <div class="col-4 col-md-2"><div class="stat t-info"><b><%= stats.inProgress %></b><span>Devam</span></div></div>
                             <div class="col-4 col-md-2"><div class="stat t-ok"><b><%= stats.completed %></b><span>Tamam</span></div></div>
                             <div class="col-4 col-md-2"><div class="stat t-bad"><b><%= stats.overdue %></b><span>Geciken</span></div></div>
                             <div class="col-4 col-md-2"><div class="stat t-gray"><b style="font-size:16px;line-height:1.7"><%= fmtDuration(stats.avgHours) %></b><span>Ort. süre</span></div></div>
                         </div>
                         <% if (stats.completed) { %><div class="small muted mt-2"><i class="fas fa-bullseye me-1"></i>Zamanında tamamlama oranı: <b class="text-dark"><%= Math.round(stats.onTime / stats.completed * 100) %>%</b></div><% } %></div>
+                    </div>
+                    <div class="row g-3 mb-3">
+                        <div class="col-md-6">
+                            <div class="card-x h-100">
+                                <div class="card-h"><h3>İş Yükü</h3></div>
+                                <div class="card-b">
+                                    <% const wl = workload; const lvl = wl.open > wl.teamAvg * 1.5 && wl.open >= 3 ? ['Yüksek', 'var(--bad)'] : wl.open < wl.teamAvg * 0.5 ? ['Düşük', 'var(--ok)'] : ['Normal', 'var(--brand)']; %>
+                                    <div class="d-flex align-items-end gap-2 mb-2"><div style="font-size:28px;font-weight:800;line-height:1"><%= wl.open %></div><div class="muted small pb-1">açık görev · <b style="color:<%= lvl[1] %>"><%= lvl[0] %></b></div></div>
+                                    <div class="bar mb-1" style="height:10px"><span style="width:<%= Math.round(wl.open / wl.teamMax * 100) %>%;background:<%= lvl[1] %>"></span></div>
+                                    <div class="small muted">Ekip ortalaması: <%= wl.teamAvg.toFixed(1) %> açık görev<%= wl.overdue ? ` · ${wl.overdue} gecikmiş` : '' %></div>
+                                    <hr>
+                                    <div class="d-flex justify-content-between small"><span class="muted">Tamamlama oranı</span><b><%= completionRate == null ? '—' : completionRate + '%' %></b></div>
+                                    <div class="d-flex justify-content-between small mt-1"><span class="muted">Üzerinde çalıştığı aday</span><b><%= workedCands.length %></b></div>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <div class="card-x h-100">
+                                <div class="card-h"><h3>Çalıştığı Adaylar</h3><span class="muted small ms-auto"><%= workedCands.length %></span></div>
+                                <div style="max-height:230px;overflow:auto">
+                                    <% if (!workedCands.length) { %><div class="empty py-3">Henüz görev yok.</div><% } %>
+                                    <% workedCands.forEach(k => { %>
+                                    <a class="list-row text-decoration-none" style="color:inherit" href="/admin/candidate/<%= k.id %>"><span class="flex-grow-1 text-truncate-1"><%= k.name %></span><% if (k.open) { %><span class="pill t-warn"><%= k.open %> açık</span><% } %><span class="pill t-gray"><%= k.total %> görev</span></a>
+                                    <% }) %>
+                                </div>
+                            </div>
+                        </div>
                     </div>
                     <div class="card-x mb-3">
                         <div class="card-h"><h3>Görev Geçmişi</h3><a href="/admin/is-emirleri?staff=<%= staff._id %>" class="btn btn-soft btn-sm ms-auto">İş emirlerinde filtrele</a></div>
@@ -98,7 +125,7 @@
                                     <tr class="clickable" onclick="location.href='/admin/is-emirleri/<%= w._id %>'">
                                         <td style="max-width:280px"><div class="fw-650 text-dark text-truncate-1"><%= w.title %></div><div class="muted small font-monospace"><%= w.code %> · <%= w.category %></div></td>
                                         <td><%= w.candidateName %></td>
-                                        <td><span class="pill <%= woStatusTone(w.status) %>"><span class="dot"></span><%= w.status %></span></td>
+                                        <td><span class="pill <%= woStatusTone(w.status) %>"><span class="dot"></span><%= woStatusLabel(w.status) %></span></td>
                                         <td style="white-space:nowrap"><%= w.dueDate ? fmtDT(w.dueDate, false) : '—' %><% if (due) { %><div><span class="pill <%= due.tone %>" style="font-size:11px;padding:1px 8px"><%= due.text %></span></div><% } %></td>
                                         <td class="muted small"><%= w.completedAt ? fmtDuration((new Date(w.completedAt) - new Date(w.startedAt || w.createdAt)) / 36e5) : '—' %></td>
                                     </tr>

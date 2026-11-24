@@ -1,0 +1,128 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+    <title>Veri Kontrolü | BERLINER Yönetim</title>
+    <%- include('partials/admin_head') %>
+</head>
+<body>
+<%
+    const STG = stageDefs.map((s, i) => ({ ...s, index: i }));
+    const fullName = (c) => `${c.firstName || ''} ${c.lastName || ''}`.trim();
+    const issues = d.reviewCount + d.cancelCompanies.length + d.dupPassports.length + d.unknownCompany.length + d.orphanOpen.length + d.autoDup.length + Object.keys(d.inactiveStaffOpen).length + (d.missingStates ? 1 : 0);
+    const ok = (t) => `<div class="d-flex align-items-center gap-2 p-3 small" style="color:var(--ok)"><i class="fas fa-circle-check"></i>${t}</div>`;
+%>
+<div class="app">
+    <%- include('partials/admin_sidebar', { active: 'datachecks', onMain: false, stats: { review: d.reviewCount } }) %>
+    <div class="main">
+        <header class="topbar">
+            <button class="btn btn-soft btn-icon menu-toggle" aria-label="Menü"><i class="fas fa-bars"></i></button>
+            <div><div class="crumb">Araçlar</div><h1>Veri Kontrolü</h1></div>
+            <div class="ms-auto"><a href="/admin/veri-kontrol" class="btn btn-soft"><i class="fas fa-rotate me-1"></i>Yeniden tara</a></div>
+        </header>
+        <main class="content">
+            <div class="row g-3 mb-3">
+                <div class="col-6 col-md-3"><div class="card-x kpi"><div class="ic t-gray"><i class="fas fa-users"></i></div><div><div class="lbl">Toplam aday</div><div class="val"><%= d.totals.all %></div><div class="hint">Hiçbir aday silinmedi</div></div></div></div>
+                <div class="col-6 col-md-3"><div class="card-x kpi"><div class="ic t-brand"><i class="fas fa-user-check"></i></div><div><div class="lbl">Aktif</div><div class="val"><%= d.totals.active %></div></div></div></div>
+                <div class="col-6 col-md-3"><div class="card-x kpi"><div class="ic t-bad"><i class="fas fa-user-xmark"></i></div><div><div class="lbl">İptal</div><div class="val"><%= d.totals.cancelled %></div></div></div></div>
+                <div class="col-6 col-md-3"><div class="card-x kpi"><div class="ic <%= issues ? 't-warn' : 't-ok' %>"><i class="fas <%= issues ? 'fa-triangle-exclamation' : 'fa-circle-check' %>"></i></div><div><div class="lbl">Bulunan sorun grubu</div><div class="val"><%= issues %></div></div></div></div>
+            </div>
+
+            <!-- 1. Eşleşmeyen eski aşamalar -->
+            <div class="card-x mb-3" id="legacy">
+                <div class="card-h"><div><h2>1. Otomatik eşleştirilemeyen eski aşamalar</h2><p class="sub">Bu adaylar silinmedi ve rastgele bir aşamaya taşınmadı. Eski aşama adına göre gruplanmıştır; doğru yeni aşamayı seçip onaylayın. Her onay süreç geçmişine ve işlem kaydına yazılır.</p></div>
+                    <span class="pill <%= d.reviewCount ? 't-warn' : 't-ok' %> ms-auto"><%= d.reviewCount %> aday</span></div>
+                <% if (!d.reviewCount) { %><%- ok('Tüm adayların aşaması yeni 9 aşamalı yapıyla uyumlu.') %><% } %>
+                <% Object.entries(d.byLegacy).forEach(([legacy, list], gi) => { %>
+                <form action="/admin/veri-kontrol/legacy" method="POST" data-confirm="Seçili adayların aşaması onaylanacak. Bu işlem süreç geçmişine kaydedilir; gerekirse aşama daha sonra değiştirilebilir." class="border-top p-3" style="border-color:var(--line)!important">
+                    <input type="hidden" name="legacy" value="<%= legacy %>">
+                    <div class="d-flex flex-wrap align-items-center gap-2 mb-2">
+                        <div class="fw-bold">Eski aşama: <span class="pill t-warn"><%= legacy %></span></div>
+                        <span class="muted small"><%= list.length %> aday</span>
+                        <label class="small ms-auto d-flex align-items-center gap-1"><input type="checkbox" class="form-check-input m-0 js-all" data-g="<%= gi %>" checked> Tümünü seç</label>
+                    </div>
+                    <div class="d-flex flex-wrap gap-2 mb-3">
+                        <% list.forEach(c => { %>
+                        <label class="pill t-gray" style="cursor:pointer;font-weight:500">
+                            <input type="checkbox" class="form-check-input m-0 me-1 js-g<%= gi %>" name="ids" value="<%= c._id %>" checked>
+                            <%= fullName(c) %><span class="muted ms-1">· <%= c.company || 'Atanmadı' %></span>
+                            <a href="/admin/candidate/<%= c._id %>" class="ms-1" title="Detay" target="_blank"><i class="fas fa-arrow-up-right-from-square"></i></a>
+                        </label>
+                        <% }) %>
+                    </div>
+                    <div class="d-flex flex-wrap gap-2 align-items-center">
+                        <select name="target" class="form-select form-select-sm" style="width:auto;min-width:240px" required>
+                            <option value="">Yeni aşamayı seçin…</option>
+                            <% STG.forEach(s => { %><option value="<%= s.key %>"><%= s.index + 1 %>. <%= s.name %></option><% }) %>
+                            <option value="cancel">İptal olarak işaretle (aktif sayılmaz)</option>
+                        </select>
+                        <button class="btn btn-brand btn-sm"><i class="fas fa-check me-1"></i>Seçilenleri onayla</button>
+                    </div>
+                </form>
+                <% }) %>
+            </div>
+
+            <!-- 2. Şirket gibi görünen iptal grupları -->
+            <div class="card-x mb-3" id="cancel-companies">
+                <div class="card-h"><div><h2>2. Şirket olarak kaydedilmiş iptal grupları</h2><p class="sub">“İptal”, “Vazgeçti” gibi adlarla şirket listesinde duran gruplar. Dönüştürüldüğünde bu adaylar <strong>İptal</strong> durumuna alınır, şirketi “Atanmadı” olur ve şirket sayımlarından çıkar. Aşama geçmişleri korunur.</p></div></div>
+                <% if (!d.cancelCompanies.length) { %><%- ok('Şirket listesinde iptal grubu bulunmadı.') %><% } %>
+                <% d.cancelCompanies.forEach(co => { %>
+                <form action="/admin/veri-kontrol/company-cancel" method="POST" class="list-row flex-wrap" data-danger data-confirm="“<%= co.name %>” grubundaki <%= co.activeCount %> aktif aday İptal durumuna alınacak. Adaylar silinmez.">
+                    <input type="hidden" name="companyId" value="<%= co._id %>">
+                    <div class="avatar t-bad" style="border-radius:10px"><i class="fas fa-ban"></i></div>
+                    <div class="flex-grow-1"><div class="fw-650"><%= co.name %></div><div class="small muted"><%= co.count %> aday · <%= co.activeCount %> tanesi hâlâ aktif sayılıyor</div></div>
+                    <label class="small d-flex align-items-center gap-1"><input type="checkbox" name="deleteCompany" class="form-check-input m-0" checked> Grubu şirket listesinden kaldır</label>
+                    <button class="btn btn-sm btn-brand"><i class="fas fa-right-left me-1"></i>İptal durumuna dönüştür</button>
+                </form>
+                <% }) %>
+            </div>
+
+            <div class="row g-3 mb-3">
+                <div class="col-lg-6">
+                    <div class="card-x h-100">
+                        <div class="card-h"><div><h2>3. Mükerrer pasaport</h2><p class="sub">Aynı pasaport numarasıyla birden çok kayıt</p></div><span class="pill <%= d.dupPassports.length ? 't-warn' : 't-ok' %> ms-auto"><%= d.dupPassports.length %></span></div>
+                        <% if (!d.dupPassports.length) { %><%- ok('Mükerrer pasaport yok.') %><% } %>
+                        <% d.dupPassports.forEach(g => { %>
+                        <div class="list-row flex-wrap"><span class="mono fw-bold"><%= g.passport %></span>
+                            <% g.list.forEach(c => { %><a class="pill t-gray text-decoration-none" href="/admin/candidate/<%= c._id %>"><%= fullName(c) %><%= c.status === 'cancelled' ? ' (iptal)' : '' %></a><% }) %></div>
+                        <% }) %>
+                    </div>
+                </div>
+                <div class="col-lg-6">
+                    <div class="card-x h-100">
+                        <div class="card-h"><div><h2>4. Tanımsız şirket adı</h2><p class="sub">Şirket listesinde olmayan bir şirkete bağlı adaylar</p></div><span class="pill <%= d.unknownCompany.length ? 't-warn' : 't-ok' %> ms-auto"><%= d.unknownCompany.length %></span></div>
+                        <% if (!d.unknownCompany.length) { %><%- ok('Tüm şirket adları tanımlı.') %><% } %>
+                        <% d.unknownCompany.slice(0, 30).forEach(c => { %>
+                        <a class="list-row text-decoration-none" style="color:inherit" href="/admin/candidate/<%= c._id %>"><span class="flex-grow-1"><%= fullName(c) %></span><span class="pill t-warn"><%= c.company %></span></a>
+                        <% }) %>
+                    </div>
+                </div>
+                <div class="col-lg-6">
+                    <div class="card-x h-100">
+                        <div class="card-h"><div><h2>5. Silinmiş adaya ait açık görevler</h2><p class="sub">Raporlarda ve personel listelerinde yanlış sayım yaratır</p></div><span class="pill <%= d.orphanOpen.length ? 't-bad' : 't-ok' %> ms-auto"><%= d.orphanOpen.length %></span></div>
+                        <% if (!d.orphanOpen.length) { %><%- ok('Sahipsiz açık görev yok.') %><% } else { %>
+                        <% d.orphanOpen.slice(0, 15).forEach(w => { %><a class="list-row text-decoration-none" style="color:inherit" href="/admin/is-emirleri/<%= w._id %>"><span class="mono small muted"><%= w.code %></span><span class="flex-grow-1 text-truncate-1"><%= w.title %> · <%= w.candidateName %></span></a><% }) %>
+                        <form action="/admin/veri-kontrol/orphan-tasks" method="POST" class="p-3" data-confirm="<%= d.orphanOpen.length %> açık görev iptal edilecek (silinmez, geçmişte kalır)."><button class="btn btn-sm btn-brand"><i class="fas fa-broom me-1"></i>Bu görevleri iptal et</button></form>
+                        <% } %>
+                    </div>
+                </div>
+                <div class="col-lg-6">
+                    <div class="card-x h-100">
+                        <div class="card-h"><div><h2>6. Diğer kontroller</h2></div></div>
+                        <div class="list-row"><span class="flex-grow-1">Mükerrer otomatik görev</span><span class="pill <%= d.autoDup.length ? 't-bad' : 't-ok' %>"><%= d.autoDup.length %></span></div>
+                        <div class="list-row"><span class="flex-grow-1">Pasif / devre dışı personelde açık görev</span>
+                            <% if (Object.keys(d.inactiveStaffOpen).length) { %><a href="/admin/is-emirleri?status=open" class="pill t-warn text-decoration-none"><%= Object.entries(d.inactiveStaffOpen).map(([n, k]) => `${n}: ${k}`).join(' · ') %></a><% } else { %><span class="pill t-ok">0</span><% } %></div>
+                        <div class="list-row"><span class="flex-grow-1">Aşama kaydı oluşturulmamış aday</span><span class="pill <%= d.missingStates ? 't-warn' : 't-ok' %>"><%= d.missingStates %></span></div>
+                        <div class="list-row"><span class="flex-grow-1">E-posta ve telefonu olmayan aktif aday</span><span class="pill <%= d.noContact ? 't-warn' : 't-ok' %>"><%= d.noContact %></span></div>
+                        <div class="small muted px-3 pb-3 pt-2">Aşama kaydı eksik adaylar, aday detayı ilk açıldığında otomatik tamamlanır.</div>
+                    </div>
+                </div>
+            </div>
+        </main>
+    </div>
+</div>
+<%- include('partials/admin_scripts') %>
+<script>
+document.querySelectorAll('.js-all').forEach(cb => cb.addEventListener('change', () => document.querySelectorAll('.js-g' + cb.dataset.g).forEach(x => x.checked = cb.checked)));
+</script>
+</body>
+</html>

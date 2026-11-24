@@ -1,0 +1,100 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+    <title><%= co.name %> | Şirketler | BERLINER Yönetim</title>
+    <%- include('partials/admin_head') %>
+</head>
+<body>
+<%
+    const d10 = (d) => d ? new Date(d).toISOString().slice(0, 10) : '';
+    const s = stats || { active: 0, cancelled: 0, arrived: 0, waitingApproval: 0, inProcess: 0, openPositions: 0, successRate: null, avgDays: null };
+    const active = cands.filter(c => c.status !== 'cancelled'), cancelled = cands.filter(c => c.status === 'cancelled');
+    const byStage = stages.map(n => ({ n, k: active.filter(c => c.currentStage === n).length }));
+    const maxS = Math.max(1, ...byStage.map(x => x.k));
+%>
+<div class="app">
+    <%- include('partials/admin_sidebar', { active: 'companies', onMain: false }) %>
+    <div class="main">
+        <header class="topbar">
+            <button class="btn btn-soft btn-icon menu-toggle" aria-label="Menü"><i class="fas fa-bars"></i></button>
+            <a href="/admin/sirketler" class="btn btn-soft btn-icon" title="Şirketlere dön"><i class="fas fa-arrow-left"></i></a>
+            <div><div class="crumb"><a href="/admin/sirketler" class="text-decoration-none muted">Şirketler</a> / Detay</div><h1><%= co.name %></h1></div>
+            <div class="ms-auto"><a href="/admin/raporlar?company=<%= encodeURIComponent(co.name) %>" class="btn btn-soft"><i class="fas fa-chart-column me-1"></i>Şirket raporu</a></div>
+        </header>
+        <main class="content">
+            <div class="row g-3 mb-3">
+                <div class="col-6 col-md-4 col-xl-2"><div class="stat-mini"><div class="v"><%= s.active %></div><div class="l">Atanmış aktif aday</div></div></div>
+                <div class="col-6 col-md-4 col-xl-2"><div class="stat-mini"><div class="v"><%= s.inProcess %></div><div class="l">Süreçte</div></div></div>
+                <div class="col-6 col-md-4 col-xl-2"><div class="stat-mini"><div class="v" style="color:var(--warn)"><%= s.waitingApproval %></div><div class="l">İşveren onayı bekleyen</div></div></div>
+                <div class="col-6 col-md-4 col-xl-2"><div class="stat-mini"><div class="v" style="color:var(--ok)"><%= s.arrived %></div><div class="l">Almanya'ya ulaşan</div></div></div>
+                <div class="col-6 col-md-4 col-xl-2"><div class="stat-mini"><div class="v muted"><%= s.cancelled %></div><div class="l">İptal (ayrı sayılır)</div></div></div>
+                <div class="col-6 col-md-4 col-xl-2"><div class="stat-mini"><div class="v"><%= s.successRate == null ? '—' : s.successRate + '%' %></div><div class="l">Başarı · ort. <%= s.avgDays == null ? '—' : Math.round(s.avgDays) + ' gün' %></div></div></div>
+            </div>
+            <div class="row g-3">
+                <div class="col-lg-5">
+                    <form class="card-x mb-3" action="/admin/sirketler/<%= co._id %>" method="POST">
+                        <div class="card-h"><h3>Şirket bilgileri</h3></div>
+                        <div class="card-b"><div class="row g-2">
+                            <div class="col-12"><label class="form-label">Şirket adı</label><input name="name" class="form-control" value="<%= co.name %>" required maxlength="80"><div class="form-text">Ad değişirse bağlı adayların şirket bilgisi de güncellenir.</div></div>
+                            <div class="col-md-6"><label class="form-label">İletişim kişisi</label><input name="contactPerson" class="form-control" value="<%= co.contactPerson || '' %>" maxlength="120"></div>
+                            <div class="col-md-6"><label class="form-label">Telefon</label><input name="phone" class="form-control" value="<%= co.phone || '' %>" maxlength="40"></div>
+                            <div class="col-md-6"><label class="form-label">E-posta</label><input type="email" name="email" class="form-control" value="<%= co.email || '' %>" maxlength="160"></div>
+                            <div class="col-md-6"><label class="form-label">Şehir</label><input name="city" class="form-control" value="<%= co.city || '' %>" maxlength="80"></div>
+                            <div class="col-12"><label class="form-label">Adres</label><input name="address" class="form-control" value="<%= co.address || '' %>" maxlength="300"></div>
+                            <div class="col-12"><label class="form-label">Web sitesi</label><input name="website" class="form-control" value="<%= co.website || '' %>" maxlength="200"></div>
+                            <div class="col-12"><label class="form-label">Sözleşme durumu</label><select name="contractStatus" class="form-select"><% CONTRACT.forEach(x => { %><option <%= co.contractStatus === x ? 'selected' : '' %>><%= x %></option><% }) %></select></div>
+                            <div class="col-6"><label class="form-label">Sözleşme başlangıç</label><input type="date" name="contractStart" class="form-control" value="<%= d10(co.contractStart) %>"></div>
+                            <div class="col-6"><label class="form-label">Sözleşme bitiş</label><input type="date" name="contractEnd" class="form-control" value="<%= d10(co.contractEnd) %>"></div>
+                            <div class="col-12"><label class="form-label">Notlar</label><textarea name="notes" class="form-control" rows="3" maxlength="4000"><%= co.notes || '' %></textarea></div>
+                        </div></div>
+                        <div class="px-3 pb-3"><button class="btn btn-brand w-100"><i class="fas fa-check me-1"></i>Kaydet</button></div>
+                    </form>
+                    <div class="card-x" id="positions">
+                        <div class="card-h"><h3>Pozisyonlar</h3><span class="muted small ms-auto"><%= s.openPositions %> açık kişi</span></div>
+                        <% (co.positions || []).forEach(p => { %>
+                        <div class="list-row">
+                            <div class="flex-grow-1"><div class="fw-650 <%= p.active ? '' : 'muted text-decoration-line-through' %>"><%= p.title %></div><div class="small muted"><%= p.city || '—' %> · <%= p.openings %> kişi</div></div>
+                            <form action="/admin/sirketler/<%= co._id %>/position" method="POST" class="m-0"><input type="hidden" name="positionId" value="<%= p._id %>"><button class="btn btn-sm btn-soft"><%= p.active ? 'Kapat' : 'Aç' %></button></form>
+                            <form action="/admin/sirketler/<%= co._id %>/position" method="POST" class="m-0" data-confirm="“<%= p.title %>” pozisyonu silinecek." data-danger><input type="hidden" name="positionId" value="<%= p._id %>"><input type="hidden" name="_action" value="delete"><button class="btn btn-sm btn-bad-soft btn-icon" title="Sil" data-no-busy="1"><i class="fas fa-trash"></i></button></form>
+                        </div>
+                        <% }) %>
+                        <form action="/admin/sirketler/<%= co._id %>/position" method="POST" class="card-b row g-2 m-0">
+                            <div class="col-12 col-md-5"><input name="title" class="form-control form-control-sm" placeholder="Pozisyon (örn: CE Şoför)" required maxlength="120"></div>
+                            <div class="col-6 col-md-3"><input name="city" class="form-control form-control-sm" placeholder="Şehir" maxlength="80"></div>
+                            <div class="col-3 col-md-2"><input type="number" name="openings" min="1" max="9999" value="1" class="form-control form-control-sm" title="Kişi sayısı"></div>
+                            <div class="col-3 col-md-2"><button class="btn btn-sm btn-brand w-100"><i class="fas fa-plus"></i></button></div>
+                        </form>
+                    </div>
+                </div>
+                <div class="col-lg-7">
+                    <div class="card-x mb-3">
+                        <div class="card-h"><h3>Aşamalara göre aktif adaylar</h3></div>
+                        <div class="card-b">
+                            <% byStage.forEach((x, i) => { %>
+                            <div class="d-flex align-items-center gap-2 mb-1 small"><span style="width:170px" class="text-truncate-1"><%= i + 1 %>. <%= x.n %></span><div class="bar flex-grow-1"><span style="width:<%= Math.round(x.k / maxS * 100) %>%;<%= i === stages.length - 1 ? 'background:var(--ok)' : '' %>"></span></div><b style="width:28px" class="text-end"><%= x.k %></b></div>
+                            <% }) %>
+                        </div>
+                    </div>
+                    <div class="card-x mb-3">
+                        <div class="card-h"><h3>Atanmış aktif adaylar</h3><span class="muted small ms-auto"><%= active.length %></span></div>
+                        <% if (!active.length) { %><div class="empty py-3">Bu şirkete atanmış aktif aday yok.</div><% } %>
+                        <% active.forEach(c => { %>
+                        <a class="list-row text-decoration-none" style="color:inherit" href="/admin/candidate/<%= c._id %>"><span class="flex-grow-1 text-truncate-1 fw-650"><%= c.firstName %> <%= c.lastName %> <span class="muted small fw-normal"><%= c.job ? '· ' + c.job : '' %></span></span><span class="pill <%= c.currentStage === stages[stages.length - 1] ? 't-ok' : ['Ön Onay Sözleşmesi', 'Ön Onay'].includes(c.currentStage) ? 't-warn' : 't-brand' %>"><%= c.currentStage %></span></a>
+                        <% }) %>
+                    </div>
+                    <% if (cancelled.length) { %>
+                    <div class="card-x">
+                        <div class="card-h"><h3>İptal edilen adaylar</h3><span class="muted small ms-auto"><%= cancelled.length %></span></div>
+                        <% cancelled.forEach(c => { %>
+                        <a class="list-row text-decoration-none" style="color:inherit" href="/admin/candidate/<%= c._id %>"><span class="flex-grow-1 text-truncate-1"><%= c.firstName %> <%= c.lastName %></span><span class="small muted text-truncate-1" style="max-width:50%"><%= c.cancelReason || '' %></span><span class="pill t-gray"><%= fmtDT(c.cancelledAt, false) %></span></a>
+                        <% }) %>
+                    </div>
+                    <% } %>
+                </div>
+            </div>
+        </main>
+    </div>
+</div>
+<%- include('partials/admin_scripts') %>
+</body>
+</html>

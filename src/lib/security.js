@@ -54,4 +54,29 @@ function loginLimiter(key) {
 }
 setInterval(() => { const now = Date.now(); for (const [k, r] of attempts) if (now - r.first > WINDOW_MS) attempts.delete(k); }, 10 * 60 * 1000).unref();
 
-module.exports = { hashPassword, verifyPassword, passwordProblem, randomToken, sha256, loginLimiter };
+// --- Genel istek sınırlayıcı (bellek içi, IP bazlı) ---
+function rateLimit({ windowMs = 60000, max = 120, key = (req) => req.ip, message = 'Çok fazla istek gönderildi. Lütfen biraz bekleyip tekrar deneyin.', when = () => true } = {}) {
+    const hits = new Map();
+    setInterval(() => { const now = Date.now(); for (const [k, r] of hits) if (now - r.start > windowMs) hits.delete(k); }, windowMs).unref();
+    return (req, res, next) => {
+        if (!when(req)) return next();
+        const k = key(req), now = Date.now();
+        let r = hits.get(k);
+        if (!r || now - r.start > windowMs) { r = { start: now, count: 0 }; hits.set(k, r); }
+        r.count++;
+        if (r.count > max) {
+            res.set('Retry-After', Math.ceil((r.start + windowMs - now) / 1000));
+            if ((req.get('accept') || '').includes('application/json') || req.xhr) return res.status(429).json({ error: message });
+            return res.status(429).send(`<div style="font-family:sans-serif;padding:40px;text-align:center"><h2>429</h2><p>${message}</p><a href="javascript:history.back()">Geri dön</a></div>`);
+        }
+        next();
+    };
+}
+
+// Zamanlamaya dayalı karşılaştırma saldırılarına karşı sabit süreli metin karşılaştırma
+function safeEqual(a, b) {
+    const x = Buffer.from(sha256(String(a))), y = Buffer.from(sha256(String(b)));
+    return crypto.timingSafeEqual(x, y);
+}
+
+module.exports = { hashPassword, verifyPassword, passwordProblem, randomToken, sha256, loginLimiter, rateLimit, safeEqual };

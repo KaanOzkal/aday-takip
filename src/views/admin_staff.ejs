@@ -6,7 +6,7 @@
     <style>
         .mode-opt input { position: absolute; opacity: 0; }
         .mode-opt label { display: block; padding: 12px 14px; border: 1px solid var(--line); border-radius: 12px; cursor: pointer; height: 100%; }
-        .mode-opt input:checked + label { border-color: var(--brand); background: var(--brand-50); box-shadow: 0 0 0 3px rgba(47,84,235,.12); }
+        .mode-opt input:checked + label { border-color: var(--brand); background: var(--brand-50); box-shadow: 0 0 0 3px rgba(212,17,27,.12); }
         .num { font-variant-numeric: tabular-nums; }
     </style>
 </head>
@@ -118,7 +118,7 @@
         user.value = parts.length > 1 ? parts[0] + '.' + parts[parts.length - 1] : (parts[0] || '');
     });
     const p = new URLSearchParams(location.search);
-    if (p.get('open')) Swal.fire({ icon: 'warning', title: 'Açık iş emirleri var', text: 'Devre dışı bırakılan personelin ' + p.get('open') + ' açık iş emri bulunuyor. İş Emirleri sayfasından başka personele aktarmanızı öneririz.', confirmButtonColor: '#2F54EB' });
+    if (p.get('open')) Swal.fire({ icon: 'warning', title: 'Açık iş emirleri var', text: 'Devre dışı bırakılan personelin ' + p.get('open') + ' açık iş emri bulunuyor. İş Emirleri sayfasından başka personele aktarmanızı öneririz.', confirmButtonColor: '#D4111B' });
 })();
 </script>
 </body>

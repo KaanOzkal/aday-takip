@@ -6,7 +6,7 @@
 </head>
 <body>
 <%
-    const PALETTE = [['#EEF2FF','#2F54EB'],['#ECFDF3','#039855'],['#FFFAEB','#B54708'],['#FDF2FA','#C11574'],['#F0F9FF','#026AA2'],['#F4F3FF','#5925DC'],['#FEF3F2','#B42318']];
+    const PALETTE = [['#FEF1F1','#D4111B'],['#ECFDF3','#039855'],['#FFFAEB','#B54708'],['#FDF2FA','#C11574'],['#F0F9FF','#026AA2'],['#F4F3FF','#5925DC'],['#FEF3F2','#B42318']];
     const avatarStyle = (n) => { let h = 0; for (const ch of String(n || '')) h = (h * 31 + ch.charCodeAt(0)) >>> 0; const c = PALETTE[h % PALETTE.length]; return `background:${c[0]};color:${c[1]}`; };
     const initials = (c) => (((c.firstName || '?').charAt(0)) + ((c.lastName || '').charAt(0))).toLocaleUpperCase('tr-TR');
     const fullName = (c) => `${c.firstName || ''} ${c.lastName || ''}`.trim();
@@ -48,52 +48,49 @@
 
             <!-- ================= GENEL BAKIŞ ================= -->
             <section class="section" id="sec-dashboard" data-title="Genel Bakış">
-                <div class="row g-3 mb-3">
-                    <div class="col-6 col-xl">
-                        <a class="card-x kpi" href="#candidates">
-                            <div class="ic t-brand"><i class="fas fa-users"></i></div>
-                            <div><div class="lbl">Toplam Aday</div><div class="val"><%= stats.total %></div><div class="hint">Kayıtlı tüm adaylar</div></div>
+                <%
+                    const K = dash.kpi;
+                    const kpis = [
+                        { lbl: 'Toplam Aday', val: K.total, hint: 'İptal dahil tüm kayıtlar', ic: 'fa-users', t: 't-gray', attrs: 'data-filter-status="all"' },
+                        { lbl: 'Aktif Aday', val: K.active, hint: 'İptal edilmemiş', ic: 'fa-user-check', t: 't-brand', attrs: 'data-filter-status="active"' },
+                        { lbl: "Almanya'ya Ulaşan", val: K.arrived, hint: 'Süreci başarıyla tamamlanan', ic: 'fa-plane-arrival', t: 't-ok', attrs: `data-filter-stage="${stages[stages.length - 1]}"` },
+                        { lbl: 'İşlem Bekleyen', val: K.needsAction, hint: 'Belge, görev veya sorun bekleyen', ic: 'fa-list-check', t: 't-warn', attrs: `data-filter-ids="${dash.ids.needsAction.join(',')}" data-filter-label="İşlem bekleyen adaylar"` },
+                        { lbl: 'Geciken Görev', val: K.overdueTasks, hint: 'Son tarihi geçmiş açık görev', ic: 'fa-clock', t: 't-bad', href: '/admin/is-emirleri?overdue=1' },
+                        { lbl: "Bu Ay Almanya'ya Giden", val: K.arrivedThisMonth, hint: new Date().toLocaleDateString('tr-TR', { month: 'long', year: 'numeric' }), ic: 'fa-calendar-check', t: 't-info', attrs: `data-filter-ids="${dash.ids.arrivedThisMonth.join(',')}" data-filter-label="Bu ay Almanya'ya gidenler"` },
+                        { lbl: 'İptal Edilen', val: K.cancelled, hint: 'Aktif sayılara dahil değil', ic: 'fa-user-xmark', t: 't-bad', attrs: 'data-filter-status="cancelled"' },
+                        { lbl: 'Şirket Atanmamış', val: K.unassigned, hint: 'Aktif, eşleştirme bekliyor', ic: 'fa-user-tag', t: 't-gray', attrs: 'data-filter-company="Atanmadı"' }
+                    ];
+                    const maxMonth = Math.max(1, ...dash.monthly.map(m => Math.max(m.applications, m.arrivals)));
+                    const maxDist = Math.max(1, ...dash.stageDist.map(s => s.count));
+                    const T = dash.today;
+                    const fmtDT = (d) => d ? new Date(d).toLocaleString('tr-TR', { day: '2-digit', month: 'short', hour: '2-digit', minute: '2-digit' }) : '—';
+                    const fmtDays = (v) => v == null ? '—' : (v < 1 ? '<1' : v.toFixed(1)) + ' gün';
+                %>
+                <div class="row g-3 mb-3 kpi-grid">
+                    <% kpis.forEach(k => { %>
+                    <div class="col-6 col-md-3">
+                        <a class="card-x kpi" href="<%= k.href || '#candidates' %>" <%- k.attrs || '' %>>
+                            <div class="ic <%= k.t %>"><i class="fas <%= k.ic %>"></i></div>
+                            <div style="min-width:0"><div class="lbl"><%= k.lbl %></div><div class="val"><%= k.val %></div><div class="hint text-truncate-1"><%= k.hint %></div></div>
                         </a>
                     </div>
-                    <div class="col-6 col-xl">
-                        <a class="card-x kpi" href="#documents">
-                            <div class="ic t-warn"><i class="fas fa-file-circle-exclamation"></i></div>
-                            <div><div class="lbl">Bekleyen Belge</div><div class="val"><%= stats.pendingDocs %></div><div class="hint">Onay bekliyor</div></div>
-                        </a>
-                    </div>
-                    <div class="col-6 col-xl">
-                        <a class="card-x kpi" href="#appointments">
-                            <div class="ic t-info"><i class="fas fa-calendar-day"></i></div>
-                            <div><div class="lbl">Bekleyen Randevu</div><div class="val"><%= stats.pendingAppointments %></div><div class="hint">Yanıt bekliyor</div></div>
-                        </a>
-                    </div>
-                    <div class="col-6 col-xl">
-                        <a class="card-x kpi" href="#candidates" data-filter-stage="<%= stages[stages.length - 1] %>">
-                            <div class="ic t-ok"><i class="fas fa-plane-arrival"></i></div>
-                            <div><div class="lbl">Almanya'da</div><div class="val"><%= stats.inGermany %></div><div class="hint">Süreci tamamlanan</div></div>
-                        </a>
-                    </div>
-                    <div class="col-12 col-xl">
-                        <a class="card-x kpi" href="#candidates" data-filter-company="Atanmadı">
-                            <div class="ic t-gray"><i class="fas fa-user-tag"></i></div>
-                            <div><div class="lbl">Şirket Atanmamış</div><div class="val"><%= stats.unassigned %></div><div class="hint">Eşleştirme bekliyor</div></div>
-                        </a>
-                    </div>
+                    <% }) %>
                 </div>
 
-                <% const _pi = (typeof processInfo !== 'undefined' && processInfo) ? processInfo : { stale: [], failedAutomations: 0 }; %>
-                <% if (_pi.stale.length) { %>
-                <div class="card-x mb-3" style="border-color:#FECDCA;background:linear-gradient(90deg,#FEF3F2,#fff)">
+                <% if (K.review) { %>
+                <div class="card-x mb-3" style="border-color:#FEDF89;background:linear-gradient(90deg,#FFFAEB,#fff)">
                     <div class="d-flex align-items-center gap-3 p-3 flex-wrap">
-                        <div class="ic t-bad" style="width:42px;height:42px;border-radius:12px;display:grid;place-items:center"><i class="fas fa-hourglass-end"></i></div>
+                        <div class="ic t-warn" style="width:42px;height:42px;border-radius:12px;display:grid;place-items:center"><i class="fas fa-code-merge"></i></div>
                         <div class="flex-grow-1" style="min-width:220px">
-                            <div class="fw-bold" style="color:#912018"><%= _pi.stale.length %> aday uzun süredir aynı aşamada bekliyor</div>
-                            <div class="small muted"><%= _pi.stale.slice(0, 4).map(x => `${x.name} (${x.stage}, ${x.days} gün)`).join(' · ') %><%= _pi.stale.length > 4 ? ' …' : '' %></div>
+                            <div class="fw-bold" style="color:#93370D"><%= K.review %> adayın eski aşaması otomatik eşleştirilemedi</div>
+                            <div class="small muted">Bu adaylar silinmedi veya taşınmadı. Doğru aşamayı sizin onayınızla belirleyin.</div>
                         </div>
-                        <a href="/admin/surec-raporu#stale" class="btn btn-sm" style="background:var(--bad);color:#fff">İncele</a>
+                        <a href="/admin/veri-kontrol" class="btn btn-sm btn-brand">Veri Kontrolü</a>
                     </div>
                 </div>
                 <% } %>
+
+                <% const _pi = (typeof processInfo !== 'undefined' && processInfo) ? processInfo : { stale: [], failedAutomations: 0 }; %>
                 <% if (_pi.failedAutomations) { %>
                 <div class="alert d-flex align-items-center gap-2 border-0 mb-3" style="background:var(--warn-50);color:#93370D;border-radius:12px">
                     <i class="fas fa-robot"></i>
@@ -108,32 +105,132 @@
                 </div>
                 <% } %>
 
+                <!-- Bugün yapılacaklar -->
+                <div class="card-x mb-3" id="today">
+                    <div class="card-h"><div><h2><i class="fas fa-sun me-2" style="color:#F8C400"></i>Bugün Yapılacaklar</h2><p class="sub"><%= new Date().toLocaleDateString('tr-TR', { weekday: 'long', day: 'numeric', month: 'long' }) %></p></div></div>
+                    <div class="row g-0 today-grid">
+                        <div class="col-md-6 col-xl-4 today-col">
+                            <div class="today-h"><i class="fas fa-triangle-exclamation" style="color:var(--bad)"></i> Geciken görevler <span class="pill t-bad ms-auto"><%= T.overdue.length %></span></div>
+                            <% if (!T.overdue.length) { %><div class="muted small px-3 pb-3">Geciken görev yok.</div><% } %>
+                            <% T.overdue.slice(0, 5).forEach(o => { %>
+                            <a class="today-row" href="/admin/is-emirleri/<%= o._id %>"><span class="mono small muted"><%= o.code %></span><span class="flex-grow-1 text-truncate-1"><%= o.title %> · <%= o.candidateName %></span><span class="small" style="color:var(--bad)"><%= fmtDT(o.dueDate) %></span></a>
+                            <% }) %>
+                            <% if (T.overdue.length > 5) { %><a class="today-more" href="/admin/is-emirleri?overdue=1">Tümü (<%= T.overdue.length %>) →</a><% } %>
+                        </div>
+                        <div class="col-md-6 col-xl-4 today-col">
+                            <div class="today-h"><i class="fas fa-flag-checkered" style="color:var(--warn)"></i> Bugün teslim görevler <span class="pill t-warn ms-auto"><%= T.dueToday.length %></span></div>
+                            <% if (!T.dueToday.length) { %><div class="muted small px-3 pb-3">Bugün teslimi olan görev yok.</div><% } %>
+                            <% T.dueToday.slice(0, 5).forEach(o => { %>
+                            <a class="today-row" href="/admin/is-emirleri/<%= o._id %>"><span class="mono small muted"><%= o.code %></span><span class="flex-grow-1 text-truncate-1"><%= o.title %> · <%= o.assignedTo ? o.assignedTo.fullName : 'Atanmamış' %></span><span class="small muted"><%= new Date(o.dueDate).toLocaleTimeString('tr-TR', { hour: '2-digit', minute: '2-digit' }) %></span></a>
+                            <% }) %>
+                        </div>
+                        <div class="col-md-6 col-xl-4 today-col">
+                            <div class="today-h"><i class="fas fa-calendar-day" style="color:var(--info)"></i> Bugünkü randevular <span class="pill t-info ms-auto"><%= T.appointments.length %></span></div>
+                            <% if (!T.appointments.length) { %><div class="muted small px-3 pb-3">Bugün randevu yok.</div><% } %>
+                            <% T.appointments.slice(0, 5).forEach(a => { %>
+                            <a class="today-row" href="<%= a.candidateId ? '/admin/candidate/' + a.candidateId._id + '#appointments' : '#appointments' %>"><span class="small fw-bold"><%= a.time || '—' %></span><span class="flex-grow-1 text-truncate-1"><%= a.candidateId ? fullName(a.candidateId) : 'Silinmiş aday' %> · <%= a.type || 'Randevu' %></span><span class="pill <%= a.status === 'Onaylandı' ? 't-ok' : 't-warn' %>"><%= a.status %></span></a>
+                            <% }) %>
+                        </div>
+                        <div class="col-md-6 col-xl-4 today-col">
+                            <div class="today-h"><i class="fas fa-file-circle-exclamation" style="color:var(--warn)"></i> Onay bekleyen belgeler <span class="pill t-warn ms-auto"><%= T.pendingDocCands.reduce((a, c) => a + c.count, 0) %></span></div>
+                            <% if (!T.pendingDocCands.length) { %><div class="muted small px-3 pb-3">Bekleyen belge yok.</div><% } %>
+                            <% T.pendingDocCands.slice(0, 5).forEach(c => { %>
+                            <a class="today-row" href="/admin/candidate/<%= c._id %>#documents"><span class="flex-grow-1 text-truncate-1"><%= c.name %></span><span class="pill t-warn"><%= c.count %> belge</span></a>
+                            <% }) %>
+                            <% if (T.pendingDocCands.length > 5) { %><a class="today-more" href="#documents">Tümü →</a><% } %>
+                        </div>
+                        <div class="col-md-6 col-xl-4 today-col">
+                            <div class="today-h"><i class="fas fa-bed" style="color:var(--muted)"></i> 15+ gündür işlem görmeyen <span class="pill t-gray ms-auto"><%= T.inactive.length %></span></div>
+                            <% if (!T.inactive.length) { %><div class="muted small px-3 pb-3">Tüm aktif adaylarda son 15 günde işlem var.</div><% } %>
+                            <% T.inactive.slice(0, 5).forEach(c => { %>
+                            <a class="today-row" href="/admin/candidate/<%= c._id %>"><span class="flex-grow-1 text-truncate-1"><%= c.name %> <span class="muted small">· <%= c.stage %></span></span><span class="small muted"><%= c.days %> gün</span></a>
+                            <% }) %>
+                            <% if (T.stale.length) { %><a class="today-more" href="/admin/surec-raporu#stale"><i class="fas fa-hourglass-end me-1"></i><%= T.stale.length %> aday aşama süre sınırını aştı →</a><% } %>
+                        </div>
+                        <div class="col-md-6 col-xl-4 today-col">
+                            <div class="today-h"><i class="fas fa-user-tie" style="color:var(--brand)"></i> Personel yapılacakları</div>
+                            <% if (!T.staffTodo.length) { %><div class="muted small px-3 pb-3">Açık görevi olan personel yok.</div><% } %>
+                            <% T.staffTodo.slice(0, 6).forEach(s => { %>
+                            <a class="today-row" href="/admin/personel/<%= s._id %>"><span class="flex-grow-1 text-truncate-1"><%= s.name %></span><span class="small muted"><%= s.open %> açık</span><% if (s.today) { %><span class="pill t-warn"><%= s.today %> bugün</span><% } %><% if (s.overdue) { %><span class="pill t-bad"><%= s.overdue %> gecikmiş</span><% } %></a>
+                            <% }) %>
+                        </div>
+                    </div>
+                </div>
+
                 <div class="row g-3 mb-3">
                     <div class="col-lg-8">
                         <div class="card-x h-100">
-                            <div class="card-h"><div><h2>Süreç Hunisi</h2><p class="sub">Adayların genel süreç aşamalarına göre dağılımı. Bir aşamaya tıklayarak listeleyin.</p></div></div>
+                            <div class="card-h"><div><h2>Aylık Başvuru ve Varış</h2><p class="sub">Son 12 ay · başvuru tarihi ve Almanya aşamasına geçiş tarihi</p></div>
+                                <div class="ms-auto d-flex gap-3 small"><span><i class="fas fa-square" style="color:var(--brand)"></i> Başvuru</span><span><i class="fas fa-square" style="color:var(--ok)"></i> Almanya'ya varış</span></div></div>
                             <div class="card-b">
-                                <% stageCounts.forEach((s, i) => { %>
-                                <a href="#candidates" data-filter-stage="<%= s.name %>" class="d-flex align-items-center gap-3 mb-2 text-decoration-none" style="color:inherit">
-                                    <div class="muted fw-semibold" style="width:22px;font-size:12px"><%= i + 1 %></div>
-                                    <div style="width:150px" class="fw-650 text-truncate-1"><%= s.name %></div>
-                                    <div class="bar flex-grow-1"><span style="width:<%= Math.max(s.count ? 3 : 0, Math.round(s.count / maxStage * 100)) %>%;<%= i === stages.length - 1 ? 'background:var(--ok)' : '' %>"></span></div>
-                                    <div class="fw-bold text-end" style="width:36px"><%= s.count %></div>
-                                </a>
-                                <% }) %>
+                                <div class="mchart" role="img" aria-label="Aylık başvuru ve varış grafiği">
+                                    <% dash.monthly.forEach(m => { %>
+                                    <div class="mcol" title="<%= m.label %>: <%= m.applications %> başvuru, <%= m.arrivals %> varış, <%= m.cancellations %> iptal">
+                                        <div class="mbars">
+                                            <div class="mbar b1" style="height:<%= Math.round(m.applications / maxMonth * 100) %>%"><% if (m.applications) { %><span><%= m.applications %></span><% } %></div>
+                                            <div class="mbar b2" style="height:<%= Math.round(m.arrivals / maxMonth * 100) %>%"><% if (m.arrivals) { %><span><%= m.arrivals %></span><% } %></div>
+                                        </div>
+                                        <div class="mlbl"><%= m.label %></div>
+                                    </div>
+                                    <% }) %>
+                                </div>
                             </div>
                         </div>
                     </div>
                     <div class="col-lg-4">
                         <div class="card-x h-100">
-                            <div class="card-h"><div><h2>Şirket Dağılımı</h2><p class="sub">Atanan aday sayıları</p></div>
-                                <a href="#companies" class="btn btn-soft btn-sm ms-auto">Yönet</a></div>
+                            <div class="card-h"><div><h2>Başarı ve İptal</h2><p class="sub">Tüm zamanlar</p></div><a href="/admin/raporlar" class="btn btn-soft btn-sm ms-auto">Raporlar</a></div>
+                            <div class="card-b">
+                                <div class="d-flex gap-3 mb-3">
+                                    <div class="ring" style="--p:<%= dash.rates.success || 0 %>;--c:var(--ok)"><span><%= dash.rates.success == null ? '—' : dash.rates.success + '%' %></span></div>
+                                    <div><div class="fw-bold">Başarı oranı</div><div class="small muted">Sonuçlanan adaylar içinde Almanya'ya ulaşan (<%= K.arrived %> / <%= K.arrived + K.cancelled %>)</div></div>
+                                </div>
+                                <div class="d-flex gap-3 mb-3">
+                                    <div class="ring" style="--p:<%= dash.rates.cancel %>;--c:var(--bad)"><span><%= dash.rates.cancel %>%</span></div>
+                                    <div><div class="fw-bold">İptal oranı</div><div class="small muted">Tüm adaylar içinde iptal edilen (<%= K.cancelled %> / <%= K.total %>)</div></div>
+                                </div>
+                                <div class="small fw-bold mb-2">En uzun bekletilen aşamalar</div>
+                                <% if (!dash.worstStages.length) { %><div class="muted small">Veri yok.</div><% } %>
+                                <% dash.worstStages.forEach((s, i) => { %>
+                                <a href="#candidates" data-filter-stage="<%= s.name %>" class="d-flex justify-content-between small text-decoration-none py-1" style="color:inherit"><span><%= i + 1 %>. <%= s.name %> <span class="muted">(<%= s.waitingCount %> aday)</span></span><span class="fw-bold">ort. <%= fmtDays(s.avgWaiting) %></span></a>
+                                <% }) %>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="row g-3 mb-3">
+                    <div class="col-lg-7">
+                        <div class="card-x h-100">
+                            <div class="card-h"><div><h2>Aşama Dağılımı ve Bekleme Süreleri</h2><p class="sub">Aktif adaylar · aşamaya tıklayarak listeleyin</p></div></div>
+                            <div class="card-b">
+                                <div class="d-flex small muted mb-2 gap-3"><span style="width:22px"></span><span class="flex-grow-1">Aşama</span><span style="width:36px" class="text-end">Aday</span><span style="width:86px" class="text-end d-none d-sm-inline">Ort. tamamlanma</span><span style="width:76px" class="text-end d-none d-sm-inline">Ort. bekleme</span></div>
+                                <% dash.stageDist.forEach((s, i) => { const w = dash.stageWait.find(x => x.key === s.key); %>
+                                <a href="#candidates" data-filter-stage="<%= s.name %>" class="d-flex align-items-center gap-3 mb-2 text-decoration-none" style="color:inherit">
+                                    <div class="muted fw-semibold" style="width:22px;font-size:12px"><%= i + 1 %></div>
+                                    <div class="flex-grow-1" style="min-width:0">
+                                        <div class="fw-650 text-truncate-1 small"><%= s.name %></div>
+                                        <div class="bar"><span style="width:<%= Math.max(s.count ? 3 : 0, Math.round(s.count / maxDist * 100)) %>%;<%= i === stages.length - 1 ? 'background:var(--ok)' : '' %>"></span></div>
+                                    </div>
+                                    <div class="fw-bold text-end" style="width:36px"><%= s.count %></div>
+                                    <div class="small text-end d-none d-sm-block" style="width:86px"><%= w ? fmtDays(w.avgDone) : '—' %></div>
+                                    <div class="small text-end d-none d-sm-block" style="width:76px"><%= w ? fmtDays(w.avgWaiting) : '—' %></div>
+                                </a>
+                                <% }) %>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-lg-5">
+                        <div class="card-x h-100">
+                            <div class="card-h"><div><h2>Şirket Dağılımı</h2><p class="sub">Aktif adaylar · iptaller ayrı gösterilir</p></div>
+                                <a href="/admin/sirketler" class="btn btn-soft btn-sm ms-auto">Şirketler</a></div>
                             <div>
-                                <% companyCounts.forEach(co => { %>
+                                <% dash.companyDist.forEach(co => { %>
                                 <a href="#candidates" data-filter-company="<%= co.name %>" class="list-row text-decoration-none" style="color:inherit">
                                     <div class="avatar" style="<%= co.name === 'Atanmadı' ? 'background:#F2F4F7;color:#667085' : avatarStyle(co.name) %>;border-radius:10px"><i class="fas <%= co.name === 'Atanmadı' ? 'fa-user-slash' : 'fa-building' %>"></i></div>
                                     <div class="flex-grow-1 fw-650 text-truncate-1"><%= co.name %></div>
-                                    <span class="pill t-gray"><%= co.count %></span>
+                                    <span class="pill t-brand" title="Aktif aday"><%= co.active %></span>
+                                    <% if (co.cancelled) { %><span class="pill t-gray" title="İptal edilen"><i class="fas fa-ban me-1"></i><%= co.cancelled %></span><% } %>
                                 </a>
                                 <% }) %>
                             </div>
@@ -216,6 +313,12 @@
                             <option value="">Tüm aşamalar</option>
                             <% stages.forEach(s => { %><option value="<%= s %>"><%= s %></option><% }) %>
                         </select>
+                        <select id="fStatus" class="form-select" style="width:auto;min-width:130px" title="Aday durumu">
+                            <option value="active">Aktif adaylar</option>
+                            <option value="cancelled">İptal edilenler</option>
+                            <option value="review">Aşama onayı bekleyen</option>
+                            <option value="all">Tümü</option>
+                        </select>
                         <select id="fJob" class="form-select" style="width:auto;min-width:140px">
                             <option value="">Tüm meslekler</option>
                             <% jobs.forEach(j => { %><option value="<%= j %>"><%= j %></option><% }) %>
@@ -224,6 +327,7 @@
                             <input class="form-check-input" type="checkbox" id="fPending">
                             <label class="form-check-label small fw-semibold" for="fPending">Bekleyen belgesi olanlar</label>
                         </div>
+                        <span class="pill t-brand" id="fIdsChip" style="display:none;cursor:pointer" title="Filtreyi kaldır"><span id="fIdsLabel"></span> <i class="fas fa-xmark ms-1"></i></span>
                         <button class="btn btn-soft btn-sm" id="fReset" type="button"><i class="fas fa-rotate-left me-1"></i>Sıfırla</button>
                         <a class="btn btn-soft btn-sm ms-auto" id="exportBtn" href="/admin/export.csv"><i class="fas fa-download me-1"></i>Dışa aktar</a>
                     </div>
@@ -247,7 +351,7 @@
                                 const search = [fullName(c), c.email, c.passportNo, c.phone, c.phoneNumber, c.location, c.job, c.targetState].filter(Boolean).join(' ').toLocaleLowerCase('tr-TR');
                             %>
                                 <tr class="clickable cand-row" data-id="<%= c._id %>" data-href="/admin/candidate/<%= c._id %>"
-                                    data-search="<%= search %>" data-company="<%= comp %>" data-stage="<%= c.currentStage %>" data-job="<%= c.job || '' %>"
+                                    data-search="<%= search %>" data-company="<%= comp %>" data-stage="<%= c.currentStage %>" data-status="<%= c.status === 'cancelled' ? 'cancelled' : 'active' %>" data-review="<%= c.stageReviewNeeded ? 1 : 0 %>" data-job="<%= c.job || '' %>"
                                     data-name="<%= fullName(c).toLocaleLowerCase('tr-TR') %>" data-stageidx="<%= stageIdx(c.currentStage) %>" data-docs="<%= pend %>" data-email="<%= c.email || '' %>" data-fullname="<%= fullName(c) %>">
                                     <td class="no-row"><input class="form-check-input row-check" type="checkbox" value="<%= c._id %>"></td>
                                     <td>
@@ -264,8 +368,16 @@
                                         <div class="muted small"><i class="fas fa-location-dot me-1 opacity-50"></i><%= c.location || '—' %><% if (c.targetState && c.targetState !== 'Belirtilmedi') { %> → <%= c.targetState %><% } %></div>
                                     </td>
                                     <td style="min-width:170px">
+                                        <% if (c.status === 'cancelled') { %>
+                                        <span class="pill t-bad"><i class="fas fa-ban me-1"></i>İptal</span>
+                                        <div class="muted small mt-1 text-truncate-1" style="max-width:170px" title="<%= c.cancelReason || '' %>">Son aşama: <%= c.currentStage || '—' %></div>
+                                        <% } else if (c.stageReviewNeeded) { %>
+                                        <span class="pill t-warn" title="Eski aşama: <%= c.legacyStage || c.currentStage %>"><i class="fas fa-code-merge me-1"></i>Aşama onayı bekliyor</span>
+                                        <div class="muted small mt-1 text-truncate-1" style="max-width:170px">Eski: <%= c.legacyStage || c.currentStage || '—' %></div>
+                                        <% } else { %>
                                         <span class="pill <%= stageTone(c.currentStage) %>"><span class="dot"></span><%= c.currentStage || '—' %></span>
                                         <div class="bar mt-2" style="height:4px;max-width:150px"><span style="width:<%= stagePct(c.currentStage) %>%"></span></div>
+                                        <% } %>
                                     </td>
                                     <td class="no-row">
                                         <form action="/admin/candidate/company" method="POST" class="m-0">
@@ -460,12 +572,13 @@
                                     <div class="avatar" style="width:44px;height:44px;border-radius:12px;<%= co.name === 'Atanmadı' ? 'background:#F2F4F7;color:#667085' : avatarStyle(co.name) %>"><i class="fas <%= co.name === 'Atanmadı' ? 'fa-user-slash' : 'fa-building' %>"></i></div>
                                     <div style="min-width:0">
                                         <div class="fw-bold text-truncate-1" style="font-size:15px"><%= co.name %></div>
-                                        <div class="muted small"><%= co.count %> aday<%= co.name === 'Atanmadı' ? ' · sistem grubu' : '' %></div>
+                                        <div class="muted small"><%= co.count %> aktif aday<%= co.name === 'Atanmadı' ? ' · sistem grubu' : '' %></div>
                                     </div>
                                 </div>
                                 <div class="d-flex gap-2 mt-auto">
                                     <a href="#candidates" data-filter-company="<%= co.name %>" class="btn btn-soft btn-sm flex-grow-1"><i class="fas fa-users me-1"></i>Adayları gör</a>
                                     <% if (co._id) { %>
+                                    <a href="/admin/sirketler/<%= co._id %>" class="btn btn-soft btn-sm btn-icon" title="Şirket detayı"><i class="fas fa-building-circle-arrow-right"></i></a>
                                     <button type="button" class="btn btn-soft btn-sm btn-icon js-rename" data-id="<%= co._id %>" data-name="<%= co.name %>" title="Yeniden adlandır"><i class="fas fa-pen"></i></button>
                                     <form action="/admin/company/delete" method="POST" class="m-0" data-confirm="“<%= co.name %>” silinecek. Bu şirkete bağlı <%= co.count %> aday “Atanmadı” grubuna taşınacak." data-danger>
                                         <input type="hidden" name="returnTo" value="/admin#companies"><input type="hidden" name="id" value="<%= co._id %>">
@@ -614,7 +727,16 @@
     // ---------- Aday tablosu: filtre / sıralama / sayfalama ----------
     const tbody = document.querySelector('#candTable tbody');
     const rows = [...tbody.querySelectorAll('.cand-row')];
-    const f = { q: document.getElementById('fSearch'), company: document.getElementById('fCompany'), stage: document.getElementById('fStage'), job: document.getElementById('fJob'), pending: document.getElementById('fPending') };
+    const f = { q: document.getElementById('fSearch'), company: document.getElementById('fCompany'), stage: document.getElementById('fStage'), status: document.getElementById('fStatus'), job: document.getElementById('fJob'), pending: document.getElementById('fPending') };
+    let idSet = null; // panodaki özel kartlardan gelen aday listesi
+    const idsChip = document.getElementById('fIdsChip');
+    function setIds(ids, label) {
+        idSet = ids ? new Set(ids.split(',').filter(Boolean)) : null;
+        idsChip.style.display = idSet ? '' : 'none';
+        document.getElementById('fIdsLabel').textContent = label || '';
+    }
+    idsChip.addEventListener('click', () => { setIds(null); apply(); });
+    const statusOk = (r) => { const v = f.status.value; return v === 'all' || (v === 'review' ? r.dataset.review === '1' : r.dataset.status === v); };
     const pageSizeEl = document.getElementById('pageSize');
     let page = 1, sortKey = null, sortDir = 1, filtered = rows;
     try { const ps = localStorage.getItem('adm_ps'); if (ps) pageSizeEl.value = ps; } catch (e) {}
@@ -626,6 +748,7 @@
             terms.every(t => r.dataset.search.includes(t)) &&
             (!f.company.value || r.dataset.company === f.company.value) &&
             (!f.stage.value || r.dataset.stage === f.stage.value) &&
+            statusOk(r) && (!idSet || idSet.has(r.dataset.id)) &&
             (!f.job.value || r.dataset.job === f.job.value) &&
             (!f.pending.checked || +r.dataset.docs > 0));
         if (sortKey) {
@@ -636,7 +759,7 @@
         if (resetPage) page = 1;
         render();
         // Dışa aktar linki filtreyi yansıtsın
-        const anyFilter = q || f.company.value || f.stage.value || f.job.value || f.pending.checked;
+        const anyFilter = q || f.company.value || f.stage.value || f.job.value || f.pending.checked || idSet || f.status.value !== 'all';
         document.getElementById('exportBtn').href = anyFilter ? '/admin/export.csv?ids=' + filtered.map(r => r.dataset.id).join(',') : '/admin/export.csv';
     }
     function render() {
@@ -659,7 +782,7 @@
     }
     Object.values(f).forEach(el => el.addEventListener(el.type === 'search' ? 'input' : 'change', () => apply()));
     pageSizeEl.addEventListener('change', () => { try { localStorage.setItem('adm_ps', pageSizeEl.value); } catch (e) {} apply(); });
-    document.getElementById('fReset').addEventListener('click', () => { f.q.value = ''; f.company.value = ''; f.stage.value = ''; f.job.value = ''; f.pending.checked = false; apply(); });
+    document.getElementById('fReset').addEventListener('click', () => { f.q.value = ''; f.company.value = ''; f.stage.value = ''; f.status.value = 'active'; f.job.value = ''; f.pending.checked = false; setIds(null); apply(); });
     document.querySelectorAll('#candTable th.sortable').forEach(th => th.addEventListener('click', () => {
         sortDir = sortKey === th.dataset.sort ? -sortDir : 1; sortKey = th.dataset.sort;
         document.querySelectorAll('#candTable th.sortable').forEach(x => { x.classList.toggle('sorted', x === th); x.querySelector('.si').className = 'fas si ' + (x === th ? (sortDir === 1 ? 'fa-sort-up' : 'fa-sort-down') : 'fa-sort'); });
@@ -667,9 +790,11 @@
     }));
 
     // Panodaki kısayollar (aşama/şirket filtresiyle aday listesine git)
-    document.querySelectorAll('[data-filter-stage],[data-filter-company]').forEach(a => a.addEventListener('click', () => {
+    document.querySelectorAll('[data-filter-stage],[data-filter-company],[data-filter-status],[data-filter-ids]').forEach(a => a.addEventListener('click', () => {
         f.q.value = ''; f.job.value = ''; f.pending.checked = false;
         f.stage.value = a.dataset.filterStage || ''; f.company.value = a.dataset.filterCompany || '';
+        f.status.value = a.dataset.filterStatus || (a.dataset.filterIds !== undefined ? 'all' : 'active');
+        setIds(a.dataset.filterIds !== undefined ? (a.dataset.filterIds || '-') : null, a.dataset.filterLabel);
         apply();
     }));
 
@@ -705,12 +830,12 @@
     bulkBar.addEventListener('submit', async e => {
         e.preventDefault();
         const ids = selected().map(r => r.dataset.id), act = bulkAction.value;
-        if (!act) return Swal.fire({ icon: 'info', title: 'Bir işlem seçin', confirmButtonColor: '#2F54EB' });
+        if (!act) return Swal.fire({ icon: 'info', title: 'Bir işlem seçin', confirmButtonColor: '#D4111B' });
         if (act === 'export') { location.href = '/admin/export.csv?ids=' + ids.join(','); return; }
         let value = '';
         if (sub[act]) value = document.getElementById(sub[act]).value;
         if (act === 'message') {
-            const r = await Swal.fire({ title: `${ids.length} adaya panel mesajı`, input: 'textarea', inputPlaceholder: 'Mesajınızı yazın…', showCancelButton: true, confirmButtonText: 'Gönder', cancelButtonText: 'Vazgeç', confirmButtonColor: '#2F54EB', inputValidator: v => !v.trim() && 'Mesaj boş olamaz' });
+            const r = await Swal.fire({ title: `${ids.length} adaya panel mesajı`, input: 'textarea', inputPlaceholder: 'Mesajınızı yazın…', showCancelButton: true, confirmButtonText: 'Gönder', cancelButtonText: 'Vazgeç', confirmButtonColor: '#D4111B', inputValidator: v => !v.trim() && 'Mesaj boş olamaz' });
             if (!r.isConfirmed) return; value = r.value;
         } else {
             const txt = act === 'delete' ? `${ids.length} aday ve bunlara ait tüm mesaj ve randevular kalıcı olarak silinecek.` : `${ids.length} aday için işlem uygulanacak${value ? ': ' + value : ''}.`;
@@ -760,7 +885,7 @@
 
     // ---------- Şirket yeniden adlandırma ----------
     document.querySelectorAll('.js-rename').forEach(b => b.addEventListener('click', async () => {
-        const r = await Swal.fire({ title: 'Şirketi yeniden adlandır', input: 'text', inputValue: b.dataset.name, showCancelButton: true, confirmButtonText: 'Kaydet', cancelButtonText: 'Vazgeç', confirmButtonColor: '#2F54EB',
+        const r = await Swal.fire({ title: 'Şirketi yeniden adlandır', input: 'text', inputValue: b.dataset.name, showCancelButton: true, confirmButtonText: 'Kaydet', cancelButtonText: 'Vazgeç', confirmButtonColor: '#D4111B',
             footer: '<small class="text-muted">Bu şirkete bağlı adaylar otomatik olarak güncellenir.</small>', inputValidator: v => !v.trim() && 'İsim boş olamaz' });
         if (!r.isConfirmed) return;
         const fm = document.getElementById('renameForm'); fm.elements['id'].value = b.dataset.id; fm.elements['name'].value = r.value.trim(); fm.submit();

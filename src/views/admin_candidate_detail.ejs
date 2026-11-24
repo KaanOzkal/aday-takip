@@ -16,17 +16,17 @@
         .step.done::before, .step.current::before { background: var(--brand); }
         .step .b { width: 28px; height: 28px; border-radius: 50%; margin: 0 auto 6px; display: grid; place-items: center; font-size: 12px; font-weight: 700; position: relative; z-index: 1; background: #fff; border: 2px solid #D0D5DD; color: #98A2B3; }
         .step.done .b { background: var(--brand); border-color: var(--brand); color: #fff; }
-        .step.current .b { border-color: var(--brand); color: var(--brand); box-shadow: 0 0 0 4px rgba(47,84,235,.15); }
+        .step.current .b { border-color: var(--brand); color: var(--brand); box-shadow: 0 0 0 4px rgba(212,17,27,.15); }
         .step .t { font-size: 11.5px; color: var(--muted); font-weight: 500; line-height: 1.25; padding: 0 4px; }
         .step.current .t { color: var(--ink); font-weight: 700; }
         .step.issue .b { background: var(--bad); border-color: var(--bad); color: #fff; }
         .step.skip .b { background: #98A2B3; border-color: #98A2B3; color: #fff; }
         .step a { text-decoration: none; color: inherit; }
         .pl-row { border: 1px solid var(--line); border-radius: 14px; margin-bottom: 10px; background: #fff; overflow: hidden; }
-        .pl-row.cur { border-color: #A5B4FC; box-shadow: 0 0 0 3px rgba(47,84,235,.08); }
+        .pl-row.cur { border-color: #F49A9E; box-shadow: 0 0 0 3px rgba(212,17,27,.08); }
         .pl-row.issue { border-color: #FECDCA; }
         .pl-head { display: flex; align-items: center; gap: 12px; padding: 12px 16px; cursor: pointer; }
-        .pl-head:hover { background: #FAFBFF; }
+        .pl-head:hover { background: #FFFAFA; }
         .pl-num { width: 34px; height: 34px; border-radius: 10px; display: grid; place-items: center; font-weight: 700; flex-shrink: 0; }
         .pl-body { border-top: 1px solid var(--line); padding: 16px; background: #FCFCFD; }
         .pl-meta { display: flex; flex-wrap: wrap; gap: 4px 18px; font-size: 12.5px; color: var(--muted); }
@@ -43,13 +43,13 @@
         .kv { display: grid; grid-template-columns: 150px 1fr; gap: 10px 16px; }
         .kv dt { color: var(--muted); font-weight: 500; font-size: 13px; } .kv dd { margin: 0; font-weight: 600; word-break: break-word; }
         .toggle-card { display: flex; align-items: center; gap: 12px; padding: 12px 14px; border: 1px solid var(--line); border-radius: 12px; cursor: pointer; transition: all .15s; background: #fff; }
-        .toggle-card:hover { border-color: #C7D2FE; }
+        .toggle-card:hover { border-color: #FBC5C7; }
         .toggle-card.on { background: var(--ok-50); border-color: #A6F4C5; }
         .toggle-card .form-check-input { margin: 0; width: 2.4em; height: 1.3em; cursor: pointer; }
         .toggle-card .form-check-input:checked { background-color: var(--ok); border-color: var(--ok); }
         .note { background: #FFFCF5; border: 1px solid #FEDF89; border-radius: 12px; padding: 12px 14px; }
         .msg { border: 1px solid var(--line); border-radius: 12px; padding: 12px 14px; background: #fff; }
-        .msg.admin { background: #F8FAFF; border-color: #DDE5FF; }
+        .msg.admin { background: #FFF8F8; border-color: #FCE0E1; }
         .qa { border-bottom: 1px dashed var(--line); padding: 12px 0; } .qa:last-child { border-bottom: 0; }
         .qa .q { color: var(--muted); font-size: 12.5px; font-weight: 600; margin-bottom: 4px; }
         .qa .a { white-space: pre-wrap; }
@@ -59,7 +59,7 @@
 <body>
 <%
     const c = candidate;
-    const PALETTE = [['#EEF2FF','#2F54EB'],['#ECFDF3','#039855'],['#FFFAEB','#B54708'],['#FDF2FA','#C11574'],['#F0F9FF','#026AA2'],['#F4F3FF','#5925DC'],['#FEF3F2','#B42318']];
+    const PALETTE = [['#FEF1F1','#D4111B'],['#ECFDF3','#039855'],['#FFFAEB','#B54708'],['#FDF2FA','#C11574'],['#F0F9FF','#026AA2'],['#F4F3FF','#5925DC'],['#FEF3F2','#B42318']];
     const fullName = `${c.firstName || ''} ${c.lastName || ''}`.trim();
     const avatarStyle = (n) => { let h = 0; for (const ch of String(n || '')) h = (h * 31 + ch.charCodeAt(0)) >>> 0; const p = PALETTE[h % PALETTE.length]; return `background:${p[0]};color:${p[1]}`; };
     const initials = (((c.firstName || '?').charAt(0)) + ((c.lastName || '').charAt(0))).toLocaleUpperCase('tr-TR');
@@ -123,7 +123,9 @@
                 <div class="hero">
                     <div class="avatar" style="<%= avatarStyle(fullName) %>"><%= initials %></div>
                     <div class="flex-grow-1" style="min-width:240px">
-                        <h2><%= fullName %></h2>
+                        <h2><%= fullName %>
+                            <% if (c.status === 'cancelled') { %><span class="pill t-bad align-middle" style="font-size:12px"><i class="fas fa-ban me-1"></i>İptal</span><% } %>
+                            <% if (c.stageReviewNeeded) { %><span class="pill t-warn align-middle" style="font-size:12px"><i class="fas fa-code-merge me-1"></i>Aşama onayı bekliyor</span><% } %></h2>
                         <div class="meta">
                             <span><i class="fas fa-passport"></i><%= c.passportNo || 'Pasaport yok' %></span>
                             <span><i class="fas fa-briefcase"></i><%= c.job || 'Meslek belirtilmedi' %></span>
@@ -161,6 +163,8 @@
                 <a href="#process" class="tab-link" data-tab="process">Süreç &amp; Entegrasyon <span class="n"><%= intDone %>/8</span></a>
                 <a href="#documents" class="tab-link" data-tab="documents">Belgeler <span class="n <%= pendDocs ? 'warn' : '' %>"><%= pendDocs ? pendDocs + ' bekliyor' : docs.length %></span></a>
                 <a href="#notes" class="tab-link" data-tab="notes">Notlar <span class="n"><%= notes.length %></span></a>
+                <% const _tl = (typeof timeline !== 'undefined' && timeline) ? timeline : { items: [], counts: {} }; %>
+                <a href="#contacts" class="tab-link" data-tab="contacts">İletişim Geçmişi <span class="n"><%= _tl.items.length %></span></a>
                 <a href="#messages" class="tab-link" data-tab="messages">Mesajlar <span class="n"><%= messages.length %></span></a>
                 <a href="#appointments" class="tab-link" data-tab="appointments">Randevular <span class="n"><%= appointments.length %></span></a>
                 <% const _wo = (typeof wo !== 'undefined' && wo) ? wo : { orders: [], staff: [], CATEGORIES: [], PRIORITIES: [] }; const _woOpen = _wo.orders.filter(o => ['Yeni','Devam Ediyor','Revizyon'].includes(o.status)).length; %>
@@ -226,7 +230,38 @@
 
             <!-- SÜREÇ TAKİBİ (9 aşama) -->
             <div class="pane" id="pane-pipeline">
-            <% if (!pl) { %>
+            <% if (c.status === 'cancelled') { %>
+                <div class="card-x mb-3" style="border-color:#FECDCA;background:linear-gradient(90deg,#FEF3F2,#fff)">
+                    <div class="d-flex align-items-start gap-3 p-3 flex-wrap">
+                        <div class="avatar t-bad" style="border-radius:12px;width:42px;height:42px"><i class="fas fa-ban"></i></div>
+                        <div class="flex-grow-1" style="min-width:240px">
+                            <div class="fw-bold" style="color:#912018">Bu adayın süreci iptal edildi</div>
+                            <div class="small muted"><%= fmtDT(c.cancelledAt) %> · <%= c.cancelledBy || 'Sistem' %> · Son aşama: <%= c.currentStage %></div>
+                            <% if (c.cancelReason) { %><div class="small mt-1"><b>Neden:</b> <%= c.cancelReason %></div><% } %>
+                            <div class="small muted mt-1">İptal edilen adaylar aktif sayımlara, şirket dağılımına ve otomasyona dahil edilmez. Süreç geçmişi korunur.</div>
+                        </div>
+                        <form action="/admin/candidate/<%= c._id %>/reactivate" method="POST" class="d-flex gap-2 flex-wrap" data-confirm="Aday yeniden aktifleştirilecek ve <%= c.currentStage %> aşamasından devam edecek.">
+                            <input name="reason" class="form-control form-control-sm" style="min-width:200px" maxlength="300" placeholder="Not (isteğe bağlı)">
+                            <button class="btn btn-sm btn-ok"><i class="fas fa-rotate-left me-1"></i>Yeniden aktifleştir</button>
+                        </form>
+                    </div>
+                </div>
+            <% } %>
+            <% if (pl && pl.review) { %>
+                <div class="card-x mb-3" style="border-color:#FEDF89">
+                    <div class="card-h"><div class="avatar t-warn" style="border-radius:10px"><i class="fas fa-code-merge"></i></div>
+                        <div><h3>Aşama onayı gerekiyor</h3><p class="sub">Eski aşama “<b><%= c.legacyStage || c.currentStage || '—' %></b>” yeni 9 aşamalı yapıyla otomatik eşleştirilemedi. Aday silinmedi veya taşınmadı; doğru aşamayı seçin.</p></div></div>
+                    <form class="card-b d-flex gap-2 flex-wrap" action="/admin/candidate/<%= c._id %>/stage-move" method="POST" data-confirm="Seçilen aşama onaylanacak ve süreç geçmişine kaydedilecek.">
+                        <input type="hidden" name="force" value="1"><input type="hidden" name="reason" value="Geçiş sonrası yönetici onayı">
+                        <select name="toKey" class="form-select" style="flex:1;min-width:220px" required>
+                            <option value="">Aşama seçin…</option>
+                            <% Object.values(stageByKey).forEach((s, i) => { %><option value="<%= s.key %>"><%= i + 1 %>. <%= s.name %></option><% }) %>
+                        </select>
+                        <button class="btn btn-brand"><i class="fas fa-check me-1"></i>Aşamayı onayla</button>
+                    </form>
+                    <div class="small muted px-3 pb-3">Aday iptal edilmişse aşağıdaki “Adayı iptal et” bölümünü kullanın veya Veri Kontrolü ekranından toplu işlem yapın.</div>
+                </div>
+            <% } else if (!pl) { %>
                 <div class="card-x"><div class="empty"><i class="fas fa-diagram-project"></i>Süreç bilgisi yüklenemedi.</div></div>
             <% } else { const curSt = pl.stages.find(x => x.isCurrent); %>
                 <div class="row g-3 mb-3">
@@ -238,6 +273,7 @@
                                     <p class="sub"><span class="pill <%= stageStatusTone(curSt.state.status) %>" style="font-size:11px;padding:1px 8px"><%= curSt.state.status %></span>
                                     · <%= curSt.days !== null ? curSt.days + ' gündür bu aşamada' : '' %><% if (curSt.stale) { %> · <b style="color:var(--bad)">bekleme sınırı (<%= curSt.staleDays %> gün) aşıldı</b><% } %></p></div>
                             </div>
+                            <% if (c.status === 'cancelled') { %><div class="card-b small muted"><i class="fas fa-lock me-1"></i>İptal edilmiş adayda aşama değiştirilemez. Önce adayı yeniden aktifleştirin.</div><% } else { %>
                             <form class="card-b" id="moveForm" action="/admin/candidate/<%= c._id %>/stage-move" method="POST">
                                 <input type="hidden" name="force" value="0"><input type="hidden" name="reason" value="">
                                 <label class="form-label">Aşamayı değiştir</label>
@@ -249,7 +285,7 @@
                                     <button class="btn btn-brand" data-no-busy="1"><i class="fas fa-arrow-right me-1"></i>Geçir</button>
                                 </div>
                                 <div class="form-text">Mevcut aşama tamamlanmadan ilerlemek veya aşama atlamak gerekçe ister; tüm geçişler süreç geçmişine kaydedilir. İleri geçişte aşamanın görevleri otomatik oluşturulur.</div>
-                            </form>
+                            </form><% } %>
                         </div>
                     </div>
                     <div class="col-lg-5">
@@ -311,7 +347,7 @@
                                             <% if (!x.orders.length) { %><div class="small muted">Bu aşamaya ait görev yok.</div><% } %>
                                             <% x.orders.forEach(o => { %>
                                                 <a href="/admin/is-emirleri/<%= o._id %>" class="d-flex align-items-center gap-2 py-1 text-decoration-none small" style="color:inherit">
-                                                    <span class="pill <%= woStatusTone(o.status) %>" style="font-size:10.5px;padding:1px 7px"><%= o.status %></span>
+                                                    <span class="pill <%= woStatusTone(o.status) %>" style="font-size:10.5px;padding:1px 7px"><%= woStatusLabel(o.status) %></span>
                                                     <span class="text-truncate-1 flex-grow-1"><%= o.title %></span>
                                                     <span class="muted text-nowrap"><%= o.assignedTo ? o.assignedTo.fullName : '' %><%= o.source === 'automation' ? ' · oto' : '' %></span>
                                                 </a>
@@ -349,6 +385,17 @@
                         </div>
                     </div>
                 </div>
+            <% } %>
+            <% if (c.status !== 'cancelled') { %>
+                <details class="card-x mt-3" id="cancelBox">
+                    <summary class="card-h" style="cursor:pointer;list-style:none"><div class="avatar t-bad" style="border-radius:10px"><i class="fas fa-user-xmark"></i></div><div><h3>Adayı iptal et</h3><p class="sub">Aday silinmez; İptal durumuna alınır ve aktif sayımlardan çıkar. Daha sonra yeniden aktifleştirilebilir.</p></div><i class="fas fa-chevron-down ms-auto muted"></i></summary>
+                    <form class="card-b" action="/admin/candidate/<%= c._id %>/cancel" method="POST" data-confirm="<%= fullName %> İptal durumuna alınacak." data-danger>
+                        <label class="form-label">İptal nedeni <span class="text-danger">*</span></label>
+                        <textarea name="reason" class="form-control mb-2" rows="2" minlength="3" maxlength="500" required placeholder="Örn: Aday kendi isteğiyle süreçten çekildi"></textarea>
+                        <label class="small d-flex align-items-center gap-2 mb-3"><input type="checkbox" name="cancelTasks" class="form-check-input m-0" checked> Adayın açık görevlerini de iptal et ve personele bildir</label>
+                        <button class="btn btn-bad-soft"><i class="fas fa-ban me-1"></i>İptal durumuna al</button>
+                    </form>
+                </details>
             <% } %>
             </div>
 
@@ -482,6 +529,50 @@
                 </div>
             </div>
 
+            <!-- İLETİŞİM GEÇMİŞİ -->
+            <div class="pane" id="pane-contacts">
+                <% const CT = contactTypes; const ctIcon = { phone: ['fa-phone', 't-brand'], whatsapp: ['fa-comment-dots', 't-ok'], email: ['fa-envelope', 't-info'], meeting: ['fa-handshake', 't-warn'], note: ['fa-note-sticky', 't-gray'], panel: ['fa-message', 't-gray'] }; %>
+                <div class="row g-3">
+                    <div class="col-lg-5">
+                        <form class="card-x" action="/admin/candidate/<%= c._id %>/contact" method="POST">
+                            <div class="card-h"><div><h3>İletişim kaydı ekle</h3><p class="sub">Yapılan görüşmeyi kayda alın. Bu form mesaj <b>göndermez</b>; yalnızca kayıt tutar.</p></div></div>
+                            <div class="card-b">
+                                <div class="row g-2">
+                                    <div class="col-6"><label class="form-label">Tür</label><select name="type" class="form-select" required><% Object.entries(CT).forEach(([k, v]) => { %><option value="<%= k %>"><%= v %></option><% }) %></select></div>
+                                    <div class="col-6"><label class="form-label">Yön</label><select name="direction" class="form-select"><option value="outgoing">Biz aradık / yazdık</option><option value="incoming">Aday aradı / yazdı</option><option value="">—</option></select></div>
+                                    <div class="col-7"><label class="form-label">Tarih ve saat</label><input type="datetime-local" name="contactAt" class="form-control" value="<%= new Date(Date.now() - new Date().getTimezoneOffset() * 60000).toISOString().slice(0, 16) %>"></div>
+                                    <div class="col-5"><label class="form-label">Süre (dk)</label><input type="number" name="durationMin" min="0" max="600" class="form-control"></div>
+                                    <div class="col-12"><label class="form-label">Konu</label><input name="subject" maxlength="200" class="form-control" placeholder="Örn: Vize randevusu hatırlatma"></div>
+                                    <div class="col-12"><label class="form-label">Özet / not <span class="text-danger">*</span></label><textarea name="summary" rows="3" maxlength="4000" class="form-control" required></textarea></div>
+                                    <div class="col-12"><label class="form-label">Sonuç</label><input name="outcome" maxlength="300" class="form-control" placeholder="Örn: Belgeleri cuma getirecek"></div>
+                                </div>
+                            </div>
+                            <div class="d-flex justify-content-end px-3 pb-3"><button class="btn btn-brand"><i class="fas fa-plus me-1"></i>Kaydet</button></div>
+                        </form>
+                    </div>
+                    <div class="col-lg-7">
+                        <div class="card-x">
+                            <div class="card-h"><div><h3>Zaman çizelgesi</h3><p class="sub">Telefon, WhatsApp, e-posta, görüşme, personel notları ve panel mesajları</p></div>
+                                <select class="form-select form-select-sm ms-auto" style="width:auto" id="tlFilter"><option value="">Tümü</option><% Object.entries(CT).forEach(([k, v]) => { %><option value="<%= k %>"><%= v %> (<%= _tl.counts[k] || 0 %>)</option><% }) %><option value="panel">Panel mesajı</option></select></div>
+                            <div class="card-b">
+                                <% if (!_tl.items.length) { %><div class="empty"><i class="fas fa-comments"></i>Henüz iletişim kaydı yok.</div><% } %>
+                                <div class="tl">
+                                <% _tl.items.forEach(it => { const ic = ctIcon[it.type] || ctIcon.note; %>
+                                    <div class="tl-item" data-type="<%= it.type %>">
+                                        <div class="tl-ic <%= ic[1] %>"><i class="fas <%= ic[0] %>"></i></div>
+                                        <div class="small muted"><%= fmtDT(it.at) %> · <%= it.authorName || 'Sistem' %><%= it.direction === 'incoming' ? ' · gelen' : it.direction === 'outgoing' ? ' · giden' : '' %><%= it.source === 'system' ? ' · otomatik kayıt' : '' %><%= it.durationMin ? ' · ' + it.durationMin + ' dk' : '' %></div>
+                                        <div class="fw-650"><%= it.type === 'panel' ? 'Panel mesajı' : CT[it.type] %><%= it.subject ? ' — ' + it.subject : '' %></div>
+                                        <% if (it.summary) { %><div class="small" style="white-space:pre-wrap"><%= it.summary %></div><% } %>
+                                        <% if (it.outcome) { %><div class="small mt-1"><span class="pill t-gray">Sonuç: <%= it.outcome %></span></div><% } %>
+                                    </div>
+                                <% }) %>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
             <!-- MESAJLAR -->
             <div class="pane" id="pane-messages">
                 <div class="row g-3">
@@ -589,7 +680,7 @@
                                     <td><%= w.assignedTo ? w.assignedTo.fullName : '—' %></td>
                                     <td><span class="pill <%= woPriorityTone(w.priority) %>"><%= w.priority %></span></td>
                                     <td style="white-space:nowrap"><%= w.dueDate ? fmtDT(w.dueDate, false) : '—' %><% if (due) { %><div><span class="pill <%= due.tone %>" style="font-size:11px;padding:1px 8px"><%= due.text %></span></div><% } %></td>
-                                    <td><span class="pill <%= woStatusTone(w.status) %>"><span class="dot"></span><%= w.status %></span></td>
+                                    <td><span class="pill <%= woStatusTone(w.status) %>"><span class="dot"></span><%= woStatusLabel(w.status) %></span></td>
                                 </tr>
                             <% }) %>
                             </tbody>
@@ -655,7 +746,7 @@
     async function go() {
         const to = sel.value; if (!to) return;
         const r = await fetch('/admin/candidate/<%= c._id %>/stage-check?to=' + encodeURIComponent(to), { headers: { Accept: 'application/json' } }).then(x => x.json()).catch(() => null);
-        if (!r || r.code === 'same') return Swal.fire({ icon: 'info', title: 'Aday zaten bu aşamada', confirmButtonColor: '#2F54EB' });
+        if (!r || r.code === 'same') return Swal.fire({ icon: 'info', title: 'Aday zaten bu aşamada', confirmButtonColor: '#D4111B' });
         if (r.warnings && r.warnings.length) {
             const res = await Swal.fire({
                 icon: 'warning', title: 'Dikkat: ' + r.from + ' → ' + r.to,

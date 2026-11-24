@@ -6,16 +6,16 @@
     <%- include('partials/staff_head') %>
     <style>
         .kpi { padding: 16px 18px; display: flex; gap: 12px; align-items: center; text-decoration: none; color: inherit; height: 100%; transition: border-color .15s, transform .15s; }
-        a.kpi:hover { border-color: #C7D2FE; transform: translateY(-1px); }
+        a.kpi:hover { border-color: #FBC5C7; transform: translateY(-1px); }
         .kpi .v { font-size: 26px; font-weight: 800; color: var(--ink); line-height: 1.1; }
         .kpi .l { color: var(--muted); font-size: 12.5px; font-weight: 500; }
-        .kpi.on { border-color: var(--brand); box-shadow: 0 0 0 3px rgba(47,84,235,.1); }
+        .kpi.on { border-color: var(--brand); box-shadow: 0 0 0 3px rgba(212,17,27,.1); }
         .up { display: flex; gap: 12px; padding: 12px 18px; border-bottom: 1px solid #F0F2F5; text-decoration: none; color: inherit; align-items: center; }
-        .up:last-child { border-bottom: 0; } .up:hover { background: #FAFBFF; }
+        .up:last-child { border-bottom: 0; } .up:hover { background: #FFFAFA; }
         .cal { width: 46px; border-radius: 10px; overflow: hidden; text-align: center; border: 1px solid var(--line); flex-shrink: 0; background: #fff; }
         .cal .m { background: var(--navy); color: #fff; font-size: 10px; font-weight: 700; text-transform: uppercase; padding: 1px 0; }
         .cal .d { font-size: 17px; font-weight: 800; color: var(--ink); line-height: 1.6; }
-        .push { background: linear-gradient(135deg, #0B1220, #172554); color: #fff; border-radius: var(--radius); padding: 16px 18px; }
+        .push { background: linear-gradient(135deg, #0B1220, #28202A); color: #fff; border-radius: var(--radius); padding: 16px 18px; }
     </style>
 </head>
 <body>
@@ -24,7 +24,7 @@
     const q = (o) => '?' + Object.entries(Object.assign({ f: filter, sort }, o)).map(([k, v]) => k + '=' + encodeURIComponent(v)).join('&');
     const hour = new Date().toLocaleString('tr-TR', { timeZone: 'Europe/Istanbul', hour: 'numeric', hour12: false });
     const greet = hour < 12 ? 'Günaydın' : hour < 18 ? 'İyi günler' : 'İyi akşamlar';
-    const tabs = [['open', 'Açık'], ['new', 'Yeni'], ['progress', 'Devam eden'], ['overdue', 'Geciken'], ['done', 'Tamamlanan'], ['cancelled', 'İptal'], ['all', 'Tümü']];
+    const tabs = [['open', 'Açık'], ['new', 'Atandı'], ['progress', 'Devam eden'], ['overdue', 'Geciken'], ['done', 'Tamamlanan'], ['cancelled', 'İptal'], ['all', 'Tümü']];
 %>
 <div class="s-head">
     <div>
@@ -71,7 +71,7 @@
                     </div>
                     <div class="text-end d-none d-sm-block" style="min-width:120px">
                         <% if (due) { %><span class="pill <%= due.tone %>"><i class="far fa-clock"></i><%= due.text %></span>
-                        <% } else { %><span class="pill <%= woStatusTone(w.status) %>"><%= w.status %></span><% } %>
+                        <% } else { %><span class="pill <%= woStatusTone(w.status) %>"><%= woStatusLabel(w.status) %></span><% } %>
                         <div class="small muted mt-1"><%= w.dueDate ? fmtDT(w.dueDate, false) : 'Teslim tarihi yok' %></div>
                     </div>
                     <span class="pill <%= woPriorityTone(w.priority) %> d-none d-md-inline-flex"><i class="fas <%= woPriorityIcon(w.priority) %>"></i><%= w.priority %></span>

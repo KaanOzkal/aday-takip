@@ -4,7 +4,9 @@
   "main": "index.js",
   "scripts": {
     "start": "node src/app.js",
-    "dev": "nodemon src/app.js"
+    "dev": "nodemon src/app.js",
+    "test": "node --test tests/*.test.js",
+    "backup": "node scripts/backup.js"
   },
   "keywords": [],
   "author": "",

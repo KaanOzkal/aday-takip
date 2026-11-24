@@ -14,7 +14,7 @@
     <style>
         :root {
             /* Varsayılan veya Kayıtlı Renk */
-            --primary: <%= user.cvDetails?.cvColor || '#2F54EB' %>;
+            --primary: <%= user.cvDetails?.cvColor || '#D4111B' %>;
             --bg-body: #f8fafc;
             --surface: #ffffff;
             --border: #e2e8f0;
@@ -58,7 +58,7 @@
         }
         .section-icon {
             width: 50px; height: 50px;
-            background: linear-gradient(135deg, var(--primary), #6366f1);
+            background: linear-gradient(135deg, var(--primary), #B00E16);
             color: white;
             border-radius: 12px;
             display: flex; align-items: center; justify-content: center;
@@ -127,12 +127,12 @@
         .experience-card:hover { border-color: var(--primary); }
         .experience-card::before {
             content: ''; position: absolute; top: 0; left: 0; width: 4px; height: 100%;
-            background: linear-gradient(to bottom, var(--primary), #6366f1);
+            background: linear-gradient(to bottom, var(--primary), #B00E16);
         }
 
         /* Progress Bar */
         .completion-progress { position: fixed; top: 0; left: 0; width: 100%; height: 4px; background: #e2e8f0; z-index: 1040; }
-        .completion-progress-bar { height: 100%; background: linear-gradient(to right, var(--primary), #8b5cf6); transition: width 0.5s ease; }
+        .completion-progress-bar { height: 100%; background: linear-gradient(to right, var(--primary), #F8C400); transition: width 0.5s ease; }
 
         @media (max-width: 768px) {
             .section-card { padding: 20px; }
@@ -167,7 +167,7 @@
                         <h6 class="fw-bold mb-3 small text-muted text-uppercase">Tema Rengi Seçin</h6>
                         <div class="d-flex flex-wrap gap-2 mb-3">
                             <div class="color-option" style="background: #0f172a;" onclick="selectColor(this, '#0f172a')"></div>
-                            <div class="color-option" style="background: #2F54EB;" onclick="selectColor(this, '#2F54EB')"></div>
+                            <div class="color-option" style="background: #D4111B;" onclick="selectColor(this, '#D4111B')"></div>
                             <div class="color-option" style="background: #059669;" onclick="selectColor(this, '#059669')"></div>
                             <div class="color-option" style="background: #dc2626;" onclick="selectColor(this, '#dc2626')"></div>
                             <div class="color-option" style="background: #7c3aed;" onclick="selectColor(this, '#7c3aed')"></div>
@@ -175,7 +175,7 @@
                         </div>
                         <div class="input-group input-group-sm">
                             <span class="input-group-text">Özel</span>
-                            <input type="color" class="form-control form-control-color" id="customColorPicker" value="<%= user.cvDetails?.cvColor || '#2F54EB' %>" onchange="selectCustomColor(this.value)">
+                            <input type="color" class="form-control form-control-color" id="customColorPicker" value="<%= user.cvDetails?.cvColor || '#D4111B' %>" onchange="selectCustomColor(this.value)">
                         </div>
                     </div>
                 </div>

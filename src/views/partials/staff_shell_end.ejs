@@ -13,7 +13,7 @@
     window.sNotify = function (map) {
         const p = new URLSearchParams(location.search), st = p.get('status'), er = p.get('error');
         if (st && map.ok && map.ok[st]) sToast.fire({ icon: 'success', title: map.ok[st] });
-        if (er) Swal.fire({ icon: 'error', title: 'İşlem tamamlanamadı', text: (map.err && map.err[er]) || 'Beklenmeyen bir hata oluştu.', confirmButtonColor: '#2F54EB' });
+        if (er) Swal.fire({ icon: 'error', title: 'İşlem tamamlanamadı', text: (map.err && map.err[er]) || 'Beklenmeyen bir hata oluştu.', confirmButtonColor: '#D4111B' });
         if (st || er) { p.delete('status'); p.delete('error'); const q = p.toString(); history.replaceState(null, '', location.pathname + (q ? '?' + q : '') + location.hash); }
     };
     // Onaylı formlar
@@ -21,7 +21,7 @@
         const f = e.target;
         if (f.matches('form[data-confirm]') && !f.dataset.ok) {
             e.preventDefault();
-            const r = await Swal.fire({ icon: 'question', title: 'Emin misiniz?', text: f.dataset.confirm, showCancelButton: true, confirmButtonText: 'Evet', cancelButtonText: 'Vazgeç', confirmButtonColor: '#2F54EB', reverseButtons: true });
+            const r = await Swal.fire({ icon: 'question', title: 'Emin misiniz?', text: f.dataset.confirm, showCancelButton: true, confirmButtonText: 'Evet', cancelButtonText: 'Vazgeç', confirmButtonColor: '#D4111B', reverseButtons: true });
             if (r.isConfirmed) { f.dataset.ok = '1'; f.requestSubmit ? f.requestSubmit() : f.submit(); }
             return;
         }
@@ -35,7 +35,7 @@
     const setTitle = n => { document.title = (n ? `(${n}) ` : '') + base; };
     setTitle(<%= _su2 %>);
     const show = d => {
-        sToast.fire({ icon: 'info', title: d.title, text: d.message, timer: 7000, showConfirmButton: true, confirmButtonText: 'Görüntüle', confirmButtonColor: '#2F54EB' }).then(r => { if (r.isConfirmed) location.href = d.link; });
+        sToast.fire({ icon: 'info', title: d.title, text: d.message, timer: 7000, showConfirmButton: true, confirmButtonText: 'Görüntüle', confirmButtonColor: '#D4111B' }).then(r => { if (r.isConfirmed) location.href = d.link; });
         try { if ('Notification' in window && Notification.permission === 'granted' && (document.hidden || !document.hasFocus())) { const n = new Notification('BERLINER · ' + d.title, { body: d.message, tag: d.id }); n.onclick = () => { window.focus(); location.href = d.link; }; } } catch (e) {}
         document.dispatchEvent(new CustomEvent('staff:notification', { detail: d }));
     };

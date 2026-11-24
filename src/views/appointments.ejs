@@ -6,7 +6,7 @@
     <style>
         .type-opt input { position: absolute; opacity: 0; }
         .type-opt label { display: flex; align-items: center; gap: 10px; padding: 11px 12px; border: 1px solid var(--line); border-radius: 12px; cursor: pointer; font-weight: 600; font-size: 13.5px; background: #fff; height: 100%; }
-        .type-opt input:checked + label { border-color: var(--brand); background: var(--brand-50); color: var(--brand); box-shadow: 0 0 0 3px rgba(47,84,235,.12); }
+        .type-opt input:checked + label { border-color: var(--brand); background: var(--brand-50); color: var(--brand); box-shadow: 0 0 0 3px rgba(212,17,27,.12); }
         .slots { display: grid; grid-template-columns: repeat(4, 1fr); gap: 6px; }
         .slots input { position: absolute; opacity: 0; }
         .slots label { display: block; text-align: center; padding: 8px 0; border: 1px solid var(--line); border-radius: 10px; font-weight: 600; font-size: 13px; cursor: pointer; background: #fff; }
@@ -107,7 +107,7 @@ cNotify({
 });
 document.getElementById('dt').addEventListener('change', function () {
     const d = new Date(this.value + 'T00:00:00').getDay();
-    if (d === 0 || d === 6) Swal.fire({ icon: 'info', title: 'Hafta sonu seçtin', text: 'Danışmanlarımız genellikle hafta içi çalışır. Talebin yine de iletilecek.', confirmButtonColor: '#2F54EB' });
+    if (d === 0 || d === 6) Swal.fire({ icon: 'info', title: 'Hafta sonu seçtin', text: 'Danışmanlarımız genellikle hafta içi çalışır. Talebin yine de iletilecek.', confirmButtonColor: '#D4111B' });
 });
 </script>
 </body>

@@ -21,7 +21,7 @@
         .act.no { opacity: .6; }
         .chips { display: flex; gap: 8px; flex-wrap: wrap; }
         .chip { border: 1px solid var(--line); background: #fff; border-radius: 99px; padding: 6px 12px; font-size: 13px; font-weight: 500; color: var(--ink-2); cursor: pointer; }
-        .chip:hover { border-color: #A5B4FC; color: var(--brand); }
+        .chip:hover { border-color: #F49A9E; color: var(--brand); }
         .composer { border-top: 1px solid var(--line); padding: 14px 20px; background: #fff; border-radius: 0 0 var(--radius) var(--radius); }
         .typing span { display: inline-block; width: 6px; height: 6px; border-radius: 50%; background: #98A2B3; margin: 0 2px; animation: bl 1.2s infinite; }
         .typing span:nth-child(2) { animation-delay: .2s } .typing span:nth-child(3) { animation-delay: .4s }
@@ -50,7 +50,7 @@
                             <div>Merhaba! Adayların 9 aşamalı süreç durumunu, bekleyen işleri ve personel iş yükünü <b>gerçek verilerle</b> analiz edebilirim. Aşama değiştirme veya görev oluşturma gibi işlemleri yalnızca <b>önerir</b>, siz onaylayınca uygularım.</div>
                             <% if (!aiEnabled) { %><div class="small muted mt-2"><i class="fas fa-circle-info me-1"></i>Şu an yerel analiz modundayım: hazır soru kalıplarını yanıtlarım. Serbest sohbet için sunucuya <code>ANTHROPIC_API_KEY</code> eklenmeli.</div><% } %>
                             <div class="chips mt-3">
-                                <% ['Şu anda hizmet sözleşmesi aşamasında kaç aday var?', 'Evrak teslimi bekleyen adaylar kimler?', 'Tercüme işlemleri devam eden kaç adayımız var?', 'Ön onay bekleyen adaylarımız kimler?', 'Vize randevusu alan adaylar kimler?', 'Seyahat planı bekleyen kaç kişi var?', "Hangi adaylar Almanya'ya ulaştı?", 'Hangi adaylar uzun süredir aynı aşamada bekliyor?', 'Hangi personelin üzerinde en fazla bekleyen görev var?', 'Genel durum özeti ve öneriler'].forEach(q => { %>
+                                <% ['Şu anda kaç aktif aday var?', 'Ön onay aşamasındaki adaylar kimler?', 'Son 15 günde işlem yapılmayan adaylar kimler?', 'Hangi personelin üzerinde en fazla görev var?', "Bu ay Almanya'ya giden adaylar kimler?", 'En fazla aday hangi şirkette?', 'Gecikmiş işlemler hangileri?', 'Bugün yapılması gereken görevler neler?', 'Evrak teslimi bekleyen adaylar kimler?', 'Hangi adaylar uzun süredir aynı aşamada bekliyor?', 'Genel durum özeti ve öneriler'].forEach(q => { %>
                                     <button class="chip" type="button"><%= q %></button>
                                 <% }) %>
                             </div>

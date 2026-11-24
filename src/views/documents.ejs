@@ -4,7 +4,7 @@
     <title>Belgelerim | BERLINER Aday Portalı</title>
     <%- include('partials/cand_head') %>
     <style>
-        .drop { border: 2px dashed #C7D2FE; background: #F8FAFF; border-radius: 14px; padding: 26px; text-align: center; cursor: pointer; transition: all .15s; }
+        .drop { border: 2px dashed #FBC5C7; background: #FFF8F8; border-radius: 14px; padding: 26px; text-align: center; cursor: pointer; transition: all .15s; }
         .drop:hover, .drop.over { border-color: var(--brand); background: var(--brand-50); }
         .drop .c-ic { margin: 0 auto 10px; width: 52px; height: 52px; font-size: 20px; }
         .drop.has { border-style: solid; border-color: var(--ok); background: var(--ok-50); }
@@ -141,9 +141,9 @@ cNotify({
     drop.addEventListener('drop', e => { if (e.dataTransfer.files.length) { file.files = e.dataTransfer.files; show(file.files[0]); } });
     document.getElementById('upForm').addEventListener('submit', e => {
         const f = file.files[0];
-        if (!document.getElementById('docType').value) { e.preventDefault(); e.stopImmediatePropagation(); Swal.fire({ icon: 'info', title: 'Belge türünü seçin', confirmButtonColor: '#2F54EB' }); return; }
-        if (!f) { e.preventDefault(); e.stopImmediatePropagation(); Swal.fire({ icon: 'info', title: 'Bir dosya seçin', confirmButtonColor: '#2F54EB' }); return; }
-        if (f.size > 5 * 1024 * 1024) { e.preventDefault(); e.stopImmediatePropagation(); Swal.fire({ icon: 'warning', title: 'Dosya çok büyük', text: 'En fazla 5 MB yükleyebilirsiniz.', confirmButtonColor: '#2F54EB' }); }
+        if (!document.getElementById('docType').value) { e.preventDefault(); e.stopImmediatePropagation(); Swal.fire({ icon: 'info', title: 'Belge türünü seçin', confirmButtonColor: '#D4111B' }); return; }
+        if (!f) { e.preventDefault(); e.stopImmediatePropagation(); Swal.fire({ icon: 'info', title: 'Bir dosya seçin', confirmButtonColor: '#D4111B' }); return; }
+        if (f.size > 5 * 1024 * 1024) { e.preventDefault(); e.stopImmediatePropagation(); Swal.fire({ icon: 'warning', title: 'Dosya çok büyük', text: 'En fazla 5 MB yükleyebilirsiniz.', confirmButtonColor: '#D4111B' }); }
     });
     document.querySelectorAll('.js-pick').forEach(b => b.addEventListener('click', () => {
         document.getElementById('docType').value = b.dataset.v;

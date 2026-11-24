@@ -5,17 +5,17 @@
     <%- include('partials/cand_head') %>
     <style>
         .ring { --p: 0; width: 120px; height: 120px; border-radius: 50%; display: grid; place-items: center; flex-shrink: 0;
-            background: conic-gradient(#7EA2FF calc(var(--p) * 1%), rgba(255,255,255,.12) 0); }
-        .ring > div { width: 96px; height: 96px; border-radius: 50%; background: #111c3a; display: grid; place-items: center; text-align: center; }
+            background: conic-gradient(#F16A70 calc(var(--p) * 1%), rgba(255,255,255,.12) 0); }
+        .ring > div { width: 96px; height: 96px; border-radius: 50%; background: #2A1D20; display: grid; place-items: center; text-align: center; }
         .ring b { font-size: 26px; font-weight: 800; color: #fff; line-height: 1; display: block; }
         .ring small { color: rgba(255,255,255,.6); font-size: 11px; }
         .quick a { display: flex; align-items: center; gap: 12px; padding: 16px; height: 100%; text-decoration: none; color: inherit; transition: border-color .15s, transform .15s, box-shadow .15s; }
-        .quick a:hover { border-color: #C7D2FE; transform: translateY(-2px); box-shadow: 0 8px 20px rgba(47,84,235,.08); }
+        .quick a:hover { border-color: #FBC5C7; transform: translateY(-2px); box-shadow: 0 8px 20px rgba(212,17,27,.08); }
         .quick .t { font-weight: 650; color: var(--ink); line-height: 1.2; }
         .quick .s { color: var(--muted); font-size: 12.5px; }
         .todo { display: flex; align-items: center; gap: 12px; padding: 12px 20px; border-bottom: 1px solid #F0F2F5; text-decoration: none; color: inherit; }
         .todo:last-child { border-bottom: 0; }
-        .todo:hover { background: #FAFBFF; }
+        .todo:hover { background: #FFFAFA; }
         .todo .ck { width: 24px; height: 24px; border-radius: 50%; border: 2px solid #D0D5DD; display: grid; place-items: center; font-size: 11px; color: #fff; flex-shrink: 0; }
         .todo.done .ck { background: var(--ok); border-color: var(--ok); }
         .todo.done .tt { color: var(--muted); text-decoration: line-through; }
@@ -26,7 +26,7 @@
         .st.done::before, .st.cur::before { background: var(--brand); }
         .st .b { position: relative; z-index: 1; width: 28px; height: 28px; margin: 0 auto 6px; border-radius: 50%; display: grid; place-items: center; font-size: 12px; font-weight: 700; background: #fff; border: 2px solid #D0D5DD; color: #98A2B3; }
         .st.done .b { background: var(--brand); border-color: var(--brand); color: #fff; }
-        .st.cur .b { border-color: var(--brand); color: var(--brand); box-shadow: 0 0 0 5px rgba(47,84,235,.14); }
+        .st.cur .b { border-color: var(--brand); color: var(--brand); box-shadow: 0 0 0 5px rgba(212,17,27,.14); }
         .st .l { font-size: 11.5px; color: var(--muted); line-height: 1.25; padding: 0 3px; }
         .st.cur .l { color: var(--ink); font-weight: 700; }
         .wx { text-align: center; padding: 14px 8px; }
@@ -38,7 +38,7 @@
         .word h3 { color: var(--gold); font-weight: 800; font-size: 26px; margin: 10px 0 2px; }
         .msg-row { display: flex; gap: 12px; padding: 12px 20px; border-bottom: 1px solid #F0F2F5; text-decoration: none; color: inherit; }
         .msg-row:last-child { border-bottom: 0; }
-        .msg-row:hover { background: #FAFBFF; }
+        .msg-row:hover { background: #FFFAFA; }
     </style>
 </head>
 <body>
@@ -244,7 +244,7 @@ document.addEventListener('DOMContentLoaded', function () {
     if (p.get('login') === 'success') {
         history.replaceState(null, '', location.pathname);
         <% if (locals.unreadCount && unreadCount > 0) { %>
-        Swal.fire({ title: 'Yeni mesajın var 📬', text: 'Danışmanından <%= unreadCount %> yeni mesaj aldın.', icon: 'info', confirmButtonText: 'Mesajlara git', confirmButtonColor: '#2F54EB', showCancelButton: true, cancelButtonText: 'Sonra' })
+        Swal.fire({ title: 'Yeni mesajın var 📬', text: 'Danışmanından <%= unreadCount %> yeni mesaj aldın.', icon: 'info', confirmButtonText: 'Mesajlara git', confirmButtonColor: '#D4111B', showCancelButton: true, cancelButtonText: 'Sonra' })
             .then(r => { if (r.isConfirmed) location.href = '/messages'; });
         <% } else { %>
         cToast.fire({ icon: 'success', title: 'Hoş geldin, <%= user.firstName.replace(/'/g, "\\'") %>!' });

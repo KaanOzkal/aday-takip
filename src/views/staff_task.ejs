@@ -8,7 +8,7 @@
         .kv { display: flex; justify-content: space-between; gap: 12px; padding: 9px 0; border-bottom: 1px dashed var(--line); font-size: 13.5px; }
         .kv:last-child { border-bottom: 0; } .kv span:first-child { color: var(--muted); } .kv span:last-child { font-weight: 600; color: var(--ink); text-align: right; word-break: break-word; }
         .cm { border: 1px solid var(--line); border-radius: 12px; padding: 12px 14px; }
-        .cm.admin { background: #F8FAFF; border-color: #DDE5FF; } .cm.staff { background: #F6FEF9; border-color: #D1FADF; }
+        .cm.admin { background: #FFF8F8; border-color: #FCE0E1; } .cm.staff { background: #F6FEF9; border-color: #D1FADF; }
         .steps { display: flex; gap: 0; }
         .stp { flex: 1; text-align: center; position: relative; font-size: 12px; color: var(--muted); font-weight: 600; }
         .stp::before { content: ''; position: absolute; top: 13px; left: -50%; width: 100%; height: 3px; background: #E4E7EC; }
@@ -16,7 +16,7 @@
         .stp .b { width: 28px; height: 28px; border-radius: 50%; margin: 0 auto 6px; display: grid; place-items: center; background: #fff; border: 2px solid #D0D5DD; position: relative; z-index: 1; font-size: 12px; }
         .stp.done::before, .stp.cur::before { background: var(--brand); }
         .stp.done .b { background: var(--brand); border-color: var(--brand); color: #fff; }
-        .stp.cur .b { border-color: var(--brand); color: var(--brand); box-shadow: 0 0 0 5px rgba(47,84,235,.14); }
+        .stp.cur .b { border-color: var(--brand); color: var(--brand); box-shadow: 0 0 0 5px rgba(212,17,27,.14); }
         .stp.cur { color: var(--ink); }
         .doc { display: flex; align-items: center; gap: 10px; padding: 9px 0; border-bottom: 1px dashed var(--line); }
         .doc:last-child { border-bottom: 0; }
@@ -69,7 +69,7 @@
                 <% } %>
                 <h2 class="fs-6 fw-bold mb-2">Görev açıklaması</h2>
                 <div class="pre mb-3"><%= wo.description || 'Ek açıklama girilmemiş.' %></div>
-                <% if (wo.adminNote) { %><div class="p-3" style="background:#F8FAFF;border:1px solid #DDE5FF;border-radius:12px"><div class="small fw-bold mb-1" style="color:var(--brand)"><i class="fas fa-note-sticky me-1"></i>Yönetici notu</div><div class="pre small"><%= wo.adminNote %></div></div><% } %>
+                <% if (wo.adminNote) { %><div class="p-3" style="background:#FFF8F8;border:1px solid #FCE0E1;border-radius:12px"><div class="small fw-bold mb-1" style="color:var(--brand)"><i class="fas fa-note-sticky me-1"></i>Yönetici notu</div><div class="pre small"><%= wo.adminNote %></div></div><% } %>
                 <% if (wo.resultNote) { %><div class="p-3 mt-3" style="background:var(--ok-50);border:1px solid #A6F4C5;border-radius:12px"><div class="small fw-bold mb-1" style="color:#027A48"><i class="fas fa-flag-checkered me-1"></i>Sonuç notunuz</div><div class="pre small"><%= wo.resultNote %></div></div><% } %>
             </div>
         </div>
@@ -103,6 +103,27 @@
             </div>
         </div>
 
+        <% if (candidate) { const CT = locals.contactTypes || {}; %>
+        <div class="c-card mb-3" id="contacts">
+            <div class="c-card-h"><h2>Aday İletişim Kayıtları</h2><span class="small muted ms-auto"><%= (contacts || []).length %></span></div>
+            <div class="c-card-b">
+                <form action="/personel/gorev/<%= wo._id %>/contact" method="POST" class="row g-2 mb-3">
+                    <div class="col-6 col-md-4"><select name="type" class="form-select form-select-sm" required><% Object.entries(CT).forEach(([k, v]) => { %><option value="<%= k %>"><%= v %></option><% }) %></select></div>
+                    <div class="col-6 col-md-4"><select name="direction" class="form-select form-select-sm"><option value="outgoing">Biz aradık / yazdık</option><option value="incoming">Aday aradı / yazdı</option><option value="">—</option></select></div>
+                    <div class="col-12 col-md-4"><input type="datetime-local" name="contactAt" class="form-control form-control-sm" value="<%= new Date(Date.now() - new Date().getTimezoneOffset() * 60000).toISOString().slice(0, 16) %>"></div>
+                    <div class="col-12"><textarea name="summary" class="form-control form-control-sm" rows="2" required maxlength="4000" placeholder="Görüşme özeti (bu form mesaj göndermez, yalnızca kayıt tutar)"></textarea></div>
+                    <div class="col-8"><input name="outcome" maxlength="300" class="form-control form-control-sm" placeholder="Sonuç (isteğe bağlı)"></div>
+                    <div class="col-4"><button class="btn btn-soft btn-sm w-100"><i class="fas fa-plus me-1"></i>Kaydet</button></div>
+                </form>
+                <% if (!(contacts || []).length) { %><div class="small muted">Bu aday için henüz iletişim kaydı yok.</div><% } %>
+                <% (contacts || []).forEach(k => { %>
+                    <div class="cm mb-2"><div class="d-flex justify-content-between small mb-1"><b><%= CT[k.type] || k.type %><%= k.direction === 'incoming' ? ' · gelen' : k.direction === 'outgoing' ? ' · giden' : '' %></b><span class="muted"><%= fmtDT(k.contactAt) %> · <%= k.authorName || 'Sistem' %></span></div>
+                        <% if (k.subject) { %><div class="small fw-650"><%= k.subject %></div><% } %><div class="pre small"><%= k.summary %></div><% if (k.outcome) { %><div class="small muted mt-1">Sonuç: <%= k.outcome %></div><% } %></div>
+                <% }) %>
+            </div>
+        </div>
+        <% } %>
+
         <div class="c-card">
             <div class="c-card-h"><h2>Görev Dosyaları</h2><span class="small muted ms-auto"><%= (wo.attachments || []).length %></span></div>
             <div class="c-card-b">
@@ -122,7 +143,7 @@
 
     <div class="col-lg-4">
         <% if (canStart) { %>
-        <form action="/personel/gorev/<%= wo._id %>/start" method="POST" class="c-card c-card-b mb-3" style="border-color:#C7D2FE;background:var(--brand-50)">
+        <form action="/personel/gorev/<%= wo._id %>/start" method="POST" class="c-card c-card-b mb-3" style="border-color:#FBC5C7;background:var(--brand-50)">
             <div class="fw-bold text-dark mb-1"><%= st === 'Revizyon' ? 'Revizyona başla' : 'Bu göreve başlayın' %></div>
             <div class="small muted mb-3">Başladığınızda yöneticiniz bilgilendirilir ve süre takibi başlar.</div>
             <button class="btn btn-brand w-100"><i class="fas fa-play me-1"></i>Göreve Başla</button>
@@ -175,7 +196,7 @@
 <%- include('partials/staff_shell_end') %>
 <script>
 sNotify({
-    ok: { started: 'Göreve başladınız. Yöneticiniz bilgilendirildi.', completed: 'Görev tamamlandı ve yöneticiye gönderildi. Teşekkürler!', comment_added: 'Notunuz yöneticiye iletildi.', file_added: 'Dosya eklendi.' },
+    ok: { started: 'Göreve başladınız. Yöneticiniz bilgilendirildi.', completed: 'Görev tamamlandı ve yöneticiye gönderildi. Teşekkürler!', comment_added: 'Notunuz yöneticiye iletildi.', file_added: 'Dosya eklendi.', contact_added: 'İletişim kaydı eklendi.' },
     err: { invalid_state: 'Bu işlem görevin mevcut durumunda yapılamaz.', result_required: 'Lütfen en az birkaç kelimelik bir sonuç notu yazın.', no_file: 'Lütfen bir dosya seçin.', bad_type: 'Bu dosya türü desteklenmiyor (PDF, görsel, Word, Excel).', too_large: 'Dosya 5 MB\'dan büyük olamaz.', upload_failed: 'Dosya yüklenemedi. Lütfen tekrar deneyin.', missing_fields: 'Lütfen bir not yazın.' }
 });
 document.addEventListener('staff:notification', e => { if (e.detail.link && e.detail.type !== 'assigned') setTimeout(() => location.reload(), 2500); });

@@ -29,7 +29,7 @@
         const p = new URLSearchParams(location.search);
         const st = p.get('status'), er = p.get('error');
         if (st && map.ok && map.ok[st]) cToast.fire({ icon: 'success', title: map.ok[st] });
-        if (er) Swal.fire({ icon: 'error', title: 'İşlem tamamlanamadı', text: (map.err && map.err[er]) || 'Beklenmeyen bir hata oluştu. Lütfen tekrar deneyin.', confirmButtonColor: '#2F54EB' });
+        if (er) Swal.fire({ icon: 'error', title: 'İşlem tamamlanamadı', text: (map.err && map.err[er]) || 'Beklenmeyen bir hata oluştu. Lütfen tekrar deneyin.', confirmButtonColor: '#D4111B' });
         if (st || er) { p.delete('status'); p.delete('error'); const q = p.toString(); history.replaceState(null, '', location.pathname + (q ? '?' + q : '') + location.hash); }
     };
     // Onaylı linkler/formlar: data-confirm
@@ -43,7 +43,7 @@
         const f = e.target;
         if (f.matches('form[data-confirm]') && !f.dataset.ok) {
             e.preventDefault();
-            const r = await Swal.fire({ icon: 'question', title: 'Emin misiniz?', text: f.dataset.confirm, showCancelButton: true, confirmButtonText: 'Evet', cancelButtonText: 'Vazgeç', confirmButtonColor: '#2F54EB', reverseButtons: true });
+            const r = await Swal.fire({ icon: 'question', title: 'Emin misiniz?', text: f.dataset.confirm, showCancelButton: true, confirmButtonText: 'Evet', cancelButtonText: 'Vazgeç', confirmButtonColor: '#D4111B', reverseButtons: true });
             if (r.isConfirmed) { f.dataset.ok = '1'; f.requestSubmit ? f.requestSubmit() : f.submit(); }
             return;
         }
