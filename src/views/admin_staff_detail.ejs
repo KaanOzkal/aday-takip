@@ -1,0 +1,145 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+    <title><%= staff.fullName %> | Personel | BERLINER Yönetim</title>
+    <%- include('partials/admin_head') %>
+    <style>
+        .stat { padding: 14px; border-radius: 12px; text-align: center; }
+        .stat b { display: block; font-size: 22px; font-weight: 800; line-height: 1.2; }
+        .stat span { font-size: 12px; color: var(--muted); }
+        .linkbox { background: #F8FAFF; border: 1px dashed #A5B4FC; border-radius: 12px; padding: 12px; font-family: ui-monospace, Menlo, monospace; font-size: 12.5px; word-break: break-all; }
+    </style>
+</head>
+<body>
+<% const ini = (staff.fullName || '?').split(/\s+/).filter(Boolean).slice(0, 2).map(x => x[0]).join('').toLocaleUpperCase('tr-TR'); %>
+<div class="app">
+    <%- include('partials/admin_sidebar', { active: 'staff', onMain: false }) %>
+    <div class="main">
+        <header class="topbar">
+            <button class="btn btn-soft btn-icon menu-toggle" aria-label="Menü"><i class="fas fa-bars"></i></button>
+            <a href="/admin/personel" class="btn btn-soft btn-icon" title="Personel listesine dön"><i class="fas fa-arrow-left"></i></a>
+            <div><div class="crumb"><a href="/admin/personel" class="text-decoration-none muted">Personel</a> / Detay</div><h1><%= staff.fullName %></h1></div>
+        </header>
+        <main class="content">
+            <% if (flash && flash.link) { %>
+            <div class="card-x mb-3 p-3" style="border-color:#A5B4FC">
+                <div class="d-flex gap-3 align-items-start">
+                    <div class="avatar t-brand" style="border-radius:10px"><i class="fas fa-link"></i></div>
+                    <div class="flex-grow-1" style="min-width:0">
+                        <div class="fw-bold text-dark mb-1"><%= flash.kind === 'invite' ? 'Şifre belirleme bağlantısı hazır' : '' %></div>
+                        <div class="small muted mb-2"><%= flash.mailed ? 'Bağlantı personelin e-posta adresine gönderildi. İsterseniz aşağıdan kopyalayıp başka bir kanaldan da iletebilirsiniz.' : 'E-posta gönderilemedi veya kayıtlı değil. Bağlantıyı kopyalayıp personele güvenli bir kanaldan iletin.' %> Bu bağlantı yalnızca şimdi gösterilir ve 72 saat geçerlidir.</div>
+                        <div class="linkbox mb-2" id="invLink"><%= flash.link %></div>
+                        <button class="btn btn-brand btn-sm" type="button" onclick="navigator.clipboard.writeText(document.getElementById('invLink').textContent.trim()).then(()=>this.innerHTML='<i class=\'fas fa-check me-1\'></i>Kopyalandı')"><i class="far fa-copy me-1"></i>Bağlantıyı kopyala</button>
+                    </div>
+                </div>
+            </div>
+            <% } %>
+            <div class="row g-3">
+                <div class="col-lg-4">
+                    <div class="card-x mb-3">
+                        <div class="card-b text-center">
+                            <div class="avatar t-brand mx-auto mb-2" style="width:72px;height:72px;font-size:24px"><%= ini %></div>
+                            <h2 class="fs-5 fw-bold mb-0"><%= staff.fullName %></h2>
+                            <div class="muted mb-2">@<%= staff.username %><%= staff.title ? ' · ' + staff.title : '' %></div>
+                            <% if (staff.deletedAt) { %><span class="pill t-gray">Devre dışı · <%= fmtDT(staff.deletedAt, false) %></span>
+                            <% } else if (staff.status === 'active') { %><span class="pill t-ok"><span class="dot"></span>Aktif</span>
+                            <% } else { %><span class="pill t-warn"><span class="dot"></span>Pasif</span><% } %>
+                            <% if (!staff.passwordHash && !staff.deletedAt) { %><div class="small mt-2" style="color:var(--warn)"><i class="far fa-envelope me-1"></i>Henüz şifre belirlemedi (davet bekliyor)</div><% } %>
+                            <% if (staff.lockedUntil && new Date(staff.lockedUntil) > new Date()) { %><div class="small mt-2" style="color:var(--bad)"><i class="fas fa-lock me-1"></i>Hatalı denemeler nedeniyle geçici kilitli</div><% } %>
+                            <div class="small muted mt-3">Son giriş: <%= staff.lastLoginAt ? fmtDT(staff.lastLoginAt) : 'Hiç giriş yapmadı' %> · Kayıt: <%= fmtDT(staff.createdAt, false) %></div>
+                        </div>
+                        <div class="d-grid gap-2 px-3 pb-3">
+                            <% if (staff.deletedAt) { %>
+                                <form action="/admin/personel/<%= staff._id %>/restore" method="POST" class="d-grid m-0"><button class="btn btn-soft"><i class="fas fa-rotate-left me-1"></i>Geri Yükle</button></form>
+                            <% } else { %>
+                                <form action="/admin/personel/<%= staff._id %>/status" method="POST" class="d-grid m-0" <%- staff.status === 'active' ? 'data-confirm="Personel pasife alınacak; açık oturumları anında sonlandırılır ve giriş yapamaz."' : '' %>>
+                                    <input type="hidden" name="to" value="<%= staff.status === 'active' ? 'passive' : 'active' %>">
+                                    <button class="btn btn-soft" data-no-busy="1"><i class="fas <%= staff.status === 'active' ? 'fa-user-slash' : 'fa-user-check' %> me-1"></i><%= staff.status === 'active' ? 'Pasife Al' : 'Aktifleştir' %></button>
+                                </form>
+                                <button class="btn btn-soft" data-bs-toggle="modal" data-bs-target="#resetPw"><i class="fas fa-key me-1"></i>Şifre Sıfırla</button>
+                                <form action="/admin/personel/<%= staff._id %>/delete" method="POST" class="d-grid m-0" data-confirm="Personel devre dışı bırakılacak. Geçmiş iş emirleri ve işlem kayıtları korunur; personel giriş yapamaz." data-danger>
+                                    <button class="btn btn-bad-soft" data-no-busy="1"><i class="fas fa-user-xmark me-1"></i>Hesabı Devre Dışı Bırak</button>
+                                </form>
+                            <% } %>
+                        </div>
+                    </div>
+                    <form class="card-x" action="/admin/personel/<%= staff._id %>/edit" method="POST">
+                        <div class="card-h"><h3>Bilgileri Düzenle</h3></div>
+                        <div class="card-b"><div class="row g-2">
+                            <div class="col-12"><label class="form-label">Ad soyad</label><input name="fullName" class="form-control" value="<%= staff.fullName %>" required maxlength="120"></div>
+                            <div class="col-12"><label class="form-label">Kullanıcı adı</label><input name="username" class="form-control" value="<%= staff.username %>" required pattern="[a-z0-9._\-]{3,40}"></div>
+                            <div class="col-12"><label class="form-label">Görev / unvan</label><input name="title" class="form-control" value="<%= staff.title %>" maxlength="80"></div>
+                            <div class="col-12"><label class="form-label">E-posta</label><input type="email" name="email" class="form-control" value="<%= staff.email %>"></div>
+                            <div class="col-12"><label class="form-label">Telefon</label><input name="phone" class="form-control" value="<%= staff.phone %>"></div>
+                        </div></div>
+                        <div class="px-3 pb-3"><button class="btn btn-brand w-100">Kaydet</button></div>
+                    </form>
+                </div>
+                <div class="col-lg-8">
+                    <div class="card-x mb-3">
+                        <div class="card-h"><h3>Performans</h3></div>
+                        <div class="card-b"><div class="row g-2">
+                            <div class="col-4 col-md-2"><div class="stat t-gray"><b><%= stats.total %></b><span>Toplam</span></div></div>
+                            <div class="col-4 col-md-2"><div class="stat t-brand"><b><%= stats.newCount %></b><span>Yeni</span></div></div>
+                            <div class="col-4 col-md-2"><div class="stat t-info"><b><%= stats.inProgress %></b><span>Devam</span></div></div>
+                            <div class="col-4 col-md-2"><div class="stat t-ok"><b><%= stats.completed %></b><span>Tamam</span></div></div>
+                            <div class="col-4 col-md-2"><div class="stat t-bad"><b><%= stats.overdue %></b><span>Geciken</span></div></div>
+                            <div class="col-4 col-md-2"><div class="stat t-gray"><b style="font-size:16px;line-height:1.7"><%= fmtDuration(stats.avgHours) %></b><span>Ort. süre</span></div></div>
+                        </div>
+                        <% if (stats.completed) { %><div class="small muted mt-2"><i class="fas fa-bullseye me-1"></i>Zamanında tamamlama oranı: <b class="text-dark"><%= Math.round(stats.onTime / stats.completed * 100) %>%</b></div><% } %></div>
+                    </div>
+                    <div class="card-x mb-3">
+                        <div class="card-h"><h3>Görev Geçmişi</h3><a href="/admin/is-emirleri?staff=<%= staff._id %>" class="btn btn-soft btn-sm ms-auto">İş emirlerinde filtrele</a></div>
+                        <div class="table-responsive">
+                            <table class="table table-x">
+                                <thead><tr><th>İş Emri</th><th>Aday</th><th>Durum</th><th>Teslim</th><th>Süre</th></tr></thead>
+                                <tbody>
+                                <% orders.forEach(w => { const due = dueLabel(w); %>
+                                    <tr class="clickable" onclick="location.href='/admin/is-emirleri/<%= w._id %>'">
+                                        <td style="max-width:280px"><div class="fw-650 text-dark text-truncate-1"><%= w.title %></div><div class="muted small font-monospace"><%= w.code %> · <%= w.category %></div></td>
+                                        <td><%= w.candidateName %></td>
+                                        <td><span class="pill <%= woStatusTone(w.status) %>"><span class="dot"></span><%= w.status %></span></td>
+                                        <td style="white-space:nowrap"><%= w.dueDate ? fmtDT(w.dueDate, false) : '—' %><% if (due) { %><div><span class="pill <%= due.tone %>" style="font-size:11px;padding:1px 8px"><%= due.text %></span></div><% } %></td>
+                                        <td class="muted small"><%= w.completedAt ? fmtDuration((new Date(w.completedAt) - new Date(w.startedAt || w.createdAt)) / 36e5) : '—' %></td>
+                                    </tr>
+                                <% }) %>
+                                </tbody>
+                            </table>
+                            <% if (!orders.length) { %><div class="empty"><i class="fas fa-clipboard"></i>Bu personele henüz görev atanmadı.</div><% } %>
+                        </div>
+                    </div>
+                    <div class="card-x">
+                        <div class="card-h"><h3>İşlem Kayıtları</h3><a href="/admin/islem-gecmisi" class="btn btn-soft btn-sm ms-auto">Tümü</a></div>
+                        <div>
+                            <% logs.forEach(l => { %>
+                                <div class="list-row"><i class="fas fa-circle muted" style="font-size:6px"></i><div class="flex-grow-1" style="min-width:0"><div class="small text-dark"><%= l.summary %></div><div class="muted" style="font-size:11.5px"><%= l.actorName %> · <%= fmtDT(l.createdAt) %> · <span class="font-monospace"><%= l.action %></span></div></div></div>
+                            <% }) %>
+                            <% if (!logs.length) { %><div class="empty py-4">Kayıt yok.</div><% } %>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </main>
+    </div>
+</div>
+
+<div class="modal fade" id="resetPw" tabindex="-1">
+    <div class="modal-dialog modal-dialog-centered">
+        <form class="modal-content" action="/admin/personel/<%= staff._id %>/reset-password" method="POST" autocomplete="off">
+            <div class="modal-header"><h5 class="modal-title">Şifre Sıfırla</h5><button type="button" class="btn-close" data-bs-dismiss="modal"></button></div>
+            <div class="modal-body">
+                <div class="form-check mb-2"><input class="form-check-input" type="radio" name="mode" value="invite" id="rInv" checked><label class="form-check-label" for="rInv"><b>Sıfırlama bağlantısı oluştur</b><div class="small muted">Personel yeni şifresini kendisi belirler<%= staff.email ? ' (e-postasına gönderilir)' : '' %>.</div></label></div>
+                <div class="form-check mb-3"><input class="form-check-input" type="radio" name="mode" value="password" id="rPw"><label class="form-check-label" for="rPw"><b>Yeni şifreyi ben belirleyeceğim</b></label></div>
+                <input type="text" name="password" class="form-control font-monospace d-none" id="rPwIn" placeholder="Yeni şifre (en az 8 karakter, harf + rakam)" minlength="8" autocomplete="new-password">
+                <div class="small muted mt-3"><i class="fas fa-circle-info me-1"></i>Personelin açık tüm oturumları kapatılır.</div>
+            </div>
+            <div class="modal-footer"><button type="button" class="btn btn-soft" data-bs-dismiss="modal">Vazgeç</button><button class="btn btn-brand">Sıfırla</button></div>
+        </form>
+    </div>
+</div>
+<%- include('partials/admin_scripts') %>
+<script>
+document.querySelectorAll('#resetPw input[name=mode]').forEach(r => r.addEventListener('change', () => { const on = document.getElementById('rPw').checked; const i = document.getElementById('rPwIn'); i.classList.toggle('d-none', !on); i.required = on; }));
+</script>
+</body>
+</html>

@@ -1,0 +1,60 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+    <title>Bildirimler | BERLINER Yönetim</title>
+    <%- include('partials/admin_head') %>
+    <style>
+        .nt { display: flex; gap: 12px; padding: 14px 20px; border-bottom: 1px solid #F0F2F5; text-decoration: none; color: inherit; align-items: flex-start; }
+        .nt:last-child { border-bottom: 0; }
+        .nt:hover { background: #FAFBFF; }
+        .nt.unread { background: #F8FAFF; }
+        .nt.unread .t::after { content: ''; display: inline-block; width: 8px; height: 8px; border-radius: 50%; background: var(--brand); margin-left: 8px; vertical-align: middle; }
+        .seg a { border: 0; padding: 6px 12px; border-radius: 8px; font-weight: 600; font-size: 13px; color: #475467; text-decoration: none; }
+        .seg a.active { background: #fff; color: var(--ink); box-shadow: 0 1px 2px rgba(16,24,40,.08); }
+    </style>
+</head>
+<body>
+<div class="app">
+    <%- include('partials/admin_sidebar', { active: 'notifications', onMain: false }) %>
+    <div class="main">
+        <header class="topbar">
+            <button class="btn btn-soft btn-icon menu-toggle" aria-label="Menü"><i class="fas fa-bars"></i></button>
+            <div><div class="crumb">Ekip &amp; Görevler</div><h1>Bildirimler</h1></div>
+            <div class="ms-auto d-flex gap-2">
+                <button class="btn btn-soft d-none" id="pushBtn" type="button"><i class="far fa-bell me-1"></i>Masaüstü bildirimlerini aç</button>
+                <form action="/admin/bildirimler/read-all" method="POST" class="m-0"><button class="btn btn-soft"><i class="fas fa-check-double me-1"></i><span class="d-none d-sm-inline">Tümünü okundu yap</span></button></form>
+            </div>
+        </header>
+        <main class="content">
+            <div class="card-x">
+                <div class="card-h">
+                    <div><h2>Yönetici Bildirimleri</h2><p class="sub">Tamamlanan, başlatılan ve geciken görevler ile personel notları</p></div>
+                    <div class="seg ms-auto"><a href="/admin/bildirimler" class="<%= only ? '' : 'active' %>">Tümü</a><a href="/admin/bildirimler?only=unread" class="<%= only ? 'active' : '' %>">Okunmamış</a></div>
+                </div>
+                <div id="ntList">
+                <% list.forEach(n => { const [ic, tone] = notifIcon(n.type); %>
+                    <a href="/n/<%= n._id %>" class="nt <%= n.isRead ? '' : 'unread' %>">
+                        <div class="avatar <%= tone %>" style="border-radius:10px"><i class="fas <%= ic %>"></i></div>
+                        <div class="flex-grow-1" style="min-width:0"><div class="t fw-650 text-dark"><%= n.title %></div><div class="small muted"><%= n.message %></div></div>
+                        <div class="small muted text-nowrap" title="<%= fmtDT(n.createdAt) %>"><%= fmtAgo(n.createdAt) %></div>
+                    </a>
+                <% }) %>
+                </div>
+                <% if (!list.length) { %><div class="empty"><i class="far fa-bell"></i><%= only ? 'Okunmamış bildiriminiz yok.' : 'Henüz bildirim yok. Personel görevlere başladığında, tamamladığında veya not eklediğinde burada görünür.' %></div><% } %>
+            </div>
+        </main>
+    </div>
+</div>
+<%- include('partials/admin_scripts') %>
+<script>
+(function () {
+    const b = document.getElementById('pushBtn');
+    if ('Notification' in window && Notification.permission === 'default') {
+        b.classList.remove('d-none');
+        b.addEventListener('click', () => Notification.requestPermission().then(p => { b.classList.add('d-none'); if (p === 'granted') Swal.fire({ icon: 'success', title: 'Masaüstü bildirimleri açıldı', text: 'Panel açıkken yeni bildirimler masaüstünde de gösterilecek.', confirmButtonColor: '#2F54EB' }); }));
+    }
+    document.addEventListener('admin:notification', () => setTimeout(() => location.reload(), 1500));
+})();
+</script>
+</body>
+</html>

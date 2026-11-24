@@ -1,0 +1,100 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+    <title>İş Emirleri | BERLINER Yönetim</title>
+    <%- include('partials/admin_head') %>
+    <style>
+        .wo-title { font-weight: 650; color: var(--ink); }
+        .wo-code { font-family: ui-monospace, SFMono-Regular, Menlo, monospace; font-size: 12px; color: var(--muted); }
+        .filters .form-select, .filters .form-control { font-size: 13px; }
+        .chip-link { text-decoration: none; }
+    </style>
+</head>
+<body>
+<%
+    const qs = (over) => { const p = Object.assign({ q: f.q, status: f.status, staff: f.staff, priority: f.priority, category: f.category, overdue: f.overdue ? '1' : '', review: f.review ? '1' : '', sort: f.sort }, over); return '?' + Object.entries(p).filter(([k, v]) => v).map(([k, v]) => k + '=' + encodeURIComponent(v)).join('&'); };
+    const anyFilter = f.q || f.status || f.staff || f.priority || f.category || f.overdue || f.review;
+%>
+<div class="app">
+    <%- include('partials/admin_sidebar', { active: 'workorders', onMain: false }) %>
+    <div class="main">
+        <header class="topbar">
+            <button class="btn btn-soft btn-icon menu-toggle" aria-label="Menü"><i class="fas fa-bars"></i></button>
+            <div><div class="crumb">Ekip &amp; Görevler</div><h1>İş Emirleri</h1></div>
+            <div class="ms-auto d-flex gap-2">
+                <button class="btn btn-brand" data-bs-toggle="modal" data-bs-target="#newWO" <%= staffList.filter(s => s.status === 'active').length ? '' : 'disabled title="Önce aktif bir personel ekleyin"' %>><i class="fas fa-plus me-1"></i><span class="d-none d-sm-inline"> Yeni İş Emri</span></button>
+            </div>
+        </header>
+        <main class="content">
+            <div class="row g-3 mb-3">
+                <div class="col-6 col-xl-3"><a href="<%= qs({ status: 'open', overdue: '', review: '' }) %>" class="card-x kpi"><div class="ic t-brand"><i class="fas fa-list-check"></i></div><div><div class="lbl">Açık görev</div><div class="val"><%= counts.open %></div></div></a></div>
+                <div class="col-6 col-xl-3"><a href="<%= qs({ overdue: '1', status: '', review: '' }) %>" class="card-x kpi"><div class="ic t-bad"><i class="fas fa-triangle-exclamation"></i></div><div><div class="lbl">Geciken</div><div class="val"><%= counts.overdue %></div></div></a></div>
+                <div class="col-6 col-xl-3"><a href="<%= qs({ review: '1', status: '', overdue: '' }) %>" class="card-x kpi"><div class="ic t-warn"><i class="fas fa-clipboard-check"></i></div><div><div class="lbl">İnceleme bekleyen</div><div class="val"><%= counts.review %></div></div></a></div>
+                <div class="col-6 col-xl-3"><a href="/admin/is-emirleri" class="card-x kpi"><div class="ic t-gray"><i class="fas fa-layer-group"></i></div><div><div class="lbl">Toplam</div><div class="val"><%= counts.total %></div></div></a></div>
+            </div>
+
+            <div class="card-x">
+                <form class="card-h filters" method="GET" action="/admin/is-emirleri">
+                    <div class="search flex-grow-1" style="min-width:200px;max-width:320px"><i class="fas fa-magnifying-glass"></i><input type="search" name="q" value="<%= f.q %>" class="form-control" placeholder="Kod, başlık, aday, personel…"></div>
+                    <select name="status" class="form-select" style="width:auto" onchange="this.form.submit()">
+                        <option value="">Tüm durumlar</option><option value="open" <%= f.status === 'open' ? 'selected' : '' %>>Açık (tümü)</option>
+                        <% STATUSES.forEach(s => { %><option <%= f.status === s ? 'selected' : '' %>><%= s %></option><% }) %>
+                    </select>
+                    <select name="staff" class="form-select" style="width:auto" onchange="this.form.submit()">
+                        <option value="">Tüm personel</option>
+                        <% staffList.forEach(s => { %><option value="<%= s._id %>" <%= f.staff === String(s._id) ? 'selected' : '' %>><%= s.fullName %><%= s.status !== 'active' ? ' (pasif)' : '' %></option><% }) %>
+                    </select>
+                    <select name="priority" class="form-select" style="width:auto" onchange="this.form.submit()">
+                        <option value="">Tüm öncelikler</option><% PRIORITIES.forEach(p => { %><option <%= f.priority === p ? 'selected' : '' %>><%= p %></option><% }) %>
+                    </select>
+                    <select name="category" class="form-select" style="width:auto" onchange="this.form.submit()">
+                        <option value="">Tüm kategoriler</option><% CATEGORIES.forEach(c => { %><option <%= f.category === c ? 'selected' : '' %>><%= c %></option><% }) %>
+                    </select>
+                    <select name="sort" class="form-select" style="width:auto" onchange="this.form.submit()">
+                        <option value="created" <%= f.sort === 'created' ? 'selected' : '' %>>En yeni</option>
+                        <option value="due" <%= f.sort === 'due' ? 'selected' : '' %>>Teslim tarihine göre</option>
+                        <option value="priority" <%= f.sort === 'priority' ? 'selected' : '' %>>Önceliğe göre</option>
+                        <option value="updated" <%= f.sort === 'updated' ? 'selected' : '' %>>Son güncellenen</option>
+                    </select>
+                    <% if (f.overdue) { %><input type="hidden" name="overdue" value="1"><% } %>
+                    <% if (f.review) { %><input type="hidden" name="review" value="1"><% } %>
+                    <button class="btn btn-soft btn-sm" type="submit"><i class="fas fa-filter me-1"></i>Uygula</button>
+                    <% if (anyFilter) { %><a href="/admin/is-emirleri" class="btn btn-soft btn-sm"><i class="fas fa-rotate-left me-1"></i>Sıfırla</a><% } %>
+                </form>
+                <% if (f.overdue || f.review) { %>
+                <div class="px-3 pt-3"><span class="pill <%= f.overdue ? 't-bad' : 't-warn' %>"><%= f.overdue ? 'Yalnızca geciken görevler' : 'Yalnızca inceleme bekleyen (tamamlanmış, onaylanmamış)' %> <a href="<%= qs({ overdue: '', review: '' }) %>" class="ms-1" style="color:inherit"><i class="fas fa-xmark"></i></a></span></div>
+                <% } %>
+                <div class="table-responsive">
+                    <table class="table table-x">
+                        <thead><tr><th>İş Emri</th><th>Aday</th><th>Personel</th><th>Öncelik</th><th>Son Teslim</th><th>Durum</th><th></th></tr></thead>
+                        <tbody>
+                        <% list.forEach(w => { const due = dueLabel(w); %>
+                            <tr class="clickable" onclick="if(!event.target.closest('a,button'))location.href='/admin/is-emirleri/<%= w._id %>'">
+                                <td style="max-width:320px">
+                                    <div class="wo-title text-truncate-1"><%= w.title %></div>
+                                    <div class="wo-code"><%= w.code %> · <%= w.category %><% if (w.attachments && w.attachments.length) { %> · <i class="fas fa-paperclip"></i> <%= w.attachments.length %><% } %></div>
+                                </td>
+                                <td><a href="/admin/candidate/<%= w.candidateId %>#workorders" class="text-decoration-none fw-600"><%= w.candidateName %></a></td>
+                                <td><% if (w.assignedTo) { %><div class="fw-650"><%= w.assignedTo.fullName %></div><div class="muted small"><%= w.assignedTo.deletedAt ? 'Devre dışı' : (w.assignedTo.title || '') %></div><% } else { %><span class="muted">—</span><% } %></td>
+                                <td><span class="pill <%= woPriorityTone(w.priority) %>"><i class="fas <%= woPriorityIcon(w.priority) %>"></i><%= w.priority %></span></td>
+                                <td style="white-space:nowrap"><div><%= w.dueDate ? fmtDT(w.dueDate, false) : '—' %></div><% if (due) { %><span class="pill <%= due.tone %>" style="font-size:11px;padding:1px 8px"><%= due.text %></span><% } %></td>
+                                <td><span class="pill <%= woStatusTone(w.status) %>"><span class="dot"></span><%= w.status %></span></td>
+                                <td class="text-end"><a href="/admin/is-emirleri/<%= w._id %>" class="btn btn-soft btn-icon" title="Aç"><i class="fas fa-chevron-right"></i></a></td>
+                            </tr>
+                        <% }) %>
+                        </tbody>
+                    </table>
+                    <% if (!list.length) { %>
+                        <div class="empty"><i class="fas fa-clipboard-list"></i><%= anyFilter ? 'Filtrelere uyan iş emri yok.' : 'Henüz iş emri oluşturulmadı. Bir adayın detay sayfasından veya “Yeni İş Emri” butonuyla başlayabilirsiniz.' %></div>
+                    <% } %>
+                </div>
+                <div class="px-3 py-2 border-top muted small" style="border-color:var(--line)!important"><%= list.length %> kayıt</div>
+            </div>
+        </main>
+    </div>
+</div>
+
+<%- include('partials/admin_wo_form', { modalId: 'newWO', candidates, staffList: staffList.filter(s => s.status === 'active'), CATEGORIES, PRIORITIES, fixedCandidate: null, returnTo: '/admin/is-emirleri' }) %>
+<%- include('partials/admin_scripts') %>
+</body>
+</html>

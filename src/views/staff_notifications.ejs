@@ -1,0 +1,56 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+    <title>Bildirimler | BERLINER Personel</title>
+    <meta name="robots" content="noindex">
+    <%- include('partials/staff_head') %>
+    <style>
+        .nt { display: flex; gap: 12px; padding: 14px 18px; border-bottom: 1px solid #F0F2F5; align-items: flex-start; }
+        .nt:last-child { border-bottom: 0; }
+        .nt.unread { background: #F8FAFF; }
+        .nt a.main { flex: 1; min-width: 0; text-decoration: none; color: inherit; }
+        .dot-u { width: 8px; height: 8px; border-radius: 50%; background: var(--brand); display: inline-block; margin-left: 6px; }
+    </style>
+</head>
+<body>
+<%- include('partials/staff_shell_start') %>
+<div class="s-head">
+    <div><h1>Bildirimler</h1><div class="sub">Görev atamaları, güncellemeler ve hatırlatmalar</div></div>
+    <div class="ms-auto d-flex gap-2 flex-wrap">
+        <button class="btn btn-soft d-none" id="pushBtn" type="button"><i class="far fa-bell me-1"></i>Masaüstü bildirimleri</button>
+        <form action="/personel/bildirimler/read-all" method="POST" class="m-0" data-no-busy><button class="btn btn-soft"><i class="fas fa-check-double me-1"></i>Tümünü okundu yap</button></form>
+    </div>
+</div>
+<div class="c-card">
+    <div class="c-card-h"><div class="seg"><a href="/personel/bildirimler" class="<%= only ? '' : 'active' %>">Tümü</a><a href="/personel/bildirimler?only=unread" class="<%= only ? 'active' : '' %>">Okunmamış <span class="c js-s-unread-txt"><%= staffUnread %></span></a></div></div>
+    <% list.forEach(n => { const [ic, tone] = notifIcon(n.type); %>
+        <div class="nt <%= n.isRead ? '' : 'unread' %>" data-id="<%= n._id %>">
+            <div class="c-ic <%= tone %>" style="width:38px;height:38px;font-size:15px"><i class="fas <%= ic %>"></i></div>
+            <a class="main" href="/n/<%= n._id %>">
+                <div class="fw-650 text-dark"><%= n.title %><% if (!n.isRead) { %><span class="dot-u"></span><% } %></div>
+                <div class="small muted"><%= n.message %></div>
+                <div class="small muted mt-1" title="<%= fmtDT(n.createdAt) %>"><i class="far fa-clock me-1"></i><%= fmtAgo(n.createdAt) %> · <%= fmtDT(n.createdAt) %></div>
+            </a>
+            <% if (!n.isRead) { %><button class="btn btn-soft btn-sm js-read" title="Okundu olarak işaretle"><i class="fas fa-check"></i></button><% } %>
+        </div>
+    <% }) %>
+    <% if (!list.length) { %><div class="empty"><div class="c-ic t-gray"><i class="far fa-bell-slash"></i></div><%= only ? 'Okunmamış bildiriminiz yok.' : 'Henüz bildiriminiz yok.' %></div><% } %>
+</div>
+<%- include('partials/staff_shell_end') %>
+<script>
+sNotify({ ok: { all_read: 'Tüm bildirimler okundu olarak işaretlendi.' } });
+document.querySelectorAll('.js-read').forEach(b => b.addEventListener('click', async () => {
+    const row = b.closest('.nt');
+    const r = await fetch('/personel/bildirimler/' + row.dataset.id + '/read', { method: 'POST', headers: { Accept: 'application/json' } });
+    if (!r.ok) return;
+    const d = await r.json();
+    row.classList.remove('unread'); b.remove(); const dot = row.querySelector('.dot-u'); if (dot) dot.remove();
+    document.querySelectorAll('.js-s-unread').forEach(x => { x.textContent = d.unread; x.hidden = !d.unread; });
+    document.querySelectorAll('.js-s-unread-txt').forEach(x => x.textContent = d.unread);
+}));
+const pb = document.getElementById('pushBtn');
+if ('Notification' in window && Notification.permission === 'default') { pb.classList.remove('d-none'); pb.addEventListener('click', () => Notification.requestPermission().then(() => pb.classList.add('d-none'))); }
+document.addEventListener('staff:notification', () => setTimeout(() => location.reload(), 1500));
+</script>
+</body>
+</html>

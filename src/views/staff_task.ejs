@@ -1,0 +1,183 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+    <title><%= wo.code %> · <%= wo.title %> | BERLINER Personel</title>
+    <meta name="robots" content="noindex">
+    <%- include('partials/staff_head') %>
+    <style>
+        .kv { display: flex; justify-content: space-between; gap: 12px; padding: 9px 0; border-bottom: 1px dashed var(--line); font-size: 13.5px; }
+        .kv:last-child { border-bottom: 0; } .kv span:first-child { color: var(--muted); } .kv span:last-child { font-weight: 600; color: var(--ink); text-align: right; word-break: break-word; }
+        .cm { border: 1px solid var(--line); border-radius: 12px; padding: 12px 14px; }
+        .cm.admin { background: #F8FAFF; border-color: #DDE5FF; } .cm.staff { background: #F6FEF9; border-color: #D1FADF; }
+        .steps { display: flex; gap: 0; }
+        .stp { flex: 1; text-align: center; position: relative; font-size: 12px; color: var(--muted); font-weight: 600; }
+        .stp::before { content: ''; position: absolute; top: 13px; left: -50%; width: 100%; height: 3px; background: #E4E7EC; }
+        .stp:first-child::before { display: none; }
+        .stp .b { width: 28px; height: 28px; border-radius: 50%; margin: 0 auto 6px; display: grid; place-items: center; background: #fff; border: 2px solid #D0D5DD; position: relative; z-index: 1; font-size: 12px; }
+        .stp.done::before, .stp.cur::before { background: var(--brand); }
+        .stp.done .b { background: var(--brand); border-color: var(--brand); color: #fff; }
+        .stp.cur .b { border-color: var(--brand); color: var(--brand); box-shadow: 0 0 0 5px rgba(47,84,235,.14); }
+        .stp.cur { color: var(--ink); }
+        .doc { display: flex; align-items: center; gap: 10px; padding: 9px 0; border-bottom: 1px dashed var(--line); }
+        .doc:last-child { border-bottom: 0; }
+        .action-bar { position: sticky; bottom: 0; z-index: 5; }
+        @media (max-width: 991.98px) { .action-bar { bottom: 66px; } }
+    </style>
+</head>
+<body>
+<%- include('partials/staff_shell_start') %>
+<%
+    const due = dueLabel(wo);
+    const st = wo.status;
+    const stepIdx = st === 'Yeni' ? 0 : (st === 'Devam Ediyor' || st === 'Revizyon') ? 1 : st === 'Tamamlandı' ? 2 : -1;
+    const approved = (wo.history || []).some(h => h.action === 'Onaylandı');
+    const canStart = st === 'Yeni' || st === 'Revizyon';
+    const canComplete = ['Yeni', 'Devam Ediyor', 'Revizyon'].includes(st);
+    const docTone = (s) => s === 'Onaylandı' ? 't-ok' : s === 'Reddedildi' ? 't-bad' : 't-warn';
+%>
+<div class="d-flex align-items-center gap-2 mb-3">
+    <a href="/personel/panel" class="btn btn-soft btn-sm"><i class="fas fa-arrow-left me-1"></i>Görevlerim</a>
+    <span class="muted small font-monospace ms-1"><%= wo.code %></span>
+</div>
+
+<% if (st === 'İptal') { %>
+<div class="c-card c-card-b mb-3 d-flex gap-3 align-items-center" style="background:#F2F4F7"><i class="fas fa-ban fa-lg muted"></i><div><b>Bu görev iptal edildi.</b><div class="small muted">Aday bilgilerine erişim kapatıldı. Herhangi bir işlem yapmanıza gerek yok.</div></div></div>
+<% } else if (st === 'Revizyon') { %>
+<div class="c-card c-card-b mb-3 d-flex gap-3 align-items-center" style="background:var(--warn-50);border-color:#FEDF89"><i class="fas fa-rotate-left fa-lg" style="color:var(--warn)"></i><div><b>Yönetici revizyon istedi.</b><div class="small muted">Aşağıdaki açıklamaları inceleyip görevi güncelleyin ve tekrar tamamlayın.</div></div></div>
+<% } else if (overdue) { %>
+<div class="c-card c-card-b mb-3 d-flex gap-3 align-items-center" style="background:var(--bad-50);border-color:#FECDCA"><i class="fas fa-triangle-exclamation fa-lg" style="color:var(--bad)"></i><div><b>Bu görevin teslim tarihi geçti.</b><div class="small muted">Lütfen en kısa sürede tamamlayın veya yöneticinize not bırakın.</div></div></div>
+<% } %>
+
+<div class="row g-3">
+    <div class="col-lg-8">
+        <div class="c-card mb-3">
+            <div class="c-card-b">
+                <div class="d-flex gap-2 flex-wrap mb-2">
+                    <span class="pill <%= woStatusTone(st) %>"><span class="d"></span><%= st %></span>
+                    <span class="pill <%= woPriorityTone(wo.priority) %>"><i class="fas <%= woPriorityIcon(wo.priority) %>"></i><%= wo.priority %> öncelik</span>
+                    <span class="pill t-gray"><%= wo.category %></span>
+                    <% if (due) { %><span class="pill <%= due.tone %>"><i class="far fa-clock"></i><%= due.text %></span><% } %>
+                    <% if (approved) { %><span class="pill t-ok"><i class="fas fa-check-double"></i>Yönetici onayladı</span><% } %>
+                </div>
+                <h1 class="fs-4 fw-bold mb-3"><%= wo.title %></h1>
+                <% if (st !== 'İptal') { %>
+                <div class="steps mb-4">
+                    <% ['Atandı', 'Devam ediyor', 'Tamamlandı'].forEach((l, i) => { %>
+                        <div class="stp <%= i < stepIdx ? 'done' : i === stepIdx ? (i === 2 ? 'done' : 'cur') : '' %>"><div class="b"><% if (i < stepIdx || (i === 2 && stepIdx === 2)) { %><i class="fas fa-check"></i><% } else { %><%= i + 1 %><% } %></div><%= l %></div>
+                    <% }) %>
+                </div>
+                <% } %>
+                <h2 class="fs-6 fw-bold mb-2">Görev açıklaması</h2>
+                <div class="pre mb-3"><%= wo.description || 'Ek açıklama girilmemiş.' %></div>
+                <% if (wo.adminNote) { %><div class="p-3" style="background:#F8FAFF;border:1px solid #DDE5FF;border-radius:12px"><div class="small fw-bold mb-1" style="color:var(--brand)"><i class="fas fa-note-sticky me-1"></i>Yönetici notu</div><div class="pre small"><%= wo.adminNote %></div></div><% } %>
+                <% if (wo.resultNote) { %><div class="p-3 mt-3" style="background:var(--ok-50);border:1px solid #A6F4C5;border-radius:12px"><div class="small fw-bold mb-1" style="color:#027A48"><i class="fas fa-flag-checkered me-1"></i>Sonuç notunuz</div><div class="pre small"><%= wo.resultNote %></div></div><% } %>
+            </div>
+        </div>
+
+        <% if (canComplete) { %>
+        <div class="c-card mb-3" id="complete">
+            <div class="c-card-h"><div class="c-ic t-ok"><i class="fas fa-flag-checkered"></i></div><div><h2>Görevi Tamamla</h2><p class="sub">Yaptığınız işi özetleyin; gerekirse belge ekleyin.</p></div></div>
+            <form class="c-card-b" action="/personel/gorev/<%= wo._id %>/complete" method="POST" enctype="multipart/form-data" data-confirm="Görev tamamlandı olarak işaretlenecek ve yöneticiye bildirilecek.">
+                <label class="form-label">Sonuç notu *</label>
+                <textarea name="resultNote" class="form-control mb-3" rows="4" required minlength="5" maxlength="6000" placeholder="Örn: Diploma tercümesi tamamlandı, noter onayı alındı. Asıl belge aday dosyasına eklendi."></textarea>
+                <label class="form-label">Dosya ekle (isteğe bağlı)</label>
+                <input type="file" name="file" class="form-control mb-3" accept=".pdf,.jpg,.jpeg,.png,.webp,.doc,.docx,.xls,.xlsx">
+                <button class="btn btn-brand"><i class="fas fa-check me-1"></i>Tamamlandı Olarak Gönder</button>
+            </form>
+        </div>
+        <% } %>
+
+        <div class="c-card mb-3" id="comments">
+            <div class="c-card-h"><h2>Açıklamalar &amp; Notlar</h2><span class="small muted ms-auto"><%= (wo.comments || []).length %></span></div>
+            <div class="c-card-b d-flex flex-column gap-2">
+                <% if (!(wo.comments || []).length) { %><div class="small muted">Henüz açıklama yok.</div><% } %>
+                <% (wo.comments || []).forEach(c => { %>
+                    <div class="cm <%= c.authorType %>"><div class="d-flex justify-content-between small mb-1"><b><%= c.authorType === 'admin' ? 'Yönetici' : 'Siz' %></b><span class="muted"><%= fmtDT(c.date) %></span></div><div class="pre"><%= c.text %></div></div>
+                <% }) %>
+                <% if (st !== 'İptal') { %>
+                <form action="/personel/gorev/<%= wo._id %>/comment" method="POST" class="mt-2">
+                    <textarea name="text" class="form-control mb-2" rows="2" required maxlength="4000" placeholder="Yöneticiye not bırakın (soru, ilerleme bilgisi…)"></textarea>
+                    <button class="btn btn-soft btn-sm"><i class="fas fa-paper-plane me-1"></i>Not Gönder</button>
+                </form>
+                <% } %>
+            </div>
+        </div>
+
+        <div class="c-card">
+            <div class="c-card-h"><h2>Görev Dosyaları</h2><span class="small muted ms-auto"><%= (wo.attachments || []).length %></span></div>
+            <div class="c-card-b">
+                <% (wo.attachments || []).forEach(a => { %>
+                    <div class="doc"><i class="fas fa-paperclip muted"></i><div class="flex-grow-1" style="min-width:0"><div class="fw-650 text-dark text-truncate"><%= a.name %></div><div class="small muted"><%= a.uploadedByType === 'admin' ? 'Yönetici' : a.uploadedByName %> · <%= fmtDT(a.date) %></div></div><a href="/is-emri-dosya/<%= wo._id %>/<%= a._id %>" target="_blank" rel="noopener" class="btn btn-soft btn-sm">Aç</a></div>
+                <% }) %>
+                <% if (!(wo.attachments || []).length) { %><div class="small muted mb-2">Dosya yok.</div><% } %>
+                <% if (st !== 'İptal') { %>
+                <form action="/personel/gorev/<%= wo._id %>/attach" method="POST" enctype="multipart/form-data" class="d-flex gap-2 mt-3">
+                    <input type="file" name="file" class="form-control form-control-sm" required accept=".pdf,.jpg,.jpeg,.png,.webp,.doc,.docx,.xls,.xlsx">
+                    <button class="btn btn-soft btn-sm text-nowrap"><i class="fas fa-upload me-1"></i>Yükle</button>
+                </form>
+                <% } %>
+            </div>
+        </div>
+    </div>
+
+    <div class="col-lg-4">
+        <% if (canStart) { %>
+        <form action="/personel/gorev/<%= wo._id %>/start" method="POST" class="c-card c-card-b mb-3" style="border-color:#C7D2FE;background:var(--brand-50)">
+            <div class="fw-bold text-dark mb-1"><%= st === 'Revizyon' ? 'Revizyona başla' : 'Bu göreve başlayın' %></div>
+            <div class="small muted mb-3">Başladığınızda yöneticiniz bilgilendirilir ve süre takibi başlar.</div>
+            <button class="btn btn-brand w-100"><i class="fas fa-play me-1"></i>Göreve Başla</button>
+        </form>
+        <% } %>
+        <div class="c-card mb-3">
+            <div class="c-card-h"><h2>Görev Bilgileri</h2></div>
+            <div class="c-card-b py-2">
+                <div class="kv"><span>Başlangıç</span><span><%= fmtDT(wo.startDate, false) %></span></div>
+                <div class="kv"><span>Son teslim</span><span><%= wo.dueDate ? fmtDT(wo.dueDate) : '—' %></span></div>
+                <div class="kv"><span>Atanma</span><span><%= fmtDT(wo.createdAt) %></span></div>
+                <% if (wo.startedAt) { %><div class="kv"><span>Başlama</span><span><%= fmtDT(wo.startedAt) %></span></div><% } %>
+                <% if (wo.completedAt) { %><div class="kv"><span>Tamamlanma</span><span><%= fmtDT(wo.completedAt) %></span></div><% } %>
+            </div>
+        </div>
+        <% if (candidate) { %>
+        <div class="c-card mb-3">
+            <div class="c-card-h"><div class="c-ic t-brand" style="width:36px;height:36px;font-size:14px"><i class="fas fa-user"></i></div><div><h2>İlgili Aday</h2><p class="sub">Yalnızca bu görev için yetkili olduğunuz bilgiler</p></div></div>
+            <div class="c-card-b py-2">
+                <div class="kv"><span>Ad soyad</span><span><%= candidate.firstName %> <%= candidate.lastName %></span></div>
+                <% if (sensitive) { %><div class="kv"><span>Pasaport No</span><span class="font-monospace"><%= candidate.passportNo || '—' %></span></div><% } %>
+                <div class="kv"><span>Telefon</span><span><% const ph = candidate.phone || candidate.phoneNumber; %><% if (ph) { %><a href="tel:<%= ph.replace(/[^\d+]/g, '') %>" class="text-decoration-none"><%= ph %></a><% } else { %>—<% } %></span></div>
+                <div class="kv"><span>E-posta</span><span><% if (candidate.email) { %><a href="mailto:<%= candidate.email %>" class="text-decoration-none"><%= candidate.email %></a><% } else { %>—<% } %></span></div>
+                <div class="kv"><span>Meslek</span><span><%= candidate.job || '—' %></span></div>
+                <div class="kv"><span>Konum</span><span><%= candidate.location || '—' %></span></div>
+                <div class="kv"><span>Süreç aşaması</span><span><%= candidate.currentStage %></span></div>
+            </div>
+            <% if ((candidate.documents || []).length) { %>
+            <div class="px-3 pb-3">
+                <div class="small fw-bold text-dark mb-1 mt-2">Aday belgeleri</div>
+                <% candidate.documents.forEach(d => { %>
+                    <div class="doc"><i class="fas fa-file-lines muted"></i><div class="flex-grow-1" style="min-width:0"><div class="small fw-650 text-dark text-truncate"><%= d.name %></div><span class="pill <%= docTone(d.status) %>" style="font-size:10.5px;padding:1px 7px"><%= d.status %></span></div>
+                        <% if (d.fileId) { %><a href="/personel/gorev/<%= wo._id %>/belge/<%= d._id %>" target="_blank" rel="noopener" class="btn btn-soft btn-sm">Aç</a><% } %></div>
+                <% }) %>
+            </div>
+            <% } %>
+        </div>
+        <% } %>
+        <div class="c-card">
+            <div class="c-card-h"><h2>Geçmiş</h2></div>
+            <div class="c-card-b py-2">
+                <% (wo.history || []).slice().reverse().forEach(h => { %>
+                    <div class="kv" style="flex-direction:column;gap:2px"><span class="text-dark fw-650" style="color:var(--ink)!important"><%= h.action %></span><span class="small muted fw-normal" style="text-align:left;color:var(--muted)!important"><%= h.byType === 'admin' ? 'Yönetici' : h.byName %> · <%= fmtDT(h.at) %><%= h.note ? ' — ' + h.note : '' %></span></div>
+                <% }) %>
+            </div>
+        </div>
+    </div>
+</div>
+<%- include('partials/staff_shell_end') %>
+<script>
+sNotify({
+    ok: { started: 'Göreve başladınız. Yöneticiniz bilgilendirildi.', completed: 'Görev tamamlandı ve yöneticiye gönderildi. Teşekkürler!', comment_added: 'Notunuz yöneticiye iletildi.', file_added: 'Dosya eklendi.' },
+    err: { invalid_state: 'Bu işlem görevin mevcut durumunda yapılamaz.', result_required: 'Lütfen en az birkaç kelimelik bir sonuç notu yazın.', no_file: 'Lütfen bir dosya seçin.', bad_type: 'Bu dosya türü desteklenmiyor (PDF, görsel, Word, Excel).', too_large: 'Dosya 5 MB\'dan büyük olamaz.', upload_failed: 'Dosya yüklenemedi. Lütfen tekrar deneyin.', missing_fields: 'Lütfen bir not yazın.' }
+});
+document.addEventListener('staff:notification', e => { if (e.detail.link && e.detail.type !== 'assigned') setTimeout(() => location.reload(), 2500); });
+</script>
+</body>
+</html>

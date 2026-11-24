@@ -1,0 +1,45 @@
+<%- include('cand_head') %>
+<style>
+    /* Personel paneli: üst gezinme çubuklu, aday/admin panelinden görsel olarak ayrışan düzen */
+    body { background: #F3F5F9; }
+    .s-top { background: var(--navy); color: #fff; position: sticky; top: 0; z-index: 1030; box-shadow: 0 1px 0 rgba(255,255,255,.06); }
+    .s-top .in { max-width: 1280px; margin: 0 auto; height: 64px; display: flex; align-items: center; gap: 18px; padding: 0 24px; }
+    .s-brand { display: flex; align-items: center; gap: 10px; color: #fff; text-decoration: none; font-weight: 800; letter-spacing: .6px; }
+    .s-brand .mk { width: 34px; height: 34px; border-radius: 10px; background: linear-gradient(135deg, #3B6CFF, #2343C9); display: grid; place-items: center; font-size: 14px; }
+    .s-brand .tag { font-size: 10.5px; font-weight: 700; letter-spacing: .8px; background: rgba(255,206,0,.16); color: #FFCE00; border: 1px solid rgba(255,206,0,.3); padding: 2px 8px; border-radius: 99px; text-transform: uppercase; }
+    .s-nav { display: flex; gap: 4px; margin-left: 12px; }
+    .s-nav a { color: #B6C2D6; text-decoration: none; font-weight: 600; font-size: 14px; padding: 8px 14px; border-radius: 10px; display: flex; align-items: center; gap: 8px; position: relative; }
+    .s-nav a:hover { color: #fff; background: rgba(255,255,255,.06); }
+    .s-nav a.active { color: #fff; background: rgba(59,108,255,.22); }
+    .s-badge { min-width: 18px; height: 18px; border-radius: 99px; background: var(--bad); color: #fff; font-size: 11px; font-weight: 700; display: inline-grid; place-items: center; padding: 0 5px; }
+    .s-badge[hidden] { display: none; }
+    .s-user { display: flex; align-items: center; gap: 10px; color: #fff; text-decoration: none; padding: 4px 10px 4px 4px; border-radius: 99px; background: rgba(255,255,255,.06); border: 1px solid rgba(255,255,255,.08); }
+    .s-user .av { width: 32px; height: 32px; border-radius: 50%; background: #FFCE00; color: #1a1a1a; display: grid; place-items: center; font-weight: 800; font-size: 12.5px; }
+    .s-bell { width: 40px; height: 40px; border-radius: 12px; display: inline-grid; place-items: center; color: #fff; background: rgba(255,255,255,.06); border: 1px solid rgba(255,255,255,.08); position: relative; text-decoration: none; }
+    .s-bell .s-badge { position: absolute; top: -5px; right: -5px; border: 2px solid var(--navy); }
+    .s-wrap { max-width: 1280px; margin: 0 auto; padding: 24px 24px 56px; }
+    .s-head { display: flex; align-items: flex-end; gap: 12px; flex-wrap: wrap; margin-bottom: 18px; }
+    .s-head h1 { font-size: 24px; font-weight: 800; margin: 0; letter-spacing: -.4px; }
+    .s-head .sub { color: var(--muted); font-size: 13.5px; }
+    .s-bottom { display: none; }
+    @media (max-width: 991.98px) {
+        .s-nav, .s-user .nm { display: none; }
+        .s-top .in { padding: 0 16px; height: 58px; }
+        .s-wrap { padding: 16px 16px 90px; }
+        .s-bottom { display: flex; position: fixed; left: 0; right: 0; bottom: 0; z-index: 1035; background: #fff; border-top: 1px solid var(--line); padding: 6px 4px calc(6px + env(safe-area-inset-bottom)); }
+        .s-bottom a { flex: 1; display: flex; flex-direction: column; align-items: center; gap: 3px; font-size: 11px; font-weight: 600; color: #667085; text-decoration: none; position: relative; }
+        .s-bottom i { font-size: 18px; }
+        .s-bottom .active { color: var(--brand); }
+        .s-bottom .s-badge { position: absolute; top: -2px; left: calc(50% + 6px); }
+    }
+    .task { display: flex; gap: 14px; align-items: center; padding: 14px 18px; border-bottom: 1px solid #F0F2F5; text-decoration: none; color: inherit; }
+    .task:last-child { border-bottom: 0; }
+    .task:hover { background: #FAFBFF; }
+    .task .pr { width: 4px; align-self: stretch; border-radius: 4px; flex-shrink: 0; }
+    .pr-Acil { background: var(--bad); } .pr-Yüksek { background: var(--warn); } .pr-Normal { background: var(--brand); } .pr-Düşük { background: #D0D5DD; }
+    .seg { display: inline-flex; background: #E9EDF3; border-radius: 10px; padding: 3px; gap: 2px; flex-wrap: wrap; }
+    .seg a { padding: 6px 12px; border-radius: 8px; font-weight: 600; font-size: 13px; color: #475467; text-decoration: none; white-space: nowrap; }
+    .seg a.active { background: #fff; color: var(--ink); box-shadow: 0 1px 2px rgba(16,24,40,.08); }
+    .seg a .c { color: var(--muted); font-weight: 500; margin-left: 3px; }
+    .pre { white-space: pre-wrap; line-height: 1.6; word-break: break-word; }
+</style>

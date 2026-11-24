@@ -1,0 +1,42 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+    <title>Hesabım | BERLINER Personel</title>
+    <meta name="robots" content="noindex">
+    <%- include('partials/staff_head') %>
+</head>
+<body>
+<%- include('partials/staff_shell_start') %>
+<div class="s-head"><div><h1>Hesabım</h1><div class="sub">Hesap bilgileriniz ve şifre işlemleri</div></div></div>
+<div class="row g-3">
+    <div class="col-lg-5">
+        <div class="c-card">
+            <div class="c-card-h"><h2>Profil</h2></div>
+            <div class="c-card-b small">
+                <div class="d-flex justify-content-between py-2" style="border-bottom:1px dashed var(--line)"><span class="muted">Ad soyad</span><b class="text-dark"><%= staff.fullName %></b></div>
+                <div class="d-flex justify-content-between py-2" style="border-bottom:1px dashed var(--line)"><span class="muted">Kullanıcı adı</span><b class="text-dark">@<%= staff.username %></b></div>
+                <div class="d-flex justify-content-between py-2" style="border-bottom:1px dashed var(--line)"><span class="muted">Unvan</span><b class="text-dark"><%= staff.title || '—' %></b></div>
+                <div class="d-flex justify-content-between py-2" style="border-bottom:1px dashed var(--line)"><span class="muted">E-posta</span><b class="text-dark"><%= staff.email || '—' %></b></div>
+                <div class="d-flex justify-content-between py-2"><span class="muted">Telefon</span><b class="text-dark"><%= staff.phone || '—' %></b></div>
+                <div class="muted mt-2">Bilgilerinizde değişiklik için yöneticinize başvurun.</div>
+            </div>
+        </div>
+    </div>
+    <div class="col-lg-7">
+        <form class="c-card" action="/personel/hesap/sifre" method="POST" autocomplete="off">
+            <div class="c-card-h"><div class="c-ic t-brand"><i class="fas fa-key"></i></div><div><h2>Şifre Değiştir</h2><p class="sub">Şifre değiştiğinde diğer cihazlardaki oturumlarınız kapatılır.</p></div></div>
+            <div class="c-card-b">
+                <% if (error) { %><div class="p-3 mb-3 small" style="background:var(--bad-50);color:#B42318;border:1px solid #FECDCA;border-radius:12px"><i class="fas fa-circle-exclamation me-1"></i><%= error %></div><% } %>
+                <label class="form-label">Mevcut şifre</label><input type="password" name="current" class="form-control mb-3" required autocomplete="current-password">
+                <label class="form-label">Yeni şifre</label><input type="password" name="password" class="form-control mb-1" required minlength="8" autocomplete="new-password">
+                <div class="form-text mb-3">En az 8 karakter, en az bir harf ve bir rakam.</div>
+                <label class="form-label">Yeni şifre (tekrar)</label><input type="password" name="password2" class="form-control mb-3" required autocomplete="new-password">
+                <button class="btn btn-brand">Şifreyi Güncelle</button>
+            </div>
+        </form>
+    </div>
+</div>
+<%- include('partials/staff_shell_end') %>
+<script>sNotify({ ok: { password_changed: 'Şifreniz güncellendi.' } });</script>
+</body>
+</html>

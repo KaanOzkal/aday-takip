@@ -146,6 +146,8 @@
                 <a href="#notes" class="tab-link" data-tab="notes">Notlar <span class="n"><%= notes.length %></span></a>
                 <a href="#messages" class="tab-link" data-tab="messages">Mesajlar <span class="n"><%= messages.length %></span></a>
                 <a href="#appointments" class="tab-link" data-tab="appointments">Randevular <span class="n"><%= appointments.length %></span></a>
+                <% const _wo = (typeof wo !== 'undefined' && wo) ? wo : { orders: [], staff: [], CATEGORIES: [], PRIORITIES: [] }; const _woOpen = _wo.orders.filter(o => ['Yeni','Devam Ediyor','Revizyon'].includes(o.status)).length; %>
+                <a href="#workorders" class="tab-link" data-tab="workorders">İş Emirleri <span class="n <%= _woOpen ? 'warn' : '' %>"><%= _woOpen ? _woOpen + ' açık' : _wo.orders.length %></span></a>
                 <a href="#form" class="tab-link" data-tab="form">Başvuru Formu <% if (formFilled) { %><span class="n" style="background:var(--ok-50);color:var(--ok)">dolu</span><% } %></a>
             </nav>
 
@@ -424,6 +426,37 @@
                 </div>
             </div>
 
+            <!-- İŞ EMİRLERİ -->
+            <div class="pane" id="pane-workorders">
+                <div class="card-x">
+                    <div class="card-h">
+                        <div><h3>İş Emirleri</h3><p class="sub">Bu aday için personele atanan görevler</p></div>
+                        <button class="btn btn-brand btn-sm ms-auto" data-bs-toggle="modal" data-bs-target="#candWO" <%= _wo.staff.length ? '' : 'disabled title="Önce aktif personel ekleyin"' %>><i class="fas fa-plus me-1"></i>İş Emri Oluştur</button>
+                    </div>
+                    <% if (!_wo.staff.length) { %><div class="px-3 pt-3"><div class="small p-2" style="background:var(--warn-50);color:#93370D;border-radius:10px"><i class="fas fa-circle-info me-1"></i>Aktif personel yok. <a href="/admin/personel">Personel Yönetimi</a> sayfasından ekleyin.</div></div><% } %>
+                    <% if (!_wo.orders.length) { %>
+                        <div class="empty"><i class="fas fa-clipboard-list"></i>Bu aday için henüz iş emri yok.</div>
+                    <% } else { %>
+                    <div class="table-responsive">
+                        <table class="table table-x">
+                            <thead><tr><th>İş Emri</th><th>Personel</th><th>Öncelik</th><th>Son Teslim</th><th>Durum</th></tr></thead>
+                            <tbody>
+                            <% _wo.orders.forEach(w => { const due = dueLabel(w); %>
+                                <tr class="clickable" onclick="location.href='/admin/is-emirleri/<%= w._id %>'">
+                                    <td style="max-width:320px"><div class="fw-650 text-dark text-truncate-1"><%= w.title %></div><div class="muted small font-monospace"><%= w.code %> · <%= w.category %></div></td>
+                                    <td><%= w.assignedTo ? w.assignedTo.fullName : '—' %></td>
+                                    <td><span class="pill <%= woPriorityTone(w.priority) %>"><%= w.priority %></span></td>
+                                    <td style="white-space:nowrap"><%= w.dueDate ? fmtDT(w.dueDate, false) : '—' %><% if (due) { %><div><span class="pill <%= due.tone %>" style="font-size:11px;padding:1px 8px"><%= due.text %></span></div><% } %></td>
+                                    <td><span class="pill <%= woStatusTone(w.status) %>"><span class="dot"></span><%= w.status %></span></td>
+                                </tr>
+                            <% }) %>
+                            </tbody>
+                        </table>
+                    </div>
+                    <% } %>
+                </div>
+            </div>
+
             <!-- BAŞVURU FORMU -->
             <div class="pane" id="pane-form">
                 <% if (!formFilled) { %>
@@ -449,6 +482,7 @@
     </div>
 </div>
 
+<%- include('partials/admin_wo_form', { modalId: 'candWO', candidates: [], staffList: _wo.staff, CATEGORIES: _wo.CATEGORIES, PRIORITIES: _wo.PRIORITIES, fixedCandidate: { id: String(c._id), name: fullName }, returnTo: '/admin/candidate/' + c._id + '#workorders' }) %>
 <%- include('partials/admin_scripts') %>
 <script>
 (function () {

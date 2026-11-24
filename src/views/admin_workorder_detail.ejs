@@ -1,0 +1,185 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+    <title><%= wo.code %> · <%= wo.title %> | BERLINER Yönetim</title>
+    <%- include('partials/admin_head') %>
+    <style>
+        .kv { display: grid; grid-template-columns: 140px 1fr; gap: 10px 14px; font-size: 13.5px; }
+        .kv dt { color: var(--muted); font-weight: 500; } .kv dd { margin: 0; font-weight: 600; color: var(--ink); word-break: break-word; }
+        .pre { white-space: pre-wrap; line-height: 1.6; }
+        .tl { position: relative; padding-left: 22px; }
+        .tl::before { content: ''; position: absolute; left: 7px; top: 4px; bottom: 4px; width: 2px; background: var(--line); }
+        .tl-i { position: relative; padding-bottom: 14px; }
+        .tl-i::before { content: ''; position: absolute; left: -19px; top: 4px; width: 10px; height: 10px; border-radius: 50%; background: #fff; border: 2px solid var(--brand); }
+        .cm { border: 1px solid var(--line); border-radius: 12px; padding: 12px 14px; }
+        .cm.admin { background: #F8FAFF; border-color: #DDE5FF; }
+        .cm.staff { background: #F6FEF9; border-color: #D1FADF; }
+        .result { background: var(--ok-50); border: 1px solid #A6F4C5; border-radius: 12px; padding: 14px; }
+        @media (max-width: 575.98px) { .kv { grid-template-columns: 1fr; gap: 2px; } .kv dd { margin-bottom: 8px; } }
+    </style>
+</head>
+<body>
+<% const due = dueLabel(wo); const approved = (wo.history || []).some(h => h.action === 'Onaylandı'); const toDate = (d) => d ? new Date(new Date(d).getTime() + 3 * 36e5).toISOString().slice(0, 10) : ''; %>
+<div class="app">
+    <%- include('partials/admin_sidebar', { active: 'workorders', onMain: false }) %>
+    <div class="main">
+        <header class="topbar">
+            <button class="btn btn-soft btn-icon menu-toggle" aria-label="Menü"><i class="fas fa-bars"></i></button>
+            <a href="/admin/is-emirleri" class="btn btn-soft btn-icon" title="İş emirlerine dön"><i class="fas fa-arrow-left"></i></a>
+            <div style="min-width:0"><div class="crumb"><a href="/admin/is-emirleri" class="text-decoration-none muted">İş Emirleri</a> / <%= wo.code %></div><h1 class="text-truncate"><%= wo.title %></h1></div>
+            <div class="ms-auto d-flex gap-2">
+                <% if (wo.status !== 'İptal') { %><button class="btn btn-soft" data-bs-toggle="modal" data-bs-target="#editWO"><i class="fas fa-pen me-1"></i><span class="d-none d-sm-inline">Düzenle</span></button><% } %>
+            </div>
+        </header>
+        <main class="content">
+            <% if (wo.status === 'Tamamlandı' && !approved) { %>
+            <div class="card-x mb-3 p-3 d-flex align-items-center gap-3 flex-wrap" style="background:var(--warn-50);border-color:#FEDF89">
+                <i class="fas fa-clipboard-check fa-lg" style="color:var(--warn)"></i>
+                <div class="flex-grow-1"><strong>Bu görev tamamlandı ve incelemenizi bekliyor.</strong><div class="small muted">Sonucu kontrol edip onaylayın ya da gerekçe yazarak revizyona gönderin.</div></div>
+                <form action="/admin/is-emirleri/<%= wo._id %>/action" method="POST" class="m-0"><input type="hidden" name="action" value="approve"><button class="btn btn-ok"><i class="fas fa-check me-1"></i>Onayla</button></form>
+                <button class="btn btn-soft" data-bs-toggle="modal" data-bs-target="#revModal"><i class="fas fa-rotate-left me-1"></i>Revizyona Gönder</button>
+            </div>
+            <% } %>
+            <div class="row g-3">
+                <div class="col-lg-8">
+                    <div class="card-x mb-3">
+                        <div class="card-h">
+                            <span class="pill <%= woStatusTone(wo.status) %>"><span class="dot"></span><%= wo.status %></span>
+                            <span class="pill <%= woPriorityTone(wo.priority) %>"><i class="fas <%= woPriorityIcon(wo.priority) %>"></i><%= wo.priority %></span>
+                            <span class="pill t-gray"><%= wo.category %></span>
+                            <% if (due) { %><span class="pill <%= due.tone %>"><i class="far fa-clock"></i><%= due.text %></span><% } %>
+                            <% if (approved) { %><span class="pill t-ok"><i class="fas fa-badge-check fa-check-double"></i>Onaylandı</span><% } %>
+                            <span class="muted small ms-auto font-monospace"><%= wo.code %></span>
+                        </div>
+                        <div class="card-b">
+                            <h3 class="fs-6 fw-bold mb-2">Açıklama</h3>
+                            <div class="pre mb-3"><%= wo.description || 'Açıklama girilmemiş.' %></div>
+                            <% if (wo.adminNote) { %><div class="p-3 mb-3" style="background:#F8FAFF;border:1px solid #DDE5FF;border-radius:12px"><div class="small fw-bold mb-1" style="color:var(--brand)"><i class="fas fa-note-sticky me-1"></i>Admin notu</div><div class="pre small"><%= wo.adminNote %></div></div><% } %>
+                            <% if (wo.resultNote) { %><div class="result"><div class="small fw-bold mb-1" style="color:#027A48"><i class="fas fa-flag-checkered me-1"></i>Personelin sonuç notu · <%= fmtDT(wo.completedAt) %></div><div class="pre"><%= wo.resultNote %></div></div><% } %>
+                        </div>
+                    </div>
+
+                    <div class="card-x mb-3" id="comments">
+                        <div class="card-h"><h3>Açıklamalar &amp; Notlar</h3><span class="muted small ms-auto"><%= (wo.comments || []).length %></span></div>
+                        <div class="card-b d-flex flex-column gap-2">
+                            <% if (!(wo.comments || []).length) { %><div class="muted small">Henüz açıklama yok.</div><% } %>
+                            <% (wo.comments || []).forEach(c => { %>
+                                <div class="cm <%= c.authorType %>"><div class="d-flex justify-content-between small mb-1"><b><%= c.authorType === 'admin' ? 'Yönetici' : c.authorName %></b><span class="muted"><%= fmtDT(c.date) %></span></div><div class="pre"><%= c.text %></div></div>
+                            <% }) %>
+                            <% if (wo.status !== 'İptal') { %>
+                            <form action="/admin/is-emirleri/<%= wo._id %>/comment" method="POST" class="mt-2">
+                                <textarea name="text" class="form-control mb-2" rows="3" required maxlength="4000" placeholder="Personele açıklama ekleyin (personele bildirim gönderilir)"></textarea>
+                                <button class="btn btn-brand btn-sm"><i class="fas fa-paper-plane me-1"></i>Açıklama Ekle</button>
+                            </form>
+                            <% } %>
+                        </div>
+                    </div>
+
+                    <div class="card-x">
+                        <div class="card-h"><h3>Dosyalar</h3><span class="muted small ms-auto"><%= (wo.attachments || []).length %></span></div>
+                        <div class="card-b">
+                            <% if (!(wo.attachments || []).length) { %><div class="muted small mb-2">Dosya eklenmemiş.</div><% } %>
+                            <% (wo.attachments || []).forEach(a => { %>
+                                <div class="d-flex align-items-center gap-2 py-2" style="border-bottom:1px dashed var(--line)">
+                                    <i class="fas fa-file-lines muted"></i>
+                                    <div class="flex-grow-1" style="min-width:0"><div class="fw-650 text-truncate-1"><%= a.name %></div><div class="muted small"><%= a.uploadedByName %> · <%= fmtDT(a.date) %></div></div>
+                                    <a href="/is-emri-dosya/<%= wo._id %>/<%= a._id %>" target="_blank" rel="noopener" class="btn btn-soft btn-sm"><i class="fas fa-eye me-1"></i>Aç</a>
+                                </div>
+                            <% }) %>
+                            <form action="/admin/is-emirleri/<%= wo._id %>/attach" method="POST" enctype="multipart/form-data" class="d-flex gap-2 mt-3">
+                                <input type="file" name="file" class="form-control form-control-sm" required accept=".pdf,.jpg,.jpeg,.png,.webp,.doc,.docx,.xls,.xlsx">
+                                <button class="btn btn-soft btn-sm" style="white-space:nowrap"><i class="fas fa-upload me-1"></i>Yükle</button>
+                            </form>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="col-lg-4">
+                    <div class="card-x mb-3">
+                        <div class="card-h"><h3>Görev Bilgileri</h3></div>
+                        <div class="card-b">
+                            <dl class="kv mb-0">
+                                <dt>Personel</dt><dd><% if (wo.assignedTo) { %><a href="/admin/personel/<%= wo.assignedTo._id %>" class="text-decoration-none"><%= wo.assignedTo.fullName %></a><% if (wo.assignedTo.deletedAt || wo.assignedTo.status !== 'active') { %> <span class="pill t-gray" style="font-size:11px">pasif</span><% } %><% } %></dd>
+                                <dt>Aday</dt><dd><a href="/admin/candidate/<%= wo.candidateId %>#workorders" class="text-decoration-none"><%= wo.candidateName %></a></dd>
+                                <dt>Başlangıç</dt><dd><%= fmtDT(wo.startDate, false) %></dd>
+                                <dt>Son teslim</dt><dd><%= fmtDT(wo.dueDate) %></dd>
+                                <dt>Oluşturulma</dt><dd><%= fmtDT(wo.createdAt) %></dd>
+                                <dt>Başlama</dt><dd><%= fmtDT(wo.startedAt) %></dd>
+                                <dt>Tamamlanma</dt><dd><%= fmtDT(wo.completedAt) %></dd>
+                                <% if (wo.completedAt) { %><dt>Süre</dt><dd><%= fmtDuration((new Date(wo.completedAt) - new Date(wo.startedAt || wo.createdAt)) / 36e5) %></dd><% } %>
+                            </dl>
+                        </div>
+                    </div>
+                    <% if (candidate) { %>
+                    <div class="card-x mb-3">
+                        <div class="card-h"><h3>Aday</h3><a href="/admin/candidate/<%= candidate._id %>" class="btn btn-soft btn-sm ms-auto">Detay</a></div>
+                        <div class="card-b small">
+                            <div class="fw-bold text-dark mb-1"><%= candidate.firstName %> <%= candidate.lastName %></div>
+                            <div class="muted"><i class="fas fa-passport me-1"></i><%= candidate.passportNo || '—' %></div>
+                            <div class="muted"><i class="fas fa-phone me-1"></i><%= candidate.phone || candidate.phoneNumber || '—' %></div>
+                            <div class="muted"><i class="fas fa-envelope me-1"></i><%= candidate.email || '—' %></div>
+                            <div class="mt-2"><span class="pill t-brand"><%= candidate.currentStage %></span></div>
+                        </div>
+                    </div>
+                    <% } %>
+                    <div class="card-x mb-3">
+                        <div class="card-h"><h3>İşlemler</h3></div>
+                        <div class="card-b d-grid gap-2">
+                            <% if (wo.status === 'İptal') { %>
+                                <form action="/admin/is-emirleri/<%= wo._id %>/action" method="POST" class="m-0 d-grid"><input type="hidden" name="action" value="reopen"><button class="btn btn-soft"><i class="fas fa-rotate-right me-1"></i>Yeniden Aç</button></form>
+                            <% } else { %>
+                                <% if (wo.status === 'Tamamlandı') { %><button class="btn btn-soft" data-bs-toggle="modal" data-bs-target="#revModal"><i class="fas fa-rotate-left me-1"></i>Revizyona Gönder</button><% } %>
+                                <form action="/admin/is-emirleri/<%= wo._id %>/action" method="POST" class="m-0 d-grid" data-confirm="İş emri iptal edilecek ve personele bildirilecek." data-danger>
+                                    <input type="hidden" name="action" value="cancel"><button class="btn btn-bad-soft" data-no-busy="1"><i class="fas fa-ban me-1"></i>İş Emrini İptal Et</button>
+                                </form>
+                            <% } %>
+                        </div>
+                    </div>
+                    <div class="card-x">
+                        <div class="card-h"><h3>Görev Geçmişi</h3></div>
+                        <div class="card-b"><div class="tl">
+                            <% (wo.history || []).slice().reverse().forEach(h => { %>
+                                <div class="tl-i"><div class="fw-650 small text-dark"><%= h.action %></div><div class="muted" style="font-size:12px"><%= h.byName %> · <%= fmtDT(h.at) %></div><% if (h.note) { %><div class="small mt-1 pre"><%= h.note %></div><% } %></div>
+                            <% }) %>
+                        </div></div>
+                    </div>
+                </div>
+            </div>
+        </main>
+    </div>
+</div>
+
+<div class="modal fade" id="editWO" tabindex="-1">
+    <div class="modal-dialog modal-lg modal-dialog-centered modal-dialog-scrollable">
+        <form class="modal-content" action="/admin/is-emirleri/<%= wo._id %>/edit" method="POST">
+            <div class="modal-header"><h5 class="modal-title">İş Emrini Düzenle</h5><button type="button" class="btn-close" data-bs-dismiss="modal"></button></div>
+            <div class="modal-body"><div class="row g-3">
+                <div class="col-md-6"><label class="form-label">Kategori</label><select name="category" class="form-select"><% CATEGORIES.forEach(c => { %><option <%= wo.category === c ? 'selected' : '' %>><%= c %></option><% }) %></select></div>
+                <div class="col-md-6"><label class="form-label">Atanan personel</label><select name="assignedTo" class="form-select">
+                    <% if (wo.assignedTo && !staffList.some(s => String(s._id) === String(wo.assignedTo._id))) { %><option value="<%= wo.assignedTo._id %>" selected><%= wo.assignedTo.fullName %> (pasif)</option><% } %>
+                    <% staffList.forEach(s => { %><option value="<%= s._id %>" <%= wo.assignedTo && String(wo.assignedTo._id) === String(s._id) ? 'selected' : '' %>><%= s.fullName %></option><% }) %></select></div>
+                <div class="col-12"><label class="form-label">Başlık</label><input name="title" class="form-control" value="<%= wo.title %>" required maxlength="160"></div>
+                <div class="col-12"><label class="form-label">Açıklama</label><textarea name="description" class="form-control" rows="4" maxlength="6000"><%= wo.description %></textarea></div>
+                <div class="col-md-4"><label class="form-label">Öncelik</label><select name="priority" class="form-select"><% PRIORITIES.forEach(p => { %><option <%= wo.priority === p ? 'selected' : '' %>><%= p %></option><% }) %></select></div>
+                <div class="col-md-4"><label class="form-label">Başlangıç</label><input type="date" name="startDate" class="form-control" value="<%= toDate(wo.startDate) %>"></div>
+                <div class="col-md-4"><label class="form-label">Son teslim</label><input type="date" name="dueDate" class="form-control" value="<%= toDate(wo.dueDate) %>"></div>
+                <div class="col-12"><label class="form-label">Admin notu</label><textarea name="adminNote" class="form-control" rows="2" maxlength="4000"><%= wo.adminNote %></textarea></div>
+            </div></div>
+            <div class="modal-footer"><span class="muted small me-auto">Değişiklikler personele bildirilir.</span><button type="button" class="btn btn-soft" data-bs-dismiss="modal">Vazgeç</button><button class="btn btn-brand">Kaydet</button></div>
+        </form>
+    </div>
+</div>
+
+<div class="modal fade" id="revModal" tabindex="-1">
+    <div class="modal-dialog modal-dialog-centered">
+        <form class="modal-content" action="/admin/is-emirleri/<%= wo._id %>/action" method="POST">
+            <input type="hidden" name="action" value="revision">
+            <div class="modal-header"><h5 class="modal-title">Revizyona Gönder</h5><button type="button" class="btn-close" data-bs-dismiss="modal"></button></div>
+            <div class="modal-body"><label class="form-label">Revizyon nedeni *</label><textarea name="note" class="form-control" rows="4" required maxlength="1000" placeholder="Nelerin düzeltilmesi gerektiğini yazın."></textarea></div>
+            <div class="modal-footer"><button type="button" class="btn btn-soft" data-bs-dismiss="modal">Vazgeç</button><button class="btn btn-brand">Gönder</button></div>
+        </form>
+    </div>
+</div>
+<%- include('partials/admin_scripts') %>
+</body>
+</html>

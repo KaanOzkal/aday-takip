@@ -19,7 +19,13 @@
         document_updated: 'Belge durumu güncellendi.', document_deleted: 'Belge kaydı silindi.',
         appointment_updated: 'Randevu durumu güncellendi.',
         candidate_created: 'Aday oluşturuldu. Giriş bilgisi: Ad + Soyad + Pasaport No.',
-        candidate_updated: 'Aday bilgileri kaydedildi.', candidate_deleted: 'Aday silindi.'
+        candidate_updated: 'Aday bilgileri kaydedildi.', candidate_deleted: 'Aday silindi.',
+        staff_created: 'Personel oluşturuldu.', staff_updated: 'Personel bilgileri kaydedildi.', staff_passive: 'Personel pasife alındı, oturumları kapatıldı.',
+        staff_active: 'Personel aktifleştirildi.', staff_deleted: 'Personel devre dışı bırakıldı. Geçmiş kayıtları korunuyor.', staff_restored: 'Personel geri yüklendi (pasif).',
+        password_reset: 'Şifre sıfırlandı, açık oturumlar kapatıldı.',
+        wo_created: 'İş emri oluşturuldu ve personele bildirildi.', wo_updated: 'İş emri güncellendi, personele bildirildi.', no_change: 'Değişiklik yapılmadı.',
+        wo_cancel: 'İş emri iptal edildi.', wo_revision: 'Görev revizyona gönderildi.', wo_approve: 'Görev onaylandı.', wo_reopen: 'İş emri yeniden açıldı.',
+        comment_added: 'Açıklama eklendi, personele bildirildi.', file_added: 'Dosya eklendi.', all_read: 'Tüm bildirimler okundu olarak işaretlendi.'
     };
     const ERR = {
         company_exists: 'Bu isimde bir şirket zaten var.',
@@ -32,7 +38,17 @@
         no_selection: 'Önce en az bir aday seçin.',
         not_found: 'Kayıt bulunamadı.',
         drive_empty: 'Drive klasöründe dosya bulunamadı.',
-        sync_failed: 'Drive eşitleme başarısız. Eski Drive kimlik bilgilerini kontrol edin.'
+        sync_failed: 'Drive eşitleme başarısız. Eski Drive kimlik bilgilerini kontrol edin.',
+        bad_username: 'Kullanıcı adı 3-40 karakter olmalı; yalnızca küçük harf, rakam, nokta, tire ve alt çizgi içerebilir.',
+        username_taken: 'Bu kullanıcı adı zaten kullanılıyor.',
+        bad_email: 'Geçerli bir e-posta adresi girin.',
+        weak_password: 'Şifre en az 8 karakter olmalı ve en az bir harf ile bir rakam içermeli.',
+        staff_inactive: 'Seçilen personel aktif değil. Lütfen aktif bir personel seçin.',
+        bad_date: 'Tarihleri kontrol edin. Son teslim tarihi başlangıç tarihinden önce olamaz.',
+        note_required: 'Revizyon nedeni yazmanız gerekiyor.',
+        invalid_action: 'Bu işlem görevin mevcut durumunda yapılamaz.',
+        no_file: 'Lütfen bir dosya seçin.', bad_type: 'Bu dosya türü desteklenmiyor (PDF, görsel, Word, Excel).',
+        too_large: 'Dosya 5 MB\'dan büyük olamaz.', upload_failed: 'Dosya yüklenemedi. Google Drive bağlantısını kontrol edin.'
     };
     const p = new URLSearchParams(location.search);
     const st = p.get('status'), er = p.get('error');
@@ -73,5 +89,22 @@
         if (b && !b.dataset.noBusy) { b.disabled = true; b.dataset.orig = b.innerHTML; b.innerHTML = '<span class="spinner-border spinner-border-sm me-1"></span> İşleniyor'; }
     }
     document.addEventListener('submit', e => { if (!e.defaultPrevented && !e.target.matches('form[data-confirm]')) showBusy(e.target); });
+
+    // ---- Gerçek zamanlı bildirimler (SSE, olmazsa periyodik yenileme) ----
+    const setUnread = (n) => document.querySelectorAll('.js-admin-unread').forEach(b => { b.textContent = n; b.hidden = !n; });
+    window.adminSetUnread = setUnread;
+    const showNotif = (d) => {
+        Toast.fire({ icon: 'info', title: d.title, text: d.message, timer: 6000 }).then(r => { if (r.isConfirmed) location.href = d.link; });
+        try { if ('Notification' in window && Notification.permission === 'granted' && document.hidden) { const n = new Notification('BERLINER · ' + d.title, { body: d.message, tag: d.id }); n.onclick = () => { window.focus(); location.href = d.link; }; } } catch (e) {}
+    };
+    let polling = null, lastUnread = null;
+    const poll = () => fetch('/admin/api/unread', { headers: { Accept: 'application/json' } }).then(r => r.ok ? r.json() : null).then(d => { if (!d) return; if (lastUnread !== null && d.unread > lastUnread) Toast.fire({ icon: 'info', title: 'Yeni bildiriminiz var' }); lastUnread = d.unread; setUnread(d.unread); }).catch(() => {});
+    if (window.EventSource) {
+        const es = new EventSource('/admin/bildirimler/stream');
+        es.addEventListener('notification', ev => { const d = JSON.parse(ev.data); setUnread(d.unread); showNotif(d); document.dispatchEvent(new CustomEvent('admin:notification', { detail: d })); });
+        es.addEventListener('unread', ev => setUnread(JSON.parse(ev.data).unread));
+        es.onerror = () => { if (!polling) { polling = setInterval(poll, 30000); } };
+        es.onopen = () => { if (polling) { clearInterval(polling); polling = null; } };
+    } else { polling = setInterval(poll, 30000); }
 })();
 </script>

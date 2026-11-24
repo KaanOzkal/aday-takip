@@ -1,0 +1,28 @@
+<%
+    const _sp = (typeof page !== 'undefined') ? page : '';
+    const _su = (typeof staffUnread !== 'undefined' && staffUnread) ? staffUnread : 0;
+    const _sini = (staff.fullName || '?').split(/\s+/).filter(Boolean).slice(0, 2).map(x => x[0]).join('').toLocaleUpperCase('tr-TR');
+%>
+<header class="s-top">
+    <div class="in">
+        <a href="/personel/panel" class="s-brand"><span class="mk">B</span><span class="d-none d-sm-inline">BERLINER</span><span class="tag">Personel</span></a>
+        <nav class="s-nav">
+            <a href="/personel/panel" class="<%= _sp === 'panel' ? 'active' : '' %>"><i class="fas fa-list-check"></i>Görevlerim</a>
+            <a href="/personel/bildirimler" class="<%= _sp === 'notifications' ? 'active' : '' %>"><i class="fas fa-bell"></i>Bildirimler <span class="s-badge js-s-unread" <%= _su ? '' : 'hidden' %>><%= _su %></span></a>
+            <a href="/personel/hesap" class="<%= _sp === 'account' ? 'active' : '' %>"><i class="fas fa-user-gear"></i>Hesabım</a>
+        </nav>
+        <div class="ms-auto d-flex align-items-center gap-2">
+            <a href="/personel/bildirimler" class="s-bell" title="Bildirimler"><i class="far fa-bell"></i><span class="s-badge js-s-unread" <%= _su ? '' : 'hidden' %>><%= _su %></span></a>
+            <div class="dropdown">
+                <a href="#" class="s-user" data-bs-toggle="dropdown"><span class="av"><%= _sini %></span><span class="nm fw-semibold" style="font-size:13.5px"><%= staff.fullName %></span><i class="fas fa-chevron-down nm" style="font-size:11px;opacity:.6"></i></a>
+                <ul class="dropdown-menu dropdown-menu-end shadow-sm" style="border-radius:14px;border-color:var(--line);min-width:220px">
+                    <li class="px-3 py-2"><div class="fw-semibold text-dark"><%= staff.fullName %></div><div class="muted small">@<%= staff.username %><%= staff.title ? ' · ' + staff.title : '' %></div></li>
+                    <li><hr class="dropdown-divider"></li>
+                    <li><a class="dropdown-item py-2" href="/personel/hesap"><i class="fas fa-key me-2 muted"></i>Şifre değiştir</a></li>
+                    <li><a class="dropdown-item py-2 text-danger" href="/personel/cikis"><i class="fas fa-arrow-right-from-bracket me-2"></i>Çıkış yap</a></li>
+                </ul>
+            </div>
+        </div>
+    </div>
+</header>
+<main class="s-wrap fade-up">

@@ -1,0 +1,125 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+    <title>Personel Yönetimi | BERLINER Yönetim</title>
+    <%- include('partials/admin_head') %>
+    <style>
+        .mode-opt input { position: absolute; opacity: 0; }
+        .mode-opt label { display: block; padding: 12px 14px; border: 1px solid var(--line); border-radius: 12px; cursor: pointer; height: 100%; }
+        .mode-opt input:checked + label { border-color: var(--brand); background: var(--brand-50); box-shadow: 0 0 0 3px rgba(47,84,235,.12); }
+        .num { font-variant-numeric: tabular-nums; }
+    </style>
+</head>
+<body>
+<% const ini = (n) => (n || '?').split(/\s+/).filter(Boolean).slice(0, 2).map(x => x[0]).join('').toLocaleUpperCase('tr-TR'); %>
+<div class="app">
+    <%- include('partials/admin_sidebar', { active: 'staff', onMain: false }) %>
+    <div class="main">
+        <header class="topbar">
+            <button class="btn btn-soft btn-icon menu-toggle" aria-label="Menü"><i class="fas fa-bars"></i></button>
+            <div><div class="crumb">Ekip &amp; Görevler</div><h1>Personel Yönetimi</h1></div>
+            <div class="ms-auto d-flex gap-2">
+                <a href="/personel" target="_blank" class="btn btn-soft d-none d-md-inline-flex align-items-center"><i class="fas fa-arrow-up-right-from-square me-1"></i>Personel giriş sayfası</a>
+                <button class="btn btn-brand" data-bs-toggle="modal" data-bs-target="#newStaff"><i class="fas fa-user-plus me-1"></i><span class="d-none d-sm-inline"> Personel Ekle</span></button>
+            </div>
+        </header>
+        <main class="content">
+            <div class="row g-3 mb-3">
+                <div class="col-6 col-xl"><div class="card-x kpi"><div class="ic t-ok"><i class="fas fa-user-check"></i></div><div><div class="lbl">Aktif personel</div><div class="val"><%= allCounts.active %></div></div></div></div>
+                <div class="col-6 col-xl"><div class="card-x kpi"><div class="ic t-brand"><i class="fas fa-list-check"></i></div><div><div class="lbl">Toplam görev</div><div class="val"><%= totals.total %></div><div class="hint"><%= totals.inProgress + totals.newCount %> açık</div></div></div></div>
+                <div class="col-6 col-xl"><div class="card-x kpi"><div class="ic t-ok"><i class="fas fa-circle-check"></i></div><div><div class="lbl">Tamamlanan</div><div class="val"><%= totals.completed %></div><div class="hint"><%= totals.completed ? Math.round(totals.onTime / totals.completed * 100) : 0 %>% zamanında</div></div></div></div>
+                <div class="col-6 col-xl"><div class="card-x kpi"><div class="ic t-bad"><i class="fas fa-triangle-exclamation"></i></div><div><div class="lbl">Geciken</div><div class="val"><%= totals.overdue %></div></div></div></div>
+                <div class="col-12 col-xl"><div class="card-x kpi"><div class="ic t-info"><i class="fas fa-stopwatch"></i></div><div><div class="lbl">Ort. tamamlama süresi</div><div class="val" style="font-size:22px"><%= fmtDuration(totals.avgHours) %></div></div></div></div>
+            </div>
+
+            <div class="card-x">
+                <form class="card-h" method="GET" action="/admin/personel">
+                    <div><h2>Personel ve Performans</h2><p class="sub">Görev sayıları, gecikmeler ve ortalama tamamlama süreleri</p></div>
+                    <div class="ms-auto d-flex gap-2 flex-wrap">
+                        <div class="search" style="width:240px"><i class="fas fa-magnifying-glass"></i><input type="search" name="q" value="<%= q %>" class="form-control form-control-sm" placeholder="Ad, kullanıcı adı, unvan…"></div>
+                        <select name="show" class="form-select form-select-sm" style="width:auto" onchange="this.form.submit()">
+                            <option value="current" <%= show === 'current' ? 'selected' : '' %>>Aktif + pasif</option>
+                            <option value="active" <%= show === 'active' ? 'selected' : '' %>>Yalnızca aktif (<%= allCounts.active %>)</option>
+                            <option value="passive" <%= show === 'passive' ? 'selected' : '' %>>Yalnızca pasif (<%= allCounts.passive %>)</option>
+                            <option value="deleted" <%= show === 'deleted' ? 'selected' : '' %>>Devre dışı bırakılanlar (<%= allCounts.deleted %>)</option>
+                            <option value="all" <%= show === 'all' ? 'selected' : '' %>>Tümü</option>
+                        </select>
+                        <button class="btn btn-soft btn-sm">Ara</button>
+                    </div>
+                </form>
+                <div class="table-responsive">
+                    <table class="table table-x">
+                        <thead><tr><th>Personel</th><th>Durum</th><th class="text-center">Toplam</th><th class="text-center">Açık</th><th class="text-center">Tamamlanan</th><th class="text-center">Geciken</th><th>Ort. süre</th><th class="d-none d-lg-table-cell">Son giriş</th><th></th></tr></thead>
+                        <tbody>
+                        <% rows.forEach(s => { %>
+                            <tr class="clickable" onclick="if(!event.target.closest('a,button,form'))location.href='/admin/personel/<%= s._id %>'">
+                                <td><div class="person"><div class="avatar t-brand"><%= ini(s.fullName) %></div><div style="min-width:0"><div class="nm text-truncate-1"><%= s.fullName %></div><div class="sm text-truncate-1">@<%= s.username %><%= s.title ? ' · ' + s.title : '' %></div></div></div></td>
+                                <td><% if (s.deletedAt) { %><span class="pill t-gray">Devre dışı</span><% } else if (s.status === 'active') { %><span class="pill t-ok"><span class="dot"></span>Aktif</span><% } else { %><span class="pill t-warn"><span class="dot"></span>Pasif</span><% } %>
+                                    <% if (!s.passwordHash && !s.deletedAt) { %><div class="small muted mt-1"><i class="far fa-envelope me-1"></i>Davet bekliyor</div><% } %></td>
+                                <td class="text-center num fw-650"><%= s.stats.total %></td>
+                                <td class="text-center num"><a class="text-decoration-none" href="/admin/is-emirleri?staff=<%= s._id %>&status=open"><%= s.stats.newCount + s.stats.inProgress %></a></td>
+                                <td class="text-center num"><%= s.stats.completed %></td>
+                                <td class="text-center num"><% if (s.stats.overdue) { %><a href="/admin/is-emirleri?staff=<%= s._id %>&overdue=1" class="pill t-bad text-decoration-none"><%= s.stats.overdue %></a><% } else { %>0<% } %></td>
+                                <td class="num"><%= fmtDuration(s.stats.avgHours) %></td>
+                                <td class="d-none d-lg-table-cell muted small"><%= s.lastLoginAt ? fmtAgo(s.lastLoginAt) : 'Hiç' %></td>
+                                <td class="text-end"><a href="/admin/personel/<%= s._id %>" class="btn btn-soft btn-icon" title="Detay"><i class="fas fa-chevron-right"></i></a></td>
+                            </tr>
+                        <% }) %>
+                        </tbody>
+                    </table>
+                    <% if (!rows.length) { %><div class="empty"><i class="fas fa-user-tie"></i><%= q ? 'Aramanızla eşleşen personel yok.' : 'Henüz personel eklenmedi. “Personel Ekle” ile başlayın.' %></div><% } %>
+                </div>
+            </div>
+        </main>
+    </div>
+</div>
+
+<div class="modal fade" id="newStaff" tabindex="-1">
+    <div class="modal-dialog modal-lg modal-dialog-centered modal-dialog-scrollable">
+        <form class="modal-content" action="/admin/personel" method="POST" id="staffForm" autocomplete="off">
+            <div class="modal-header"><h5 class="modal-title"><i class="fas fa-user-plus me-2 text-primary"></i>Yeni Personel</h5><button type="button" class="btn-close" data-bs-dismiss="modal"></button></div>
+            <div class="modal-body"><div class="row g-3">
+                <div class="col-md-6"><label class="form-label">Ad soyad *</label><input name="fullName" class="form-control" required maxlength="120" id="sfName"></div>
+                <div class="col-md-6"><label class="form-label">Görev / unvan</label><input name="title" class="form-control" maxlength="80" placeholder="Örn: Evrak Sorumlusu"></div>
+                <div class="col-md-6"><label class="form-label">E-posta</label><input type="email" name="email" class="form-control" maxlength="160" id="sfEmail"></div>
+                <div class="col-md-6"><label class="form-label">Telefon</label><input name="phone" class="form-control" maxlength="40"></div>
+                <div class="col-md-6"><label class="form-label">Kullanıcı adı *</label><input name="username" class="form-control" required pattern="[a-z0-9._\-]{3,40}" maxlength="40" id="sfUser" placeholder="örn: ayse.yilmaz"><div class="form-text">Küçük harf, rakam, nokta, tire. Personel bununla giriş yapar.</div></div>
+                <div class="col-md-6"><label class="form-label">Hesap durumu</label><select name="status" class="form-select"><option value="active">Aktif</option><option value="passive">Pasif</option></select></div>
+                <div class="col-12"><label class="form-label">Giriş yöntemi</label>
+                    <div class="row g-2">
+                        <div class="col-md-6 mode-opt position-relative"><input type="radio" name="mode" value="invite" id="mInv" checked><label for="mInv"><div class="fw-650 text-dark"><i class="fas fa-link me-1"></i>Güvenli davet bağlantısı</div><div class="small muted">Personel şifresini kendisi belirler. Bağlantı <%= 72 %> saat geçerli; e-posta varsa otomatik gönderilir.</div></label></div>
+                        <div class="col-md-6 mode-opt position-relative"><input type="radio" name="mode" value="password" id="mPw"><label for="mPw"><div class="fw-650 text-dark"><i class="fas fa-key me-1"></i>Şifreyi ben belirleyeceğim</div><div class="small muted">Şifreyi personele güvenli bir kanaldan iletin.</div></label></div>
+                    </div>
+                </div>
+                <div class="col-12 d-none" id="pwBox"><label class="form-label">Şifre *</label>
+                    <div class="input-group"><input type="text" name="password" class="form-control font-monospace" id="sfPw" minlength="8" maxlength="128" autocomplete="new-password"><button type="button" class="btn btn-soft" id="genPw"><i class="fas fa-wand-magic-sparkles me-1"></i>Oluştur</button></div>
+                    <div class="form-text">En az 8 karakter, en az bir harf ve bir rakam.</div></div>
+            </div></div>
+            <div class="modal-footer"><button type="button" class="btn btn-soft" data-bs-dismiss="modal">Vazgeç</button><button class="btn btn-brand"><i class="fas fa-check me-1"></i>Personeli Oluştur</button></div>
+        </form>
+    </div>
+</div>
+<%- include('partials/admin_scripts') %>
+<script>
+(function () {
+    const pwBox = document.getElementById('pwBox'), pw = document.getElementById('sfPw');
+    document.querySelectorAll('input[name=mode]').forEach(r => r.addEventListener('change', () => { const on = document.getElementById('mPw').checked; pwBox.classList.toggle('d-none', !on); pw.required = on; }));
+    document.getElementById('genPw').addEventListener('click', () => {
+        const a = 'abcdefghjkmnpqrstuvwxyzABCDEFGHJKLMNPQRSTUVWXYZ', d = '23456789', all = a + d + '!@#%';
+        const r = (s) => s[crypto.getRandomValues(new Uint32Array(1))[0] % s.length];
+        let p = r(a) + r(d); for (let i = 0; i < 10; i++) p += r(all); pw.value = p.split('').sort(() => Math.random() - .5).join('');
+    });
+    const tr = { 'ç': 'c', 'ğ': 'g', 'ı': 'i', 'İ': 'i', 'ö': 'o', 'ş': 's', 'ü': 'u' };
+    const user = document.getElementById('sfUser'); let touched = false;
+    user.addEventListener('input', () => touched = true);
+    document.getElementById('sfName').addEventListener('input', e => {
+        if (touched) return;
+        const parts = e.target.value.toLocaleLowerCase('tr-TR').replace(/[çğıİöşü]/g, c => tr[c] || c).replace(/[^a-z\s]/g, '').trim().split(/\s+/).filter(Boolean);
+        user.value = parts.length > 1 ? parts[0] + '.' + parts[parts.length - 1] : (parts[0] || '');
+    });
+    const p = new URLSearchParams(location.search);
+    if (p.get('open')) Swal.fire({ icon: 'warning', title: 'Açık iş emirleri var', text: 'Devre dışı bırakılan personelin ' + p.get('open') + ' açık iş emri bulunuyor. İş Emirleri sayfasından başka personele aktarmanızı öneririz.', confirmButtonColor: '#2F54EB' });
+})();
+</script>
+</body>
+</html>

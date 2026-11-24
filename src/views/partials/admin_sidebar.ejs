@@ -9,6 +9,7 @@
         <div class="brand-text"><strong>BERLINER</strong><small>Aday Takip Sistemi</small></div>
     </a>
 
+    <div class="side-scroll">
     <div class="side-label">Genel</div>
     <ul class="side-nav">
         <li><a href="<%= base %>#dashboard" data-section="dashboard" class="<%= act === 'dashboard' ? 'active' : '' %>"><i class="fas fa-chart-pie"></i> Genel Bakış</a></li>
@@ -25,6 +26,16 @@
         <li><a href="<%= base %>#companies" data-section="companies" class="<%= act === 'companies' ? 'active' : '' %>"><i class="fas fa-building"></i> Şirketler</a></li>
     </ul>
 
+    <div class="side-label">Ekip &amp; Görevler</div>
+    <ul class="side-nav">
+        <li><a href="/admin/is-emirleri" class="<%= act === 'workorders' ? 'active' : '' %>"><i class="fas fa-clipboard-list"></i> İş Emirleri
+            <% if (typeof woToReview !== 'undefined' && woToReview) { %><span class="count" style="background:#F79009" title="Onay bekleyen tamamlanmış görev"><%= woToReview %></span><% } %></a></li>
+        <li><a href="/admin/personel" class="<%= act === 'staff' ? 'active' : '' %>"><i class="fas fa-user-tie"></i> Personel Yönetimi</a></li>
+        <li><a href="/admin/bildirimler" class="<%= act === 'notifications' ? 'active' : '' %>"><i class="fas fa-bell"></i> Bildirimler
+            <span class="count js-admin-unread" <%= (typeof adminUnread !== 'undefined' && adminUnread) ? '' : 'hidden' %>><%= typeof adminUnread !== 'undefined' ? adminUnread : 0 %></span></a></li>
+        <li><a href="/admin/islem-gecmisi" class="<%= act === 'audit' ? 'active' : '' %>"><i class="fas fa-shield-halved"></i> İşlem Geçmişi</a></li>
+    </ul>
+
     <div class="side-label">İletişim</div>
     <ul class="side-nav">
         <li><a href="<%= base %>#communication" data-section="communication" class="<%= act === 'communication' ? 'active' : '' %>"><i class="fas fa-bullhorn"></i> Duyuru &amp; E-posta</a></li>
@@ -35,6 +46,7 @@
         <li><a href="/admin/export.csv"><i class="fas fa-file-csv"></i> Excel'e Aktar (CSV)</a></li>
         <li><a href="/admin/sync-drive-files" class="js-confirm" data-confirm="Eski Drive klasörü taranacak ve ad + soyad eşleşen dosyalar adaylara eklenecek. Bu işlem biraz sürebilir."><i class="fab fa-google-drive"></i> Drive Eşitle</a></li>
     </ul>
+    </div>
 
     <div class="sidebar-foot">
         <div class="me">

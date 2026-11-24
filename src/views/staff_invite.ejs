@@ -1,0 +1,40 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+    <title>Şifre Belirle | BERLINER Personel</title>
+    <meta name="robots" content="noindex">
+    <%- include('partials/cand_head') %>
+    <style>
+        body { min-height: 100vh; display: grid; place-items: center; padding: 24px 16px; background: radial-gradient(1000px 500px at 85% -10%, rgba(59,108,255,.35), transparent 60%), #0B1220; }
+        .box { width: 100%; max-width: 440px; background: #fff; border-radius: 22px; padding: 32px 28px; box-shadow: 0 30px 60px rgba(0,0,0,.35); }
+        .rule { font-size: 12.5px; color: var(--muted); } .rule.ok { color: var(--ok); }
+    </style>
+</head>
+<body>
+<div class="box fade-up">
+    <% if (!s) { %>
+        <div class="text-center">
+            <div class="c-ic t-bad mx-auto mb-3" style="width:56px;height:56px;font-size:22px"><i class="fas fa-link-slash"></i></div>
+            <h1 class="fs-5 fw-bold">Bağlantı geçersiz veya süresi dolmuş</h1>
+            <p class="muted">Yöneticinizden yeni bir davet / sıfırlama bağlantısı isteyin.</p>
+            <a href="/personel" class="btn btn-soft">Giriş sayfasına dön</a>
+        </div>
+    <% } else { %>
+        <h1 class="fs-4 fw-bold mb-1">Merhaba <%= s.fullName.split(' ')[0] %> 👋</h1>
+        <p class="muted mb-3">BERLINER personel paneli için şifrenizi belirleyin. Kullanıcı adınız: <b class="text-dark">@<%= s.username %></b></p>
+        <% if (error) { %><div class="p-3 mb-3 small" style="background:var(--bad-50);color:#B42318;border:1px solid #FECDCA;border-radius:12px"><i class="fas fa-circle-exclamation me-1"></i><%= error %></div><% } %>
+        <form method="POST" action="/personel/davet/<%= token %>" id="f">
+            <div class="mb-2"><label class="form-label">Yeni şifre</label><input type="password" name="password" id="p1" class="form-control" required minlength="8" maxlength="128" autocomplete="new-password"></div>
+            <div class="mb-3 d-flex gap-3 flex-wrap"><span class="rule" id="r1"><i class="fas fa-circle-check me-1"></i>En az 8 karakter</span><span class="rule" id="r2"><i class="fas fa-circle-check me-1"></i>Harf ve rakam</span></div>
+            <div class="mb-4"><label class="form-label">Yeni şifre (tekrar)</label><input type="password" name="password2" id="p2" class="form-control" required autocomplete="new-password"></div>
+            <button class="btn btn-brand w-100" style="height:48px">Şifremi Kaydet</button>
+        </form>
+        <script>
+            const p1 = document.getElementById('p1');
+            p1.addEventListener('input', () => { document.getElementById('r1').classList.toggle('ok', p1.value.length >= 8); document.getElementById('r2').classList.toggle('ok', /[A-Za-zÇĞİÖŞÜçğıöşü]/.test(p1.value) && /\d/.test(p1.value)); });
+            document.getElementById('f').addEventListener('submit', e => { if (p1.value !== document.getElementById('p2').value) { e.preventDefault(); Swal.fire({ icon: 'warning', title: 'Şifreler eşleşmiyor', confirmButtonColor: '#2F54EB' }); } });
+        </script>
+    <% } %>
+</div>
+</body>
+</html>

@@ -1,0 +1,130 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+    <title>Görevlerim | BERLINER Personel</title>
+    <meta name="robots" content="noindex">
+    <%- include('partials/staff_head') %>
+    <style>
+        .kpi { padding: 16px 18px; display: flex; gap: 12px; align-items: center; text-decoration: none; color: inherit; height: 100%; transition: border-color .15s, transform .15s; }
+        a.kpi:hover { border-color: #C7D2FE; transform: translateY(-1px); }
+        .kpi .v { font-size: 26px; font-weight: 800; color: var(--ink); line-height: 1.1; }
+        .kpi .l { color: var(--muted); font-size: 12.5px; font-weight: 500; }
+        .kpi.on { border-color: var(--brand); box-shadow: 0 0 0 3px rgba(47,84,235,.1); }
+        .up { display: flex; gap: 12px; padding: 12px 18px; border-bottom: 1px solid #F0F2F5; text-decoration: none; color: inherit; align-items: center; }
+        .up:last-child { border-bottom: 0; } .up:hover { background: #FAFBFF; }
+        .cal { width: 46px; border-radius: 10px; overflow: hidden; text-align: center; border: 1px solid var(--line); flex-shrink: 0; background: #fff; }
+        .cal .m { background: var(--navy); color: #fff; font-size: 10px; font-weight: 700; text-transform: uppercase; padding: 1px 0; }
+        .cal .d { font-size: 17px; font-weight: 800; color: var(--ink); line-height: 1.6; }
+        .push { background: linear-gradient(135deg, #0B1220, #172554); color: #fff; border-radius: var(--radius); padding: 16px 18px; }
+    </style>
+</head>
+<body>
+<%- include('partials/staff_shell_start') %>
+<%
+    const q = (o) => '?' + Object.entries(Object.assign({ f: filter, sort }, o)).map(([k, v]) => k + '=' + encodeURIComponent(v)).join('&');
+    const hour = new Date().toLocaleString('tr-TR', { timeZone: 'Europe/Istanbul', hour: 'numeric', hour12: false });
+    const greet = hour < 12 ? 'Günaydın' : hour < 18 ? 'İyi günler' : 'İyi akşamlar';
+    const tabs = [['open', 'Açık'], ['new', 'Yeni'], ['progress', 'Devam eden'], ['overdue', 'Geciken'], ['done', 'Tamamlanan'], ['cancelled', 'İptal'], ['all', 'Tümü']];
+%>
+<div class="s-head">
+    <div>
+        <div class="sub"><%= new Date().toLocaleDateString('tr-TR', { timeZone: 'Europe/Istanbul', weekday: 'long', day: 'numeric', month: 'long' }) %></div>
+        <h1><%= greet %>, <%= staff.fullName.split(' ')[0] %></h1>
+    </div>
+</div>
+
+<div class="row g-3 mb-3">
+    <div class="col-6 col-lg"><a href="<%= q({ f: 'all' }) %>" class="c-card kpi <%= filter === 'all' ? 'on' : '' %>"><div class="c-ic t-gray"><i class="fas fa-layer-group"></i></div><div><div class="v"><%= stats.total %></div><div class="l">Toplam görev</div></div></a></div>
+    <div class="col-6 col-lg"><a href="<%= q({ f: 'new' }) %>" class="c-card kpi <%= filter === 'new' ? 'on' : '' %>"><div class="c-ic t-brand"><i class="fas fa-inbox"></i></div><div><div class="v"><%= stats.newCount %></div><div class="l">Yeni atanan</div></div></a></div>
+    <div class="col-6 col-lg"><a href="<%= q({ f: 'progress' }) %>" class="c-card kpi <%= filter === 'progress' ? 'on' : '' %>"><div class="c-ic t-info"><i class="fas fa-spinner"></i></div><div><div class="v"><%= stats.inProgress %></div><div class="l">Devam eden</div></div></a></div>
+    <div class="col-6 col-lg"><a href="<%= q({ f: 'done' }) %>" class="c-card kpi <%= filter === 'done' ? 'on' : '' %>"><div class="c-ic t-ok"><i class="fas fa-circle-check"></i></div><div><div class="v"><%= stats.completed %></div><div class="l">Tamamlanan</div></div></a></div>
+    <div class="col-12 col-lg"><a href="<%= q({ f: 'overdue' }) %>" class="c-card kpi <%= filter === 'overdue' ? 'on' : '' %>" style="<%= stats.overdue ? 'border-color:#FECDCA' : '' %>"><div class="c-ic t-bad"><i class="fas fa-triangle-exclamation"></i></div><div><div class="v" style="<%= stats.overdue ? 'color:var(--bad)' : '' %>"><%= stats.overdue %></div><div class="l">Geciken</div></div></a></div>
+</div>
+
+<div class="row g-3">
+    <div class="col-lg-8">
+        <div class="c-card">
+            <div class="c-card-h">
+                <div class="seg">
+                    <% tabs.forEach(([k, l]) => { %><a href="<%= q({ f: k }) %>" class="<%= filter === k ? 'active' : '' %>"><%= l %></a><% }) %>
+                </div>
+                <div class="ms-auto d-flex align-items-center gap-2">
+                    <span class="small muted d-none d-sm-inline">Sırala:</span>
+                    <select class="form-select form-select-sm" style="width:auto" onchange="location.href=this.value">
+                        <option value="<%= q({ sort: 'priority' }) %>" <%= sort === 'priority' ? 'selected' : '' %>>Önceliğe göre</option>
+                        <option value="<%= q({ sort: 'due' }) %>" <%= sort === 'due' ? 'selected' : '' %>>Teslim tarihine göre</option>
+                        <option value="<%= q({ sort: 'created' }) %>" <%= sort === 'created' ? 'selected' : '' %>>En yeni</option>
+                    </select>
+                </div>
+            </div>
+            <div id="taskList">
+            <% list.forEach(w => { const due = dueLabel(w); %>
+                <a href="/personel/gorev/<%= w._id %>" class="task">
+                    <span class="pr pr-<%= w.priority %>"></span>
+                    <div class="flex-grow-1" style="min-width:0">
+                        <div class="d-flex align-items-center gap-2 flex-wrap mb-1">
+                            <span class="fw-650 text-dark"><%= w.title %></span>
+                            <% if (w.status === 'Yeni') { %><span class="pill t-brand" style="font-size:10.5px;padding:1px 8px">YENİ</span><% } %>
+                            <% if (w.status === 'Revizyon') { %><span class="pill t-warn" style="font-size:10.5px;padding:1px 8px">REVİZYON</span><% } %>
+                        </div>
+                        <div class="small muted text-truncate"><span class="font-monospace"><%= w.code %></span> · <%= w.category %> · <i class="far fa-user"></i> <%= w.candidateName %></div>
+                    </div>
+                    <div class="text-end d-none d-sm-block" style="min-width:120px">
+                        <% if (due) { %><span class="pill <%= due.tone %>"><i class="far fa-clock"></i><%= due.text %></span>
+                        <% } else { %><span class="pill <%= woStatusTone(w.status) %>"><%= w.status %></span><% } %>
+                        <div class="small muted mt-1"><%= w.dueDate ? fmtDT(w.dueDate, false) : 'Teslim tarihi yok' %></div>
+                    </div>
+                    <span class="pill <%= woPriorityTone(w.priority) %> d-none d-md-inline-flex"><i class="fas <%= woPriorityIcon(w.priority) %>"></i><%= w.priority %></span>
+                    <i class="fas fa-chevron-right muted small"></i>
+                </a>
+            <% }) %>
+            </div>
+            <% if (!list.length) { %>
+                <div class="empty"><div class="c-ic t-ok"><i class="fas fa-mug-hot"></i></div><div class="fw-650 text-dark"><%= filter === 'open' ? 'Açık göreviniz yok' : 'Bu filtrede görev yok' %></div><div class="small">Yeni bir görev atandığında anında bildirim alacaksınız.</div></div>
+            <% } %>
+        </div>
+    </div>
+    <div class="col-lg-4">
+        <div class="push mb-3 d-none" id="pushCard">
+            <div class="fw-bold mb-1"><i class="far fa-bell me-1"></i>Masaüstü bildirimleri</div>
+            <div class="small mb-2" style="opacity:.75">Yeni görev atandığında tarayıcınız size haber versin.</div>
+            <button class="btn btn-sm" style="background:#fff;color:var(--ink)" id="pushBtn">Bildirimlere izin ver</button>
+        </div>
+        <div class="c-card mb-3">
+            <div class="c-card-h"><div><h2>Yaklaşan Teslimler</h2><p class="sub">Önümüzdeki 7 gün</p></div></div>
+            <% upcoming.forEach(w => { const d = new Date(w.dueDate); %>
+                <a href="/personel/gorev/<%= w._id %>" class="up">
+                    <div class="cal"><div class="m"><%= d.toLocaleDateString('tr-TR', { timeZone: 'Europe/Istanbul', month: 'short' }) %></div><div class="d"><%= d.toLocaleDateString('tr-TR', { timeZone: 'Europe/Istanbul', day: 'numeric' }) %></div></div>
+                    <div class="flex-grow-1" style="min-width:0"><div class="fw-650 text-dark text-truncate"><%= w.title %></div><div class="small muted text-truncate"><%= w.candidateName %></div></div>
+                    <span class="pill <%= woPriorityTone(w.priority) %>" style="font-size:11px"><%= w.priority %></span>
+                </a>
+            <% }) %>
+            <% if (!upcoming.length) { %><div class="empty py-4"><div class="small">Yaklaşan teslim tarihi yok.</div></div><% } %>
+        </div>
+        <div class="c-card">
+            <div class="c-card-h"><h2>Son Bildirimler</h2><a href="/personel/bildirimler" class="btn btn-soft btn-sm ms-auto">Tümü</a></div>
+            <% recent.forEach(n => { const [ic, tone] = notifIcon(n.type); %>
+                <a href="/n/<%= n._id %>" class="up">
+                    <div class="c-ic <%= tone %>" style="width:34px;height:34px;font-size:14px"><i class="fas <%= ic %>"></i></div>
+                    <div class="flex-grow-1" style="min-width:0"><div class="fw-650 text-dark text-truncate" style="font-size:13.5px"><%= n.title %><% if (!n.isRead) { %> <span style="display:inline-block;width:7px;height:7px;border-radius:50%;background:var(--brand)"></span><% } %></div><div class="small muted text-truncate"><%= n.message %></div></div>
+                    <span class="small muted text-nowrap"><%= fmtAgo(n.createdAt) %></span>
+                </a>
+            <% }) %>
+            <% if (!recent.length) { %><div class="empty py-4"><div class="small">Henüz bildirim yok.</div></div><% } %>
+        </div>
+    </div>
+</div>
+<%- include('partials/staff_shell_end') %>
+<script>
+(function () {
+    const card = document.getElementById('pushCard');
+    if ('Notification' in window && Notification.permission === 'default') {
+        card.classList.remove('d-none');
+        document.getElementById('pushBtn').addEventListener('click', () => Notification.requestPermission().then(p => { card.classList.add('d-none'); if (p === 'granted') sToast.fire({ icon: 'success', title: 'Masaüstü bildirimleri açıldı' }); }));
+    }
+    // Yeni görev atanınca listeyi tazele
+    document.addEventListener('staff:notification', e => { if (['assigned', 'cancelled', 'updated'].includes(e.detail.type)) setTimeout(() => location.reload(), 2500); });
+})();
+</script>
+</body>
+</html>

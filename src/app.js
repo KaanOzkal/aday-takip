@@ -126,10 +126,14 @@ app.set('views', path.join(__dirname, 'views'));
 app.set('view engine', 'ejs');
 app.use(express.static(path.join(process.cwd(), 'public')));
 app.use(bodyParser.urlencoded({ extended: true }));
-app.use(session({ 
-    secret: process.env.SESSION_SECRET || 'gizli', 
-    resave: false, 
-    saveUninitialized: true 
+app.set('trust proxy', 1); // Render/Heroku gibi proxy arkasında doğru IP ve HTTPS algılama
+if (!process.env.SESSION_SECRET) console.warn('⚠️  SESSION_SECRET tanımlı değil! Canlı ortamda mutlaka güçlü bir değer belirleyin.');
+app.use(session({
+    name: 'connect.sid',
+    secret: process.env.SESSION_SECRET || 'gizli',
+    resave: false,
+    saveUninitialized: false,
+    cookie: { httpOnly: true, sameSite: 'lax', secure: 'auto', maxAge: 1000 * 60 * 60 * 12 }
 }));
 
 // --- SABİT VERİLER ---
@@ -182,9 +186,16 @@ const adminAuthCheck = (req, res, next) => {
     if (req.session.isAdmin) {
         next(); 
     } else {
+        if ((req.get('accept') || '').includes('application/json') || req.path.endsWith('/stream')) return res.status(401).json({ error: 'unauthorized' });
         res.redirect('/admin/login'); 
     }
 };
+
+// --- PERSONEL / İŞ EMRİ / BİLDİRİM SİSTEMİ ---
+require('./staff')(app, {
+    adminAuthCheck, Candidate, uploadToGoogleDrive, transporter, upload, google,
+    getMailFrom: () => MAIL_FROM
+});
 
 // ============================================
 //  ROTALAR
@@ -217,8 +228,11 @@ app.post('/login', async (req, res) => {
         if (!user) {
             return res.status(401).render('login', { error: 'Bilgiler eşleşmedi. Ad, soyad ve pasaport numaranızı kontrol edin.', values });
         }
-        req.session.userId = user._id;
-        res.redirect('/panel?login=success');
+        req.session.regenerate((err) => {
+            if (err) return res.status(500).render('login', { error: 'Oturum başlatılamadı, tekrar deneyin.', values });
+            req.session.userId = user._id;
+            req.session.save(() => res.redirect('/panel?login=success'));
+        });
     } catch (err) {
         console.error('Giriş hatası:', err);
         res.status(500).render('login', { error: 'Şu anda giriş yapılamıyor. Lütfen biraz sonra tekrar deneyin.', values });
@@ -237,8 +251,12 @@ app.get('/admin/login', (req, res) => {
 app.post('/admin/login', (req, res) => {
     const { username, password } = req.body;
     if (username === (process.env.ADMIN_USER || 'admin') && password === (process.env.ADMIN_PASS || 'admin123')) {
-        req.session.isAdmin = true;
-        res.redirect('/admin');
+        // Yeni oturum: personel/aday oturumu taşınmaz (yetkiler kesin ayrılır)
+        req.session.regenerate((err) => {
+            if (err) return res.render('admin_login', { error: 'Oturum başlatılamadı.' });
+            req.session.isAdmin = true;
+            req.session.save(() => res.redirect('/admin'));
+        });
     } else {
         res.render('admin_login', { error: 'Hatalı giriş!' });
     }
@@ -556,8 +574,9 @@ app.get('/admin/candidate/:id', adminAuthCheck, async (req, res) => {
             Company.find().sort({ name: 1 }).lean()
         ]);
 
+        const wo = await app.locals.loadCandidateWorkOrders(candidate._id);
         res.render('admin_candidate_detail', {
-            candidate, appointments, messages, companies,
+            candidate, appointments, messages, companies, wo,
             stages: STAGES, germanyStages: GERMANY_STAGES,
             stateNames: Object.keys(STATE_DATA),
             user: { firstName: 'Admin' }

@@ -1,0 +1,54 @@
+<% const _sp2 = (typeof page !== 'undefined') ? page : ''; const _su2 = (typeof staffUnread !== 'undefined' && staffUnread) ? staffUnread : 0; %>
+</main>
+<nav class="s-bottom">
+    <a href="/personel/panel" class="<%= _sp2 === 'panel' ? 'active' : '' %>"><i class="fas fa-list-check"></i>Görevlerim</a>
+    <a href="/personel/bildirimler" class="<%= _sp2 === 'notifications' ? 'active' : '' %>"><i class="fas fa-bell"></i>Bildirimler<span class="s-badge js-s-unread" <%= _su2 ? '' : 'hidden' %>><%= _su2 %></span></a>
+    <a href="/personel/hesap" class="<%= _sp2 === 'account' ? 'active' : '' %>"><i class="fas fa-user-gear"></i>Hesabım</a>
+    <a href="/personel/cikis"><i class="fas fa-arrow-right-from-bracket"></i>Çıkış</a>
+</nav>
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+<script>
+(function () {
+    window.sToast = Swal.mixin({ toast: true, position: 'top-end', showConfirmButton: false, timer: 3500, timerProgressBar: true });
+    window.sNotify = function (map) {
+        const p = new URLSearchParams(location.search), st = p.get('status'), er = p.get('error');
+        if (st && map.ok && map.ok[st]) sToast.fire({ icon: 'success', title: map.ok[st] });
+        if (er) Swal.fire({ icon: 'error', title: 'İşlem tamamlanamadı', text: (map.err && map.err[er]) || 'Beklenmeyen bir hata oluştu.', confirmButtonColor: '#2F54EB' });
+        if (st || er) { p.delete('status'); p.delete('error'); const q = p.toString(); history.replaceState(null, '', location.pathname + (q ? '?' + q : '') + location.hash); }
+    };
+    // Onaylı formlar
+    document.addEventListener('submit', async e => {
+        const f = e.target;
+        if (f.matches('form[data-confirm]') && !f.dataset.ok) {
+            e.preventDefault();
+            const r = await Swal.fire({ icon: 'question', title: 'Emin misiniz?', text: f.dataset.confirm, showCancelButton: true, confirmButtonText: 'Evet', cancelButtonText: 'Vazgeç', confirmButtonColor: '#2F54EB', reverseButtons: true });
+            if (r.isConfirmed) { f.dataset.ok = '1'; f.requestSubmit ? f.requestSubmit() : f.submit(); }
+            return;
+        }
+        const b = f.querySelector('button[type=submit],button:not([type])');
+        if (b && !f.hasAttribute('data-no-busy')) setTimeout(() => { b.disabled = true; b.innerHTML = '<span class="spinner-border spinner-border-sm me-2"></span>İşleniyor…'; }, 0);
+    });
+
+    // ---- Gerçek zamanlı bildirimler: SSE, olmazsa 30 sn'de bir yenileme ----
+    const setUnread = n => document.querySelectorAll('.js-s-unread').forEach(b => { b.textContent = n; b.hidden = !n; });
+    const base = document.title;
+    const setTitle = n => { document.title = (n ? `(${n}) ` : '') + base; };
+    setTitle(<%= _su2 %>);
+    const show = d => {
+        sToast.fire({ icon: 'info', title: d.title, text: d.message, timer: 7000, showConfirmButton: true, confirmButtonText: 'Görüntüle', confirmButtonColor: '#2F54EB' }).then(r => { if (r.isConfirmed) location.href = d.link; });
+        try { if ('Notification' in window && Notification.permission === 'granted' && (document.hidden || !document.hasFocus())) { const n = new Notification('BERLINER · ' + d.title, { body: d.message, tag: d.id }); n.onclick = () => { window.focus(); location.href = d.link; }; } } catch (e) {}
+        document.dispatchEvent(new CustomEvent('staff:notification', { detail: d }));
+    };
+    let poller = null, last = <%= _su2 %>;
+    const poll = () => fetch('/personel/api/unread', { headers: { Accept: 'application/json' } }).then(r => { if (r.status === 401) { location.href = '/personel?error=session_expired'; return null; } return r.json(); })
+        .then(d => { if (!d) return; if (d.unread > last && d.latest) show(d.latest); last = d.unread; setUnread(d.unread); setTitle(d.unread); }).catch(() => {});
+    if (window.EventSource) {
+        const es = new EventSource('/personel/stream');
+        es.addEventListener('notification', ev => { const d = JSON.parse(ev.data); last = d.unread; setUnread(d.unread); setTitle(d.unread); show(d); });
+        es.addEventListener('unread', ev => { const d = JSON.parse(ev.data); last = d.unread; setUnread(d.unread); setTitle(d.unread); });
+        es.addEventListener('logout', () => { es.close(); location.href = '/personel?error=session_expired'; });
+        es.onerror = () => { if (!poller) poller = setInterval(poll, 30000); };
+        es.onopen = () => { if (poller) { clearInterval(poller); poller = null; } };
+    } else { poller = setInterval(poll, 30000); }
+})();
+</script>

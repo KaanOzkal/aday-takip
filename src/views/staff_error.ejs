@@ -1,0 +1,14 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head><title><%= title %> | BERLINER Personel</title><%- include('partials/staff_head') %></head>
+<body>
+<%- include('partials/staff_shell_start') %>
+<div class="c-card c-card-b text-center py-5" style="max-width:520px;margin:40px auto">
+    <div class="c-ic t-gray mx-auto mb-3" style="width:56px;height:56px;font-size:22px"><i class="fas fa-lock"></i></div>
+    <h1 class="fs-5 fw-bold"><%= title %></h1>
+    <p class="muted"><%= message %></p>
+    <a href="/personel/panel" class="btn btn-brand">Görevlerime dön</a>
+</div>
+<%- include('partials/staff_shell_end') %>
+</body>
+</html>
