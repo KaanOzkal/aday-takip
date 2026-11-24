@@ -1,0 +1,183 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+    <title>Otomasyon | BERLINER Yönetim</title>
+    <%- include('partials/admin_head') %>
+    <style>
+        .stg { border: 1px solid var(--line); border-radius: 14px; background: #fff; margin-bottom: 12px; scroll-margin-top: 80px; }
+        .stg-h { display: flex; align-items: center; gap: 12px; padding: 14px 18px; flex-wrap: wrap; }
+        .stg-n { width: 36px; height: 36px; border-radius: 10px; background: var(--brand-50); color: var(--brand); display: grid; place-items: center; font-weight: 800; }
+        .stg-b { border-top: 1px solid var(--line); padding: 16px 18px; background: #FCFCFD; border-radius: 0 0 14px 14px; }
+        .tpl { display: flex; align-items: center; gap: 10px; padding: 9px 0; border-bottom: 1px dashed var(--line); }
+        .tpl:last-child { border-bottom: 0; }
+        .tpl.off { opacity: .55; }
+        .tabs a { padding: 10px 14px; color: var(--muted); font-weight: 600; text-decoration: none; border-bottom: 2px solid transparent; }
+        .tabs a.active { color: var(--brand); border-bottom-color: var(--brand); }
+        .seg a { padding: 6px 12px; border-radius: 8px; font-weight: 600; font-size: 13px; color: #475467; text-decoration: none; }
+        .seg a.active { background: #fff; color: var(--ink); box-shadow: 0 1px 2px rgba(16,24,40,.08); }
+    </style>
+</head>
+<body>
+<%
+    const stName = (k) => stageByKey[k] ? stageByKey[k].name : k;
+    const logTone = { success: 't-ok', partial: 't-warn', failed: 't-bad', skipped: 't-gray' };
+    const logLbl = { success: 'Başarılı', partial: 'Kısmi', failed: 'Başarısız', skipped: 'Atlandı' };
+    const trigLbl = { stage_change: 'Aşama geçişi', manual: 'Elle çalıştırma', retry: 'Yeniden deneme', candidate_created: 'Yeni aday' };
+    const noStaff = stageDefs.filter(d => cfgs[d.key] && cfgs[d.key].automationEnabled && !cfgs[d.key].defaultStaffId && (cfgs[d.key].templates || []).some(t => t.active && !t.staffId));
+%>
+<div class="app">
+    <%- include('partials/admin_sidebar', { active: 'automation', onMain: false }) %>
+    <div class="main">
+        <header class="topbar">
+            <button class="btn btn-soft btn-icon menu-toggle" aria-label="Menü"><i class="fas fa-bars"></i></button>
+            <div><div class="crumb">Süreç &amp; Otomasyon</div><h1>Otomasyon Yönetimi</h1></div>
+        </header>
+        <main class="content">
+            <nav class="tabs d-flex gap-1 mb-3" style="border-bottom:1px solid var(--line)">
+                <a href="/admin/otomasyon" class="<%= tab === 'rules' ? 'active' : '' %>"><i class="fas fa-sliders me-1"></i>Kurallar &amp; Şablonlar</a>
+                <a href="/admin/otomasyon?tab=logs" class="<%= tab === 'logs' ? 'active' : '' %>"><i class="fas fa-clock-rotate-left me-1"></i>Otomasyon Geçmişi <% if (failedOpen) { %><span class="count" style="position:static;display:inline-block;background:var(--bad);color:#fff;border-radius:99px;font-size:11px;padding:0 7px"><%= failedOpen %></span><% } %></a>
+                <a href="/admin/otomasyon?tab=paused" class="<%= tab === 'paused' ? 'active' : '' %>"><i class="fas fa-pause me-1"></i>Durdurulan Adaylar (<%= paused.length %>)</a>
+            </nav>
+
+            <% if (tab === 'rules') { %>
+                <div class="card-x p-3 mb-3 d-flex gap-3 align-items-start" style="background:#F8FAFF;border-color:#DDE5FF">
+                    <i class="fas fa-circle-info mt-1" style="color:var(--brand)"></i>
+                    <div class="small">Aday bir aşamaya <b>ileri</b> geçtiğinde, o aşamanın aktif şablonları iş emri olarak oluşturulur ve şablonda seçili personele — yoksa aşamanın <b>varsayılan sorumlusuna</b> — atanır. Aynı aday ve aşama için bir şablon yalnızca <b>bir kez</b> görev üretir (mükerrer koruma). Mevcut adaylar sisteme aktarılırken otomasyon çalıştırılmadı.</div>
+                </div>
+                <% if (noStaff.length) { %>
+                <div class="alert border-0 d-flex gap-2 mb-3" style="background:var(--warn-50);color:#93370D;border-radius:12px"><i class="fas fa-triangle-exclamation mt-1"></i>
+                    <div><b><%= noStaff.length %> aşamada varsayılan sorumlu personel yok:</b> <%= noStaff.map(d => d.name).join(', ') %>. Bu aşamalarda personel seçilmemiş şablonlar görev oluşturamaz.</div></div>
+                <% } %>
+                <% stageDefs.forEach((d, i) => { const cfg = cfgs[d.key] || { templates: [] }; const def = cfg.defaultStaffId; %>
+                <div class="stg" id="stage-<%= d.key %>">
+                    <form class="stg-h" action="/admin/otomasyon/<%= d.key %>/settings" method="POST">
+                        <div class="stg-n"><%= i + 1 %></div>
+                        <div style="min-width:180px"><div class="fw-bold text-dark"><%= d.name %></div><div class="small muted"><%= (cfg.templates || []).filter(t => t.active).length %> aktif şablon</div></div>
+                        <div class="form-check form-switch m-0 ms-md-3" title="Otomasyon">
+                            <input class="form-check-input" type="checkbox" name="automationEnabled" id="en-<%= d.key %>" <%= cfg.automationEnabled ? 'checked' : '' %> style="width:2.4em;height:1.3em">
+                            <label class="form-check-label small fw-semibold ms-1" for="en-<%= d.key %>">Otomasyon</label>
+                        </div>
+                        <div class="d-flex align-items-center gap-2 ms-md-auto flex-wrap">
+                            <label class="small muted mb-0">Varsayılan sorumlu</label>
+                            <select name="defaultStaffId" class="form-select form-select-sm" style="width:200px">
+                                <option value="">— Seçilmedi —</option>
+                                <% if (def && !staffList.some(s => String(s._id) === String(def._id))) { %><option value="" selected><%= def.fullName %> (pasif — değiştirin)</option><% } %>
+                                <% staffList.forEach(s => { %><option value="<%= s._id %>" <%= def && String(def._id) === String(s._id) ? 'selected' : '' %>><%= s.fullName %><%= s.title ? ' · ' + s.title : '' %></option><% }) %>
+                            </select>
+                            <label class="small muted mb-0">Bekleme uyarısı</label>
+                            <div class="input-group input-group-sm" style="width:110px"><input type="number" name="staleDays" min="1" max="365" value="<%= cfg.staleDays || 14 %>" class="form-control"><span class="input-group-text">gün</span></div>
+                            <button class="btn btn-brand btn-sm">Kaydet</button>
+                        </div>
+                    </form>
+                    <div class="stg-b">
+                        <% (cfg.templates || []).forEach(t => { %>
+                        <div class="tpl <%= t.active ? '' : 'off' %>">
+                            <i class="fas <%= t.active ? 'fa-circle-check' : 'fa-circle-pause' %>" style="color:<%= t.active ? 'var(--ok)' : '#98A2B3' %>"></i>
+                            <div class="flex-grow-1" style="min-width:0">
+                                <div class="fw-650 text-dark text-truncate-1"><%= t.title %></div>
+                                <div class="small muted"><%= t.category %> · <%= t.priority %> · <%= t.dueDays ? t.dueDays + ' gün içinde' : 'teslim tarihi yok' %> · <%= t.staffId ? t.staffId.fullName : 'varsayılan sorumlu' %></div>
+                            </div>
+                            <button type="button" class="btn btn-soft btn-sm js-edit" data-key="<%= d.key %>" data-id="<%= t._id %>" data-t='<%- JSON.stringify({ title: t.title, description: t.description || "", category: t.category, priority: t.priority, dueDays: t.dueDays, active: t.active, staffId: t.staffId ? String(t.staffId._id) : "" }).replace(/'/g, "&#39;").replace(/</g, "\\u003c") %>'><i class="fas fa-pen"></i></button>
+                            <form action="/admin/otomasyon/<%= d.key %>/template/<%= t._id %>" method="POST" class="m-0" data-confirm="“<%= t.title %>” şablonu silinecek. Daha önce oluşturulmuş görevler etkilenmez." data-danger>
+                                <input type="hidden" name="_action" value="delete"><button class="btn btn-soft btn-sm text-danger" data-no-busy="1"><i class="fas fa-trash"></i></button>
+                            </form>
+                        </div>
+                        <% }) %>
+                        <% if (!(cfg.templates || []).length) { %><div class="small muted mb-2">Şablon yok.</div><% } %>
+                        <button type="button" class="btn btn-soft btn-sm mt-2 js-add" data-key="<%= d.key %>" data-cat="<%= d.category %>"><i class="fas fa-plus me-1"></i>Şablon ekle</button>
+                    </div>
+                </div>
+                <% }) %>
+            <% } else if (tab === 'logs') { %>
+                <div class="card-x">
+                    <div class="card-h">
+                        <div><h2>Otomasyon Geçmişi</h2><p class="sub">Son 200 çalışma</p></div>
+                        <div class="seg ms-auto" style="background:#F2F4F7;border-radius:10px;padding:3px">
+                            <a href="/admin/otomasyon?tab=logs" class="<%= !logFilter ? 'active' : '' %>">Tümü</a>
+                            <a href="/admin/otomasyon?tab=logs&log=failed" class="<%= logFilter === 'failed' ? 'active' : '' %>">Başarısız</a>
+                            <a href="/admin/otomasyon?tab=logs&log=success" class="<%= logFilter === 'success' ? 'active' : '' %>">Başarılı</a>
+                            <a href="/admin/otomasyon?tab=logs&log=skipped" class="<%= logFilter === 'skipped' ? 'active' : '' %>">Atlanan</a>
+                        </div>
+                    </div>
+                    <div class="table-responsive">
+                        <table class="table table-x">
+                            <thead><tr><th>Zaman</th><th>Aday</th><th>Aşama</th><th>Tetikleyen</th><th>Sonuç</th><th></th></tr></thead>
+                            <tbody>
+                            <% logs.forEach(l => { %>
+                                <tr>
+                                    <td class="small text-nowrap"><%= fmtDT(l.createdAt) %></td>
+                                    <td><a href="/admin/candidate/<%= l.candidateId %>#pipeline" class="text-decoration-none fw-600"><%= l.candidateName %></a></td>
+                                    <td class="small"><%= stName(l.stageKey) %></td>
+                                    <td class="small muted"><%= trigLbl[l.trigger] || l.trigger %><br><%= l.actorName %></td>
+                                    <td style="max-width:420px">
+                                        <span class="pill <%= logTone[l.status] %>"><%= logLbl[l.status] %></span><% if (l.resolvedAt) { %> <span class="pill t-gray" style="font-size:11px">çözüldü</span><% } %>
+                                        <div class="small mt-1"><%= l.message %></div>
+                                        <% (l.created || []).forEach(c => { %><div class="small muted"><i class="fas fa-check me-1" style="color:var(--ok)"></i><a href="/admin/is-emirleri/<%= c.workOrderId %>" class="text-decoration-none"><%= c.title %></a> → <%= c.staffName %></div><% }) %>
+                                        <% (l.failures || []).forEach(f => { %><div class="small" style="color:var(--bad)"><i class="fas fa-xmark me-1"></i><%= f %></div><% }) %>
+                                    </td>
+                                    <td class="text-end text-nowrap">
+                                        <% if (['failed', 'partial'].includes(l.status) && !l.resolvedAt) { %>
+                                            <form action="/admin/otomasyon/log/<%= l._id %>/retry" method="POST" class="d-inline m-0"><button class="btn btn-soft btn-sm"><i class="fas fa-rotate-right me-1"></i>Yeniden dene</button></form>
+                                            <form action="/admin/otomasyon/log/<%= l._id %>/resolve" method="POST" class="d-inline m-0"><button class="btn btn-soft btn-sm" title="Çözüldü olarak işaretle"><i class="fas fa-check"></i></button></form>
+                                        <% } %>
+                                    </td>
+                                </tr>
+                            <% }) %>
+                            </tbody>
+                        </table>
+                        <% if (!logs.length) { %><div class="empty"><i class="fas fa-robot"></i>Kayıt yok.</div><% } %>
+                    </div>
+                </div>
+            <% } else { %>
+                <div class="card-x">
+                    <div class="card-h"><div><h2>Otomasyonu Durdurulan Adaylar</h2><p class="sub">Bu adaylar aşama değiştirdiğinde otomatik görev oluşturulmaz.</p></div></div>
+                    <% paused.forEach(c => { %>
+                        <div class="list-row">
+                            <div class="flex-grow-1"><a href="/admin/candidate/<%= c._id %>#pipeline" class="fw-650 text-decoration-none"><%= c.firstName %> <%= c.lastName %></a><div class="small muted"><%= c.currentStage %></div></div>
+                            <form action="/admin/candidate/<%= c._id %>/automation" method="POST" class="m-0"><input type="hidden" name="action" value="resume"><button class="btn btn-soft btn-sm"><i class="fas fa-play me-1"></i>Devam ettir</button></form>
+                        </div>
+                    <% }) %>
+                    <% if (!paused.length) { %><div class="empty"><i class="fas fa-circle-play"></i>Otomasyonu durdurulmuş aday yok.</div><% } %>
+                </div>
+            <% } %>
+        </main>
+    </div>
+</div>
+
+<div class="modal fade" id="tplModal" tabindex="-1">
+    <div class="modal-dialog modal-dialog-centered">
+        <form class="modal-content" method="POST" id="tplForm">
+            <div class="modal-header"><h5 class="modal-title" id="tplTitle">Görev Şablonu</h5><button type="button" class="btn-close" data-bs-dismiss="modal"></button></div>
+            <div class="modal-body"><div class="row g-2">
+                <div class="col-12"><label class="form-label">Görev başlığı *</label><input name="title" class="form-control" required maxlength="160"></div>
+                <div class="col-12"><label class="form-label">Açıklama</label><textarea name="description" class="form-control" rows="3" maxlength="2000"></textarea></div>
+                <div class="col-6"><label class="form-label">Kategori</label><select name="category" class="form-select"><% CATEGORIES.forEach(c => { %><option><%= c %></option><% }) %></select></div>
+                <div class="col-6"><label class="form-label">Öncelik</label><select name="priority" class="form-select"><% PRIORITIES.forEach(p => { %><option><%= p %></option><% }) %></select></div>
+                <div class="col-6"><label class="form-label">Teslim süresi (gün)</label><input type="number" name="dueDays" min="0" max="365" class="form-control" value="3"><div class="form-text">0 = teslim tarihi yok</div></div>
+                <div class="col-6"><label class="form-label">Atanacak personel</label><select name="staffId" class="form-select"><option value="">Aşamanın varsayılan sorumlusu</option><% staffList.forEach(s => { %><option value="<%= s._id %>"><%= s.fullName %></option><% }) %></select></div>
+                <div class="col-12" id="activeWrap"><div class="form-check form-switch"><input class="form-check-input" type="checkbox" name="active" id="tplActive" checked><label class="form-check-label" for="tplActive">Aktif</label></div></div>
+            </div></div>
+            <div class="modal-footer"><button type="button" class="btn btn-soft" data-bs-dismiss="modal">Vazgeç</button><button class="btn btn-brand">Kaydet</button></div>
+        </form>
+    </div>
+</div>
+<%- include('partials/admin_scripts') %>
+<script>
+(function () {
+    const modal = new bootstrap.Modal(document.getElementById('tplModal')), f = document.getElementById('tplForm');
+    document.querySelectorAll('.js-add').forEach(b => b.addEventListener('click', () => {
+        f.reset(); f.action = '/admin/otomasyon/' + b.dataset.key + '/template';
+        f.elements['category'].value = b.dataset.cat; f.elements['priority'].value = 'Normal'; f.elements['dueDays'].value = 3;
+        document.getElementById('tplTitle').textContent = 'Yeni Görev Şablonu'; document.getElementById('activeWrap').style.display = 'none'; modal.show();
+    }));
+    document.querySelectorAll('.js-edit').forEach(b => b.addEventListener('click', () => {
+        const t = JSON.parse(b.dataset.t); f.action = '/admin/otomasyon/' + b.dataset.key + '/template/' + b.dataset.id;
+        ['title', 'description', 'category', 'priority', 'dueDays', 'staffId'].forEach(k => f.elements[k].value = t[k] ?? '');
+        f.elements['active'].checked = !!t.active; document.getElementById('activeWrap').style.display = '';
+        document.getElementById('tplTitle').textContent = 'Şablonu Düzenle'; modal.show();
+    }));
+    if (location.hash) { const el = document.querySelector(location.hash); if (el) { el.style.boxShadow = '0 0 0 3px rgba(47,84,235,.25)'; setTimeout(() => el.style.boxShadow = '', 2500); } }
+})();
+</script>
+</body>
+</html>

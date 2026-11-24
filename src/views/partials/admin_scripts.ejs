@@ -25,7 +25,12 @@
         password_reset: 'Şifre sıfırlandı, açık oturumlar kapatıldı.',
         wo_created: 'İş emri oluşturuldu ve personele bildirildi.', wo_updated: 'İş emri güncellendi, personele bildirildi.', no_change: 'Değişiklik yapılmadı.',
         wo_cancel: 'İş emri iptal edildi.', wo_revision: 'Görev revizyona gönderildi.', wo_approve: 'Görev onaylandı.', wo_reopen: 'İş emri yeniden açıldı.',
-        comment_added: 'Açıklama eklendi, personele bildirildi.', file_added: 'Dosya eklendi.', all_read: 'Tüm bildirimler okundu olarak işaretlendi.'
+        comment_added: 'Açıklama eklendi, personele bildirildi.', file_added: 'Dosya eklendi.', all_read: 'Tüm bildirimler okundu olarak işaretlendi.',
+        stage_moved: 'Aşama değiştirildi ve süreç geçmişine kaydedildi.', stage_moved_auto: 'Aşama değiştirildi; aşamanın görevleri otomatik oluşturulup personele atandı.',
+        stage_moved_autofail: 'Aşama değiştirildi ancak bazı otomatik görevler oluşturulamadı. Otomasyon kayıtlarını kontrol edin.', stage_updated: 'Aşama bilgisi güncellendi.',
+        auto_paused: 'Bu aday için otomasyon durduruldu.', auto_resumed: 'Otomasyon yeniden başlatıldı.', auto_ran: 'Otomasyon çalıştı, görevler oluşturuldu.',
+        auto_nothing: 'Oluşturulacak yeni görev yok (görevler zaten mevcut veya otomasyon kapalı).', auto_failed: 'Otomasyon tamamlanamadı. Sorumlu personel ayarlarını kontrol edin.',
+        auto_saved: 'Otomasyon ayarları kaydedildi.', tpl_added: 'Görev şablonu eklendi.', tpl_saved: 'Görev şablonu güncellendi.', tpl_deleted: 'Görev şablonu silindi.', log_resolved: 'Kayıt çözüldü olarak işaretlendi.'
     };
     const ERR = {
         company_exists: 'Bu isimde bir şirket zaten var.',
@@ -48,7 +53,8 @@
         note_required: 'Revizyon nedeni yazmanız gerekiyor.',
         invalid_action: 'Bu işlem görevin mevcut durumunda yapılamaz.',
         no_file: 'Lütfen bir dosya seçin.', bad_type: 'Bu dosya türü desteklenmiyor (PDF, görsel, Word, Excel).',
-        too_large: 'Dosya 5 MB\'dan büyük olamaz.', upload_failed: 'Dosya yüklenemedi. Google Drive bağlantısını kontrol edin.'
+        too_large: 'Dosya 5 MB\'dan büyük olamaz.', upload_failed: 'Dosya yüklenemedi. Google Drive bağlantısını kontrol edin.',
+        needs_confirm: 'Bu geçiş için onay ve gerekçe gerekiyor.', reason_required: 'Aşama atlamak veya geri almak için gerekçe yazmalısınız.', same_stage: 'Aday zaten bu aşamada.'
     };
     const p = new URLSearchParams(location.search);
     const st = p.get('status'), er = p.get('error');

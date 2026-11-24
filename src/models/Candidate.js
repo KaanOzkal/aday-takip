@@ -38,7 +38,9 @@ const candidateSchema = new mongoose.Schema({
     applicationNo: String,
     score: { type: Number, default: 90 },
     
-    currentStage: { type: String, default: 'Başvuru Alındı' }, 
+    currentStage: { type: String, default: 'Hizmet Sözleşmesi' }, 
+    stageEnteredAt: { type: Date },
+    automationPaused: { type: Boolean, default: false },
     germanyStage: { type: String, default: '1. Başvuru ve Kayıt' }, 
     company: { type: String, default: 'Atanmadı' }, 
 

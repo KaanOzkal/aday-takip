@@ -19,6 +19,20 @@
         .step.current .b { border-color: var(--brand); color: var(--brand); box-shadow: 0 0 0 4px rgba(47,84,235,.15); }
         .step .t { font-size: 11.5px; color: var(--muted); font-weight: 500; line-height: 1.25; padding: 0 4px; }
         .step.current .t { color: var(--ink); font-weight: 700; }
+        .step.issue .b { background: var(--bad); border-color: var(--bad); color: #fff; }
+        .step.skip .b { background: #98A2B3; border-color: #98A2B3; color: #fff; }
+        .step a { text-decoration: none; color: inherit; }
+        .pl-row { border: 1px solid var(--line); border-radius: 14px; margin-bottom: 10px; background: #fff; overflow: hidden; }
+        .pl-row.cur { border-color: #A5B4FC; box-shadow: 0 0 0 3px rgba(47,84,235,.08); }
+        .pl-row.issue { border-color: #FECDCA; }
+        .pl-head { display: flex; align-items: center; gap: 12px; padding: 12px 16px; cursor: pointer; }
+        .pl-head:hover { background: #FAFBFF; }
+        .pl-num { width: 34px; height: 34px; border-radius: 10px; display: grid; place-items: center; font-weight: 700; flex-shrink: 0; }
+        .pl-body { border-top: 1px solid var(--line); padding: 16px; background: #FCFCFD; }
+        .pl-meta { display: flex; flex-wrap: wrap; gap: 4px 18px; font-size: 12.5px; color: var(--muted); }
+        .ev { display: flex; gap: 10px; padding: 8px 0; border-bottom: 1px dashed var(--line); font-size: 13px; }
+        .ev:last-child { border-bottom: 0; }
+        .ev .dt { color: var(--muted); font-size: 12px; white-space: nowrap; min-width: 118px; }
         .tabs-x { display: flex; gap: 4px; border-bottom: 1px solid var(--line); margin-bottom: 18px; overflow-x: auto; }
         .tabs-x a { padding: 10px 14px; color: var(--muted); font-weight: 600; text-decoration: none; border-bottom: 2px solid transparent; margin-bottom: -1px; white-space: nowrap; }
         .tabs-x a:hover { color: var(--ink); }
@@ -73,6 +87,7 @@
     };
     const af = c.applicationForm || {};
     const formFilled = Object.values(formLabels).some(g => Object.keys(g).some(k => af[k] && String(af[k]).trim()));
+    const pl = (typeof pipeline !== 'undefined' && pipeline) ? pipeline : null;
     const ret = (tab) => `/admin/candidate/${c._id}#${tab}`;
 %>
 <div class="app">
@@ -130,10 +145,11 @@
                     </div>
                 </div>
                 <div class="stepper">
-                    <% stages.forEach((s, i) => { %>
-                        <div class="step <%= i < cur ? 'done' : i === cur ? 'current' : '' %>">
-                            <div class="b"><% if (i < cur) { %><i class="fas fa-check"></i><% } else { %><%= i + 1 %><% } %></div>
-                            <div class="t"><%= s %></div>
+                    <% stages.forEach((s, i) => { const ps = pl ? pl.stages[i] : null; const stt = ps ? ps.state.status : null; const issue = stt === 'Sorun Var'; const skip = ps && ps.state.skipped; %>
+                        <div class="step <%= i < cur ? 'done' : i === cur ? 'current' : '' %> <%= issue ? 'issue' : '' %> <%= skip ? 'skip' : '' %>" title="<%= stt || '' %><%= skip ? ' (atlandı)' : '' %>">
+                            <a href="#pipeline" class="tab-link" data-tab="pipeline">
+                            <div class="b"><% if (issue) { %><i class="fas fa-exclamation"></i><% } else if (skip) { %><i class="fas fa-forward"></i><% } else if (i < cur) { %><i class="fas fa-check"></i><% } else { %><%= i + 1 %><% } %></div>
+                            <div class="t"><%= s %></div></a>
                         </div>
                     <% }) %>
                 </div>
@@ -141,6 +157,7 @@
 
             <nav class="tabs-x">
                 <a href="#overview" class="tab-link" data-tab="overview">Genel Bilgiler</a>
+                <a href="#pipeline" class="tab-link" data-tab="pipeline">Süreç Takibi <% if (pl && pl.stages.some(x => x.state.status === 'Sorun Var')) { %><span class="n" style="background:var(--bad-50);color:var(--bad)">sorun</span><% } else if (pl && pl.stages.some(x => x.stale)) { %><span class="n warn">bekliyor</span><% } %></a>
                 <a href="#process" class="tab-link" data-tab="process">Süreç &amp; Entegrasyon <span class="n"><%= intDone %>/8</span></a>
                 <a href="#documents" class="tab-link" data-tab="documents">Belgeler <span class="n <%= pendDocs ? 'warn' : '' %>"><%= pendDocs ? pendDocs + ' bekliyor' : docs.length %></span></a>
                 <a href="#notes" class="tab-link" data-tab="notes">Notlar <span class="n"><%= notes.length %></span></a>
@@ -207,19 +224,144 @@
                 </div>
             </div>
 
+            <!-- SÜREÇ TAKİBİ (9 aşama) -->
+            <div class="pane" id="pane-pipeline">
+            <% if (!pl) { %>
+                <div class="card-x"><div class="empty"><i class="fas fa-diagram-project"></i>Süreç bilgisi yüklenemedi.</div></div>
+            <% } else { const curSt = pl.stages.find(x => x.isCurrent); %>
+                <div class="row g-3 mb-3">
+                    <div class="col-lg-7">
+                        <div class="card-x h-100">
+                            <div class="card-h">
+                                <div class="avatar t-brand" style="border-radius:10px"><i class="fas <%= curSt.icon %>"></i></div>
+                                <div class="flex-grow-1"><h3>Mevcut aşama: <%= curSt.index + 1 %>. <%= curSt.name %></h3>
+                                    <p class="sub"><span class="pill <%= stageStatusTone(curSt.state.status) %>" style="font-size:11px;padding:1px 8px"><%= curSt.state.status %></span>
+                                    · <%= curSt.days !== null ? curSt.days + ' gündür bu aşamada' : '' %><% if (curSt.stale) { %> · <b style="color:var(--bad)">bekleme sınırı (<%= curSt.staleDays %> gün) aşıldı</b><% } %></p></div>
+                            </div>
+                            <form class="card-b" id="moveForm" action="/admin/candidate/<%= c._id %>/stage-move" method="POST">
+                                <input type="hidden" name="force" value="0"><input type="hidden" name="reason" value="">
+                                <label class="form-label">Aşamayı değiştir</label>
+                                <div class="d-flex gap-2 flex-wrap">
+                                    <select name="toKey" class="form-select" style="flex:1;min-width:220px">
+                                        <% pl.stages.forEach(x => { %><option value="<%= x.key %>" <%= x.isCurrent ? 'selected disabled' : '' %> <%= x.index === curSt.index + 1 ? 'data-next="1"' : '' %>><%= x.index + 1 %>. <%= x.name %><%= x.isCurrent ? ' (mevcut)' : '' %></option><% }) %>
+                                    </select>
+                                    <% if (curSt.index < pl.stages.length - 1) { %><button type="button" class="btn btn-soft" id="nextBtn" data-key="<%= pl.stages[curSt.index + 1].key %>"><i class="fas fa-forward-step me-1"></i>Sonraki aşama</button><% } %>
+                                    <button class="btn btn-brand" data-no-busy="1"><i class="fas fa-arrow-right me-1"></i>Geçir</button>
+                                </div>
+                                <div class="form-text">Mevcut aşama tamamlanmadan ilerlemek veya aşama atlamak gerekçe ister; tüm geçişler süreç geçmişine kaydedilir. İleri geçişte aşamanın görevleri otomatik oluşturulur.</div>
+                            </form>
+                        </div>
+                    </div>
+                    <div class="col-lg-5">
+                        <div class="card-x h-100">
+                            <div class="card-h"><div class="avatar <%= pl.cand.automationPaused ? 't-warn' : 't-ok' %>" style="border-radius:10px"><i class="fas fa-robot"></i></div><div><h3>Otomasyon</h3><p class="sub"><%= pl.cand.automationPaused ? 'Bu aday için durduruldu' : (curSt.automationEnabled ? 'Aktif — aşama geçişlerinde görevler otomatik oluşur' : 'Mevcut aşamada otomasyon kapalı') %></p></div></div>
+                            <div class="card-b d-flex gap-2 flex-wrap">
+                                <form action="/admin/candidate/<%= c._id %>/automation" method="POST" class="m-0"><input type="hidden" name="action" value="<%= pl.cand.automationPaused ? 'resume' : 'pause' %>">
+                                    <button class="btn btn-soft"><i class="fas <%= pl.cand.automationPaused ? 'fa-play' : 'fa-pause' %> me-1"></i><%= pl.cand.automationPaused ? 'Otomasyonu devam ettir' : 'Bu aday için durdur' %></button></form>
+                                <form action="/admin/candidate/<%= c._id %>/automation" method="POST" class="m-0" data-confirm="“<%= curSt.name %>” aşamasının görev şablonları çalıştırılacak. Daha önce oluşturulmuş görevler tekrar oluşturulmaz.">
+                                    <input type="hidden" name="action" value="run"><button class="btn btn-soft" data-no-busy="1"><i class="fas fa-bolt me-1"></i>Şimdi çalıştır</button></form>
+                                <a href="/admin/otomasyon#stage-<%= curSt.key %>" class="btn btn-soft"><i class="fas fa-gear me-1"></i>Kurallar</a>
+                                <% if (pl.logs.length) { const lg = pl.logs[0]; %>
+                                <div class="w-100 small muted mt-1"><i class="fas fa-clock-rotate-left me-1"></i>Son çalışma: <%= stageByKey[lg.stageKey] ? stageByKey[lg.stageKey].name : '' %> · <%= lg.message %> · <%= fmtAgo(lg.createdAt) %>
+                                    <% if ((lg.failures || []).length) { %><div style="color:var(--bad)"><%= lg.failures.join(' ') %></div><% } %></div>
+                                <% } %>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="row g-3">
+                    <div class="col-xl-8">
+                        <% pl.stages.forEach(x => { const st = x.state; const open = x.isCurrent || st.status === 'Sorun Var'; const tone = stageStatusTone(st.status); %>
+                        <div class="pl-row <%= x.isCurrent ? 'cur' : '' %> <%= st.status === 'Sorun Var' ? 'issue' : '' %>" id="stage-<%= x.key %>">
+                            <div class="pl-head" data-bs-toggle="collapse" data-bs-target="#plb-<%= x.key %>">
+                                <div class="pl-num <%= st.skipped ? 't-gray' : tone %>"><% if (st.status === 'Tamamlandı' && !st.skipped) { %><i class="fas fa-check"></i><% } else if (st.skipped) { %><i class="fas fa-forward"></i><% } else { %><%= x.index + 1 %><% } %></div>
+                                <div class="flex-grow-1" style="min-width:0">
+                                    <div class="d-flex align-items-center gap-2 flex-wrap">
+                                        <span class="fw-bold text-dark"><%= x.name %></span>
+                                        <span class="pill <%= tone %>" style="font-size:11px;padding:1px 8px"><%= st.status %></span>
+                                        <% if (st.skipped) { %><span class="pill <%= st.skipType === 'forced' ? 't-warn' : 't-gray' %>" style="font-size:11px;padding:1px 8px" title="<%= st.skipReason %>"><%= st.skipType === 'forced' ? 'Tamamlanmadan geçildi' : 'Atlandı' %></span><% } %>
+                                        <% if (x.isCurrent) { %><span class="pill t-brand" style="font-size:11px;padding:1px 8px">Mevcut</span><% } %>
+                                        <% if (x.stale) { %><span class="pill t-bad" style="font-size:11px;padding:1px 8px"><%= x.days %> gün</span><% } %>
+                                    </div>
+                                    <div class="pl-meta mt-1">
+                                        <span><i class="far fa-user me-1"></i><%= x.responsible ? x.responsible.fullName : 'Sorumlu atanmadı' %></span>
+                                        <span><i class="far fa-calendar me-1"></i><%= st.startedAt ? fmtDT(st.startedAt, false) : '—' %> → <%= st.completedAt ? fmtDT(st.completedAt, false) : '—' %></span>
+                                        <% if (x.orders.length) { %><span><i class="fas fa-clipboard-list me-1"></i><%= x.orders.filter(o => o.status === 'Tamamlandı').length %>/<%= x.orders.filter(o => o.status !== 'İptal').length %> görev</span><% } %>
+                                    </div>
+                                </div>
+                                <i class="fas fa-chevron-down muted small"></i>
+                            </div>
+                            <div class="collapse <%= open ? 'show' : '' %>" id="plb-<%= x.key %>">
+                                <div class="pl-body">
+                                    <% if (st.issueNote && st.status === 'Sorun Var') { %><div class="small p-2 mb-3" style="background:var(--bad-50);color:#912018;border-radius:10px"><i class="fas fa-triangle-exclamation me-1"></i><%= st.issueNote %></div><% } %>
+                                    <% if (st.skipped && st.skipReason) { %><div class="small p-2 mb-3" style="background:#F2F4F7;border-radius:10px"><i class="fas fa-forward me-1"></i><%= st.skipType === 'forced' ? 'Tamamlanmadan geçiş gerekçesi' : 'Atlama gerekçesi' %>: <%= st.skipReason %></div><% } %>
+                                    <form action="/admin/candidate/<%= c._id %>/stage/<%= x.key %>" method="POST" class="row g-2 mb-3">
+                                        <div class="col-md-4"><label class="form-label">Durum</label><select name="status" class="form-select form-select-sm"><% ['Bekliyor', 'Devam Ediyor', 'Tamamlandı', 'Sorun Var'].forEach(o => { %><option <%= st.status === o ? 'selected' : '' %>><%= o %></option><% }) %></select></div>
+                                        <div class="col-md-8"><label class="form-label">Sorumlu personel</label><select name="responsible" class="form-select form-select-sm"><option value="">— Atanmadı —</option>
+                                            <% if (x.responsible && !pl.staffList.some(s => String(s._id) === String(x.responsible._id))) { %><option value="<%= x.responsible._id %>" selected><%= x.responsible.fullName %> (pasif)</option><% } %>
+                                            <% pl.staffList.forEach(s => { %><option value="<%= s._id %>" <%= x.responsible && String(x.responsible._id) === String(s._id) ? 'selected' : '' %>><%= s.fullName %><%= s.title ? ' · ' + s.title : '' %></option><% }) %></select></div>
+                                        <div class="col-md-7"><label class="form-label">Açıklama</label><textarea name="note" class="form-control form-control-sm" rows="2" maxlength="2000"><%= st.note %></textarea></div>
+                                        <div class="col-md-5"><label class="form-label">Sorun notu</label><textarea name="issueNote" class="form-control form-control-sm" rows="2" maxlength="1000" placeholder="“Sorun Var” ise açıklayın"><%= st.issueNote %></textarea></div>
+                                        <div class="col-12"><button class="btn btn-soft btn-sm"><i class="fas fa-check me-1"></i>Kaydet</button></div>
+                                    </form>
+                                    <div class="row g-3">
+                                        <div class="col-md-6">
+                                            <div class="small fw-bold text-dark mb-1">Görevler</div>
+                                            <% if (!x.orders.length) { %><div class="small muted">Bu aşamaya ait görev yok.</div><% } %>
+                                            <% x.orders.forEach(o => { %>
+                                                <a href="/admin/is-emirleri/<%= o._id %>" class="d-flex align-items-center gap-2 py-1 text-decoration-none small" style="color:inherit">
+                                                    <span class="pill <%= woStatusTone(o.status) %>" style="font-size:10.5px;padding:1px 7px"><%= o.status %></span>
+                                                    <span class="text-truncate-1 flex-grow-1"><%= o.title %></span>
+                                                    <span class="muted text-nowrap"><%= o.assignedTo ? o.assignedTo.fullName : '' %><%= o.source === 'automation' ? ' · oto' : '' %></span>
+                                                </a>
+                                            <% }) %>
+                                        </div>
+                                        <div class="col-md-6">
+                                            <div class="small fw-bold text-dark mb-1">İlgili belgeler</div>
+                                            <% const atts = []; x.orders.forEach(o => (o.attachments || []).forEach(a => atts.push({ wo: o, a }))); %>
+                                            <% atts.forEach(({ wo: o, a }) => { %><a href="/is-emri-dosya/<%= o._id %>/<%= a._id %>" target="_blank" rel="noopener" class="d-block small text-truncate"><i class="fas fa-paperclip me-1 muted"></i><%= a.name %></a><% }) %>
+                                            <% if (x.key === 'evrak_teslimi') { (c.documents || []).forEach(d => { %><a href="<%= d.fileId ? '/documents/view/' + d._id : (d.driveLink || '#') %>" target="_blank" rel="noopener" class="d-block small text-truncate"><i class="fas fa-file-lines me-1 muted"></i><%= d.name %> <span class="muted">· <%= d.status %></span></a><% }) } %>
+                                            <% if (!atts.length && !(x.key === 'evrak_teslimi' && (c.documents || []).length)) { %><div class="small muted">Belge yok.</div><% } %>
+                                        </div>
+                                    </div>
+                                    <% if (x.events.length) { %>
+                                    <div class="small fw-bold text-dark mt-3 mb-1">Aşama geçmişi</div>
+                                    <% x.events.slice(0, 8).forEach(e => { %><div class="ev"><span class="dt"><%= fmtDT(e.createdAt) %></span><span class="flex-grow-1"><%= e.text %> <span class="muted">· <%= e.actorName %></span></span></div><% }) %>
+                                    <% } %>
+                                </div>
+                            </div>
+                        </div>
+                        <% }) %>
+                    </div>
+                    <div class="col-xl-4">
+                        <div class="card-x">
+                            <div class="card-h"><h3>Süreç Geçmişi</h3><span class="muted small ms-auto"><i class="fas fa-lock me-1"></i>değiştirilemez</span></div>
+                            <div class="card-b" style="max-height:900px;overflow:auto">
+                                <% if (!pl.events.length) { %><div class="small muted">Kayıt yok.</div><% } %>
+                                <% pl.events.forEach(e => { %>
+                                    <div class="ev" style="flex-direction:column;gap:2px">
+                                        <span class="dt" style="min-width:0"><%= fmtDT(e.createdAt) %> · <%= e.actorName || 'Sistem' %><%= e.stageKey && stageByKey[e.stageKey] ? ' · ' + stageByKey[e.stageKey].name : '' %></span>
+                                        <span><%= e.text %></span>
+                                    </div>
+                                <% }) %>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            <% } %>
+            </div>
+
             <!-- SÜREÇ -->
             <div class="pane" id="pane-process">
                 <div class="row g-3">
                     <div class="col-lg-5">
                         <div class="card-x mb-3">
-                            <div class="card-h"><div><h3>Genel Süreç Aşaması</h3><p class="sub">Aday panelindeki ilerleme çubuğunu belirler.</p></div></div>
-                            <form class="card-b d-flex gap-2" action="/admin/candidate/update" method="POST">
-                                <input type="hidden" name="returnTo" value="<%= ret('process') %>"><input type="hidden" name="candidateId" value="<%= c._id %>">
-                                <select name="newStage" class="form-select">
-                                    <% stages.forEach((s, i) => { %><option value="<%= s %>" <%= c.currentStage === s ? 'selected' : '' %>><%= i + 1 %>. <%= s %></option><% }) %>
-                                </select>
-                                <button class="btn btn-brand">Kaydet</button>
-                            </form>
+                            <div class="card-h"><div><h3>Genel Süreç Aşaması</h3><p class="sub">9 aşamalı resmi süreç</p></div></div>
+                            <div class="card-b d-flex align-items-center gap-3">
+                                <div class="flex-grow-1"><div class="fw-bold text-dark"><%= cur + 1 %>. <%= c.currentStage %></div><div class="small muted">Aşama değişikliği, durumlar ve otomasyon “Süreç Takibi” sekmesinden yönetilir.</div></div>
+                                <a href="#pipeline" class="btn btn-brand tab-link" data-tab="pipeline">Süreç Takibi</a>
+                            </div>
                         </div>
                         <div class="card-x">
                             <div class="card-h"><div><h3>Almanya Süreci</h3><p class="sub">Almanya tarafındaki ilerleme.</p></div></div>
@@ -504,6 +646,35 @@
         checks.forEach(c => c.closest('.toggle-card').classList.toggle('on', c.checked));
     };
     checks.forEach(c => c.addEventListener('change', upd));
+})();
+</script>
+<script>
+(function () {
+    const f = document.getElementById('moveForm'); if (!f) return;
+    const sel = f.querySelector('[name=toKey]');
+    async function go() {
+        const to = sel.value; if (!to) return;
+        const r = await fetch('/admin/candidate/<%= c._id %>/stage-check?to=' + encodeURIComponent(to), { headers: { Accept: 'application/json' } }).then(x => x.json()).catch(() => null);
+        if (!r || r.code === 'same') return Swal.fire({ icon: 'info', title: 'Aday zaten bu aşamada', confirmButtonColor: '#2F54EB' });
+        if (r.warnings && r.warnings.length) {
+            const res = await Swal.fire({
+                icon: 'warning', title: 'Dikkat: ' + r.from + ' → ' + r.to,
+                html: '<ul class="text-start small mb-3">' + r.warnings.map(w => '<li>' + w.replace(/</g, '&lt;') + '</li>').join('') + '</ul><div class="text-start small fw-semibold mb-1">Devam etmek için gerekçe yazın (süreç geçmişine kaydedilir):</div>',
+                input: 'textarea', inputPlaceholder: 'Örn: Sözleşme e-posta ile onaylandı, ıslak imza bekleniyor.',
+                showCancelButton: true, confirmButtonText: 'Gerekçeyle geçir', cancelButtonText: 'Vazgeç', confirmButtonColor: '#F79009', reverseButtons: true,
+                inputValidator: v => (!v || v.trim().length < 5) && 'Lütfen en az birkaç kelimelik bir gerekçe yazın.'
+            });
+            if (!res.isConfirmed) return;
+            f.elements['force'].value = '1'; f.elements['reason'].value = res.value.trim();
+        } else {
+            const ok = await window.adminAsk('Aday “' + r.to + '” aşamasına geçirilecek. Bu aşamanın görev şablonları otomatik oluşturulacak.');
+            if (!ok) return;
+        }
+        f.submit();
+    }
+    f.addEventListener('submit', e => { e.preventDefault(); e.stopImmediatePropagation(); go(); });
+    const nb = document.getElementById('nextBtn');
+    nb && nb.addEventListener('click', () => { sel.value = nb.dataset.key; go(); });
 })();
 </script>
 </body>

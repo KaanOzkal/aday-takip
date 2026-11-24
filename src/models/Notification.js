@@ -4,7 +4,7 @@ const mongoose = require('mongoose');
 const notificationSchema = new mongoose.Schema({
     recipientType: { type: String, enum: ['staff', 'admin'], required: true },
     recipientId: { type: mongoose.Schema.Types.ObjectId, ref: 'Staff' },
-    type: { type: String, enum: ['assigned', 'updated', 'cancelled', 'due_soon', 'overdue', 'comment', 'completed', 'revision', 'started'], required: true },
+    type: { type: String, enum: ['assigned', 'updated', 'cancelled', 'due_soon', 'overdue', 'comment', 'completed', 'revision', 'started', 'stage_changed', 'stale', 'automation_failed'], required: true },
     title: { type: String, maxlength: 200 },
     message: { type: String, maxlength: 600 },
     link: String,

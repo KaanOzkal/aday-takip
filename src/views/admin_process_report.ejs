@@ -1,0 +1,93 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+    <title>Süreç Raporu | BERLINER Yönetim</title>
+    <%- include('partials/admin_head') %>
+    <style>
+        .funnel-row { display: grid; grid-template-columns: 28px 170px 1fr 64px 86px 80px; gap: 12px; align-items: center; padding: 10px 20px; border-bottom: 1px solid #F0F2F5; }
+        .funnel-row:last-child { border-bottom: 0; }
+        .funnel-row.h { font-size: 12px; color: #667085; font-weight: 600; background: #F9FAFB; }
+        .conv { font-size: 11.5px; color: var(--muted); text-align: center; padding: 2px 0 2px 210px; }
+        @media (max-width: 767.98px) { .funnel-row { grid-template-columns: 22px 1fr 50px 64px; } .funnel-row .hide-sm { display: none; } .conv { padding-left: 40px; } }
+    </style>
+</head>
+<body>
+<% const maxC = Math.max(1, ...stages.map(s => s.count)); const fmtD = (d) => d == null ? '—' : d < 1 ? '< 1 gün' : d.toFixed(1) + ' gün'; %>
+<div class="app">
+    <%- include('partials/admin_sidebar', { active: 'process', onMain: false }) %>
+    <div class="main">
+        <header class="topbar">
+            <button class="btn btn-soft btn-icon menu-toggle" aria-label="Menü"><i class="fas fa-bars"></i></button>
+            <div><div class="crumb">Süreç &amp; Otomasyon</div><h1>Süreç Raporu</h1></div>
+            <div class="ms-auto"><a href="/admin/asistan" class="btn btn-soft"><i class="fas fa-wand-magic-sparkles me-1"></i>AI Asistana sor</a></div>
+        </header>
+        <main class="content">
+            <div class="row g-3 mb-3">
+                <div class="col-6 col-xl"><div class="card-x kpi"><div class="ic t-brand"><i class="fas fa-users"></i></div><div><div class="lbl">Toplam aday</div><div class="val"><%= total %></div></div></div></div>
+                <div class="col-6 col-xl"><div class="card-x kpi"><div class="ic t-ok"><i class="fas fa-plane-arrival"></i></div><div><div class="lbl">Almanya'ya ulaşan</div><div class="val"><%= arrived %></div><div class="hint"><%= total ? Math.round(arrived / total * 100) : 0 %>% oran</div></div></div></div>
+                <div class="col-6 col-xl"><div class="card-x kpi"><div class="ic t-bad"><i class="fas fa-hourglass-end"></i></div><div><div class="lbl">Uzun süre bekleyen</div><div class="val"><%= stale.length %></div></div></div></div>
+                <div class="col-6 col-xl"><div class="card-x kpi"><div class="ic t-warn"><i class="fas fa-clock"></i></div><div><div class="lbl">Geciken görev</div><div class="val"><%= overdue.length %></div></div></div></div>
+                <div class="col-12 col-xl"><div class="card-x kpi"><div class="ic t-info"><i class="fas fa-arrow-trend-up"></i></div><div><div class="lbl">Son 30 gün aşama geçişi</div><div class="val"><%= moves30 %></div><div class="hint"><%= forward30 %> ileri yönlü</div></div></div></div>
+            </div>
+
+            <div class="card-x mb-3">
+                <div class="card-h"><div><h2>Aşama Hunisi</h2><p class="sub">Aday sayısı, ortalama tamamlanma süresi ve sonraki aşamaya dönüşüm oranı</p></div></div>
+                <div class="funnel-row h"><span>#</span><span>Aşama</span><span class="hide-sm">Dağılım</span><span class="text-end">Aday</span><span class="text-end hide-sm">Ort. süre</span><span class="text-end">Sorun</span></div>
+                <% stages.forEach((s, i) => { %>
+                    <a href="/admin#candidates" data-stage="<%= s.name %>" class="funnel-row text-decoration-none js-stage" style="color:inherit">
+                        <span class="muted fw-bold"><%= i + 1 %></span>
+                        <span class="fw-650 text-dark"><i class="fas <%= s.icon %> me-2 muted"></i><%= s.name %></span>
+                        <span class="bar hide-sm"><span style="width:<%= Math.max(s.count ? 3 : 0, Math.round(s.count / maxC * 100)) %>%;<%= i === stages.length - 1 ? 'background:var(--ok)' : '' %>"></span></span>
+                        <span class="text-end fw-bold"><%= s.count %></span>
+                        <span class="text-end small hide-sm" title="<%= s.samples %> tamamlanmış kayıt"><%= fmtD(s.avgDays) %></span>
+                        <span class="text-end"><% if (s.issues) { %><span class="pill t-bad"><%= s.issues %></span><% } else { %><span class="muted small">—</span><% } %></span>
+                    </a>
+                    <% if (s.conversion !== null) { %><div class="conv"><i class="fas fa-arrow-down me-1"></i>Bu aşamaya ulaşanların <b><%= s.conversion %>%</b>'i sonraki aşamaya geçti</div><% } %>
+                <% }) %>
+            </div>
+
+            <div class="row g-3">
+                <div class="col-lg-6" id="stale">
+                    <div class="card-x h-100">
+                        <div class="card-h"><div><h2>Uzun Süredir Bekleyen Adaylar</h2><p class="sub">Aşama bekleme sınırını aşanlar (Otomasyon sayfasından ayarlanır)</p></div></div>
+                        <% stale.slice(0, 25).forEach(s => { %>
+                            <a href="/admin/candidate/<%= s._id %>#pipeline" class="list-row text-decoration-none" style="color:inherit">
+                                <div class="flex-grow-1" style="min-width:0"><div class="fw-650 text-dark"><%= s.name %></div><div class="small muted"><%= s.stage %></div></div>
+                                <span class="pill <%= s.days >= s.limit * 2 ? 't-bad' : 't-warn' %>"><%= s.days %> gün</span>
+                            </a>
+                        <% }) %>
+                        <% if (!stale.length) { %><div class="empty"><i class="fas fa-circle-check"></i>Bekleme sınırını aşan aday yok.</div><% } %>
+                    </div>
+                </div>
+                <div class="col-lg-6">
+                    <div class="card-x mb-3">
+                        <div class="card-h"><div><h2>Personel Performansı</h2><p class="sub">Açık ve geciken görevler</p></div><a href="/admin/personel" class="btn btn-soft btn-sm ms-auto">Detaylı rapor</a></div>
+                        <% staffRows.forEach(r => { %>
+                            <a href="/admin/personel/<%= r._id %>" class="list-row text-decoration-none" style="color:inherit">
+                                <div class="flex-grow-1"><div class="fw-650 text-dark"><%= r.name %></div><div class="small muted"><%= r.title || '' %><%= r.status !== 'active' ? ' · pasif' : '' %></div></div>
+                                <span class="pill t-brand"><%= r.open %> açık</span><% if (r.overdue) { %><span class="pill t-bad"><%= r.overdue %> geciken</span><% } %>
+                            </a>
+                        <% }) %>
+                        <% if (!staffRows.length) { %><div class="empty py-4">Personel yok.</div><% } %>
+                    </div>
+                    <div class="card-x">
+                        <div class="card-h"><h2>Geciken İşlemler</h2><a href="/admin/is-emirleri?overdue=1" class="btn btn-soft btn-sm ms-auto">Tümü</a></div>
+                        <% overdue.slice(0, 10).forEach(w => { %>
+                            <a href="/admin/is-emirleri/<%= w._id %>" class="list-row text-decoration-none" style="color:inherit">
+                                <div class="flex-grow-1" style="min-width:0"><div class="fw-650 text-dark text-truncate-1"><%= w.title %></div><div class="small muted"><%= w.candidate %> · <%= w.staff %><%= w.stage ? ' · ' + w.stage : '' %></div></div>
+                                <span class="pill t-bad"><%= w.days %> gün</span>
+                            </a>
+                        <% }) %>
+                        <% if (!overdue.length) { %><div class="empty py-4">Geciken işlem yok.</div><% } %>
+                    </div>
+                </div>
+            </div>
+        </main>
+    </div>
+</div>
+<%- include('partials/admin_scripts') %>
+<script>
+document.querySelectorAll('.js-stage').forEach(a => a.addEventListener('click', e => { e.preventDefault(); try { sessionStorage.setItem('adm_stage', a.dataset.stage); } catch (x) {} location.href = '/admin#candidates'; }));
+</script>
+</body>
+</html>

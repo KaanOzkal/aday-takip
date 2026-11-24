@@ -68,7 +68,7 @@
                         </a>
                     </div>
                     <div class="col-6 col-xl">
-                        <a class="card-x kpi" href="#candidates" data-filter-stage="Almanya'da">
+                        <a class="card-x kpi" href="#candidates" data-filter-stage="<%= stages[stages.length - 1] %>">
                             <div class="ic t-ok"><i class="fas fa-plane-arrival"></i></div>
                             <div><div class="lbl">Almanya'da</div><div class="val"><%= stats.inGermany %></div><div class="hint">Süreci tamamlanan</div></div>
                         </a>
@@ -81,6 +81,26 @@
                     </div>
                 </div>
 
+                <% const _pi = (typeof processInfo !== 'undefined' && processInfo) ? processInfo : { stale: [], failedAutomations: 0 }; %>
+                <% if (_pi.stale.length) { %>
+                <div class="card-x mb-3" style="border-color:#FECDCA;background:linear-gradient(90deg,#FEF3F2,#fff)">
+                    <div class="d-flex align-items-center gap-3 p-3 flex-wrap">
+                        <div class="ic t-bad" style="width:42px;height:42px;border-radius:12px;display:grid;place-items:center"><i class="fas fa-hourglass-end"></i></div>
+                        <div class="flex-grow-1" style="min-width:220px">
+                            <div class="fw-bold" style="color:#912018"><%= _pi.stale.length %> aday uzun süredir aynı aşamada bekliyor</div>
+                            <div class="small muted"><%= _pi.stale.slice(0, 4).map(x => `${x.name} (${x.stage}, ${x.days} gün)`).join(' · ') %><%= _pi.stale.length > 4 ? ' …' : '' %></div>
+                        </div>
+                        <a href="/admin/surec-raporu#stale" class="btn btn-sm" style="background:var(--bad);color:#fff">İncele</a>
+                    </div>
+                </div>
+                <% } %>
+                <% if (_pi.failedAutomations) { %>
+                <div class="alert d-flex align-items-center gap-2 border-0 mb-3" style="background:var(--warn-50);color:#93370D;border-radius:12px">
+                    <i class="fas fa-robot"></i>
+                    <div class="flex-grow-1"><strong><%= _pi.failedAutomations %></strong> otomasyon tamamlanamadı (çoğunlukla sorumlu personel tanımlı olmadığı için).</div>
+                    <a href="/admin/otomasyon?tab=logs&log=failed" class="btn btn-sm btn-soft">Otomasyon kayıtları</a>
+                </div>
+                <% } %>
                 <% if (stats.noEmail > 0) { %>
                 <div class="alert d-flex align-items-center gap-2 border-0 mb-3" style="background:var(--warn-50);color:#93370D;border-radius:12px">
                     <i class="fas fa-circle-info"></i>
@@ -752,6 +772,7 @@
         sel.addEventListener('change', upd); upd();
     });
 
+    try { const st = sessionStorage.getItem('adm_stage'); if (st) { sessionStorage.removeItem('adm_stage'); f.stage.value = st; } } catch (e) {}
     apply();
 })();
 </script>

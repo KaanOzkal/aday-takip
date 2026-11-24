@@ -72,6 +72,26 @@ module.exports = function mountStaffSystem(app, deps) {
         wo.history.push({ action, byType: a.type, byName: a.name, note: note ? String(note).slice(0, 600) : '' });
     };
 
+    // Ortak iş emri oluşturma servisi (admin formu, süreç otomasyonu ve AI asistanı kullanır)
+    async function createWorkOrder(o) {
+        const { candidate, staff, actor } = o;
+        const wo = new WorkOrder({
+            code: await nextCode(), candidateId: candidate._id, candidateName: `${candidate.firstName || ''} ${candidate.lastName || ''}`.trim(),
+            category: CATEGORIES.includes(o.category) ? o.category : 'Diğer', title: String(o.title).slice(0, 160), description: String(o.description || '').slice(0, 6000),
+            assignedTo: staff._id, priority: PRIORITIES.includes(o.priority) ? o.priority : 'Normal', startDate: o.startDate || new Date(), dueDate: o.dueDate || null,
+            adminNote: String(o.adminNote || '').slice(0, 4000), status: 'Yeni',
+            stageKey: o.stageKey || undefined, templateId: o.templateId || undefined, automationKey: o.automationKey || undefined, source: o.source || 'manual'
+        });
+        wo.history.push({ action: 'Oluşturuldu', byType: actor.type, byName: actor.name, note: o.historyNote || `${staff.fullName} kişisine atandı` });
+        await wo.save();
+        await notify({ recipientType: 'staff', recipientId: staff._id, type: 'assigned', title: 'Yeni iş emri atandı', message: `${wo.code} · ${wo.title} (${wo.candidateName})`, workOrder: wo });
+        fireHook(wo, 'created', actor);
+        return wo;
+    }
+
+    // Süreç modülüne iş emri olaylarını bildir (aday süreç geçmişi için)
+    const fireHook = (wo, action, actor) => { try { if (app.locals.processHooks) app.locals.processHooks.workOrder(wo, action, actor); } catch (e) { console.error('Süreç kancası hatası:', e.message); } };
+
     async function nextCode() {
         const last = await WorkOrder.findOne({ code: /^IE-\d+$/ }).sort({ createdAt: -1 }).select('code').lean();
         const n = last ? parseInt(last.code.slice(3), 10) + 1 : 1;
@@ -380,15 +400,11 @@ module.exports = function mountStaffSystem(app, deps) {
             const dueDate = endOfDay(b.dueDate || null);
             if (b.dueDate && !dueDate) return res.redirect(withParam(back, 'error', 'bad_date'));
             if (dueDate && dueDate < new Date(new Date(startDate).setHours(0, 0, 0, 0))) return res.redirect(withParam(back, 'error', 'bad_date'));
-            const wo = new WorkOrder({
-                code: await nextCode(), candidateId: cand._id, candidateName: `${cand.firstName || ''} ${cand.lastName || ''}`.trim(),
-                category: CATEGORIES.includes(b.category) ? b.category : 'Diğer', title, description: str(b.description, 6000),
-                assignedTo: staff._id, priority: PRIORITIES.includes(b.priority) ? b.priority : 'Normal', startDate, dueDate,
-                adminNote: str(b.adminNote, 4000), status: 'Yeni'
+            const stageKey = app.locals.stageKeys && app.locals.stageKeys.includes(b.stageKey) ? b.stageKey : undefined;
+            const wo = await createWorkOrder({
+                candidate: cand, staff, actor: actorOf(req), category: b.category, title, description: str(b.description, 6000),
+                priority: b.priority, startDate, dueDate, adminNote: str(b.adminNote, 4000), stageKey, source: 'manual'
             });
-            pushHistory(wo, req, 'Oluşturuldu', `${staff.fullName} kişisine atandı`);
-            await wo.save();
-            await notify({ recipientType: 'staff', recipientId: staff._id, type: 'assigned', title: 'Yeni iş emri atandı', message: `${wo.code} · ${wo.title} (${wo.candidateName})`, workOrder: wo });
             await audit(req, 'workorder.create', 'WorkOrder', wo._id, `${wo.code} "${wo.title}" → ${staff.fullName}`);
             if (back.startsWith('/admin/candidate/')) return res.redirect(withParam(back, 'status', 'wo_created'));
             res.redirect(`/admin/is-emirleri/${wo._id}?status=wo_created`);
@@ -470,6 +486,7 @@ module.exports = function mountStaffSystem(app, deps) {
             pushHistory(wo, req, 'İptal edildi', note);
             await wo.save();
             await notify({ recipientType: 'staff', recipientId: wo.assignedTo, type: 'cancelled', title: 'Görev iptal edildi', message: `${wo.code} · ${wo.title}${note ? ' — ' + note : ''}`, workOrder: wo });
+            fireHook(wo, 'cancelled', actorOf(req));
         } else if (act === 'revision' && wo.status === 'Tamamlandı') {
             if (!note) return res.redirect(withParam(back, 'error', 'note_required'));
             wo.status = 'Revizyon'; wo.completedAt = undefined;
@@ -480,6 +497,7 @@ module.exports = function mountStaffSystem(app, deps) {
         } else if (act === 'approve' && wo.status === 'Tamamlandı') {
             pushHistory(wo, req, 'Onaylandı', note);
             await wo.save();
+            fireHook(wo, 'approved', actorOf(req));
             await notify({ recipientType: 'staff', recipientId: wo.assignedTo, type: 'completed', title: 'Görev onaylandı', message: `${wo.code} · ${wo.title} yönetici tarafından onaylandı.`, workOrder: wo });
         } else if (act === 'reopen' && wo.status === 'İptal') {
             const s = await Staff.findById(wo.assignedTo);
@@ -573,6 +591,9 @@ module.exports = function mountStaffSystem(app, deps) {
         if (s) list = list.filter(l => [l.actorName, l.action, l.summary, l.ip].join(' ').toLocaleLowerCase('tr-TR').includes(s));
         res.render('admin_audit', { list, f: { actor, action, q: req.query.q || '' }, user: { firstName: 'Admin' } });
     });
+
+    // Diğer modüllerin kullandığı servisler
+    app.locals.services = { createWorkOrder, notify, audit, actorOf, unreadFor, computeStats, isOverdue, OPEN };
 
     // Aday detay sayfası için iş emri verisi (app.js'teki rota kullanır)
     app.locals.loadCandidateWorkOrders = async (candidateId) => {
@@ -738,6 +759,7 @@ module.exports = function mountStaffSystem(app, deps) {
         pushHistory(wo, req, wasRevision ? 'Revizyon üzerinde çalışmaya başladı' : 'Göreve başladı');
         await wo.save();
         await notify({ recipientType: 'admin', type: 'started', title: 'Göreve başlandı', message: `${req.staff.fullName} · ${wo.code} ${wo.title}`, workOrder: wo });
+        fireHook(wo, 'started', actorOf(req));
         await audit(req, 'workorder.start', 'WorkOrder', wo._id, `${wo.code} başlatıldı`);
         res.redirect(withParam(staffBack(req), 'status', 'started'));
     });
@@ -753,6 +775,7 @@ module.exports = function mountStaffSystem(app, deps) {
         pushHistory(wo, req, 'Tamamlandı', note.slice(0, 300));
         await wo.save();
         await notify({ recipientType: 'admin', type: 'completed', title: 'Görev tamamlandı', message: `${req.staff.fullName} · ${wo.code} ${wo.title}`, workOrder: wo });
+        fireHook(wo, 'completed', actorOf(req));
         await audit(req, 'workorder.complete', 'WorkOrder', wo._id, `${wo.code} tamamlandı`);
         res.redirect(withParam(staffBack(req), 'status', 'completed'));
     });

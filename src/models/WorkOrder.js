@@ -2,7 +2,7 @@ const mongoose = require('mongoose');
 
 const STATUSES = ['Yeni', 'Devam Ediyor', 'Revizyon', 'Tamamlandı', 'İptal'];
 const PRIORITIES = ['Düşük', 'Normal', 'Yüksek', 'Acil'];
-const CATEGORIES = ['Evrak Takibi', 'Tercüme', 'Vize İşlemleri', 'Randevu Organizasyonu', 'İşveren İletişimi', 'Aday Görüşmesi', 'Seyahat & Konaklama', 'Almanya Entegrasyonu', 'Diğer'];
+const CATEGORIES = ['Sözleşme', 'Evrak Takibi', 'Tercüme', 'Vize İşlemleri', 'Randevu Organizasyonu', 'İşveren İletişimi', 'Aday Görüşmesi', 'Seyahat & Konaklama', 'Almanya Entegrasyonu', 'Başvuru Girişi', 'Ön Onay', 'Diğer'];
 
 const attachmentSchema = new mongoose.Schema({
     name: String, fileId: String, driveLink: String, mimeType: String, size: Number,
@@ -39,9 +39,15 @@ const workOrderSchema = new mongoose.Schema({
     attachments: [attachmentSchema],
     comments: [commentSchema],
     history: [historySchema],
+    stageKey: { type: String, index: true },      // süreç aşaması (otomasyonla veya elle)
+    templateId: mongoose.Schema.Types.ObjectId,
+    automationKey: { type: String },              // aday:aşama:şablon — mükerrer otomasyon koruması
+    source: { type: String, enum: ['manual', 'automation', 'ai'], default: 'manual' },
     dueSoonNotifiedAt: Date,
     overdueNotifiedAt: Date
 }, { timestamps: true });
+
+workOrderSchema.index({ automationKey: 1 }, { unique: true, partialFilterExpression: { automationKey: { $type: 'string' } } });
 
 workOrderSchema.virtual('isOverdue').get(function () {
     return !!(this.dueDate && !['Tamamlandı', 'İptal'].includes(this.status) && this.dueDate < new Date());

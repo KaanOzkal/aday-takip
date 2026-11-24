@@ -137,17 +137,9 @@ app.use(session({
 }));
 
 // --- SABİT VERİLER ---
-const STAGES = [
-    'Başvuru Alındı', 
-    'Evrak Kontrolü', 
-    'Tercüme Süreci', 
-    'İşveren Onayı', 
-    'Vize Hazırlığı', 
-    'Vize Ön Onay', 
-    'Vize Başvurusu', 
-    'Seyahat Planı', 
-    'Almanya\'da'
-];
+// BERLINER resmi 9 aşamalı süreç (tanımlar: src/process/stages.js)
+const { STAGE_NAMES: STAGES, STAGE_DEFS } = require('./process/stages');
+const FINAL_STAGE = STAGES[STAGES.length - 1];
 
 const GERMANY_STAGES = [
     '1. Başvuru ve Kayıt',
@@ -196,6 +188,12 @@ require('./staff')(app, {
     adminAuthCheck, Candidate, uploadToGoogleDrive, transporter, upload, google,
     getMailFrom: () => MAIL_FROM
 });
+
+// --- 9 AŞAMALI SÜREÇ YÖNETİMİ VE OTOMASYON ---
+require('./process')(app, { adminAuthCheck, Candidate });
+
+// --- AI YÖNETİCİ ASİSTANI ---
+require('./ai')(app, { adminAuthCheck, Candidate });
 
 // ============================================
 //  ROTALAR
@@ -430,17 +428,7 @@ app.post('/appointments/:id/cancel', authCheck, async (req, res) => {
     } catch (error) { res.redirect('/appointments?error=failed'); }
 });
 
-const PROCESS_DETAILS = [
-    { name: 'Başvuru Alındı', time: '1 Gün', icon: 'fa-file-signature', desc: 'Başvurunuz sisteme kaydedildi ve danışmanınıza atandı.' },
-    { name: 'Evrak Kontrolü', time: '1-3 Gün', icon: 'fa-magnifying-glass', desc: 'Yüklediğiniz belgeler eksiksizlik ve geçerlilik açısından inceleniyor.' },
-    { name: 'Tercüme Süreci', time: '3-5 Gün', icon: 'fa-language', desc: 'Belgelerinizin yeminli tercümesi yapılıyor.' },
-    { name: 'İşveren Onayı', time: '1-2 Hafta', icon: 'fa-handshake', desc: 'Profiliniz Alman işverene iletildi, onay bekleniyor.' },
-    { name: 'Vize Hazırlığı', time: '1 Hafta', icon: 'fa-folder-open', desc: 'Vize dosyanız hazırlanıyor, eksik evraklar tamamlanıyor.' },
-    { name: 'Vize Ön Onay', time: 'Değişken', icon: 'fa-stamp', desc: 'Alman makamlarından ön onay (Vorabzustimmung) bekleniyor.' },
-    { name: 'Vize Başvurusu', time: 'Değişken', icon: 'fa-passport', desc: 'Konsolosluk randevusu ve vize görüşmesi aşaması.' },
-    { name: 'Seyahat Planı', time: '3 Gün', icon: 'fa-plane', desc: 'Uçuş ve ilk konaklama planlaması yapılıyor.' },
-    { name: 'Almanya\'da', time: 'Son adım', icon: 'fa-flag-checkered', desc: 'Tebrikler! Almanya\'daki yeni hayatınız başladı.' }
-];
+const PROCESS_DETAILS = STAGE_DEFS.map(d => ({ name: d.name, time: d.time, icon: d.icon, desc: d.desc }));
 
 app.get('/processes', authCheck, (req, res) => {
     const currentIndex = STAGES.indexOf(req.user.currentStage);
@@ -543,14 +531,15 @@ app.get('/admin', adminAuthCheck, async (req, res) => {
             total: candidates.length,
             pendingDocs: allDocuments.filter(d => d.status === 'İnceleniyor').length,
             pendingAppointments: appointments.filter(a => a.status === 'Beklemede').length,
-            inGermany: candidates.filter(c => c.currentStage === "Almanya'da").length,
+            inGermany: candidates.filter(c => c.currentStage === FINAL_STAGE).length,
             unassigned: companyCounts[0].count,
             noEmail: candidates.filter(c => !c.email || !c.email.trim()).length,
             unreadMessages: unreadFromCandidates
         };
 
+        const processInfo = await app.locals.processService.dashboardInfo().catch(() => ({ stale: [], failedAutomations: 0 }));
         res.render('admin', {
-            candidates, appointments, companies, allDocuments,
+            candidates, appointments, companies, allDocuments, processInfo,
             stageCounts, companyCounts, jobs, stats,
             stages: STAGES, germanyStages: GERMANY_STAGES,
             user: { firstName: 'Admin' }
@@ -575,8 +564,9 @@ app.get('/admin/candidate/:id', adminAuthCheck, async (req, res) => {
         ]);
 
         const wo = await app.locals.loadCandidateWorkOrders(candidate._id);
+        const pipeline = await app.locals.processService.candidatePipeline(candidate._id);
         res.render('admin_candidate_detail', {
-            candidate, appointments, messages, companies, wo,
+            candidate, appointments, messages, companies, wo, pipeline,
             stages: STAGES, germanyStages: GERMANY_STAGES,
             stateNames: Object.keys(STATE_DATA),
             user: { firstName: 'Admin' }
@@ -609,7 +599,8 @@ app.post('/admin/candidate/add', adminAuthCheck, async (req, res) => {
             currentStage: STAGES.includes(b.currentStage) ? b.currentStage : STAGES[0],
             password: passportNo
         });
-        res.redirect(`/admin/candidate/${created._id}?status=candidate_created`);
+        await app.locals.processService.onCandidateCreated(created._id, { type: 'admin', id: 'admin', name: 'Yönetici' });
+        res.redirect(`/admin/candidate/${created._id}?status=candidate_created#pipeline`);
     } catch (err) {
         console.error(err);
         redirectBack(req, res, 'error', 'create_failed');
@@ -636,6 +627,7 @@ app.post('/admin/candidate/:id/delete', adminAuthCheck, async (req, res) => {
         const id = req.params.id;
         await Promise.all([
             Candidate.findByIdAndDelete(id),
+            mongoose.model('CandidateStage').deleteMany({ candidateId: id }),
             Appointment.deleteMany({ candidateId: id }),
             Message.deleteMany({ candidateId: id })
         ]);
@@ -653,7 +645,8 @@ app.post('/admin/candidates/bulk', adminAuthCheck, async (req, res) => {
         if (action === 'company') {
             await Candidate.updateMany({ _id: { $in: ids } }, { $set: { company: value || 'Atanmadı' } });
         } else if (action === 'stage' && STAGES.includes(value)) {
-            await Candidate.updateMany({ _id: { $in: ids } }, { $set: { currentStage: value } });
+            const toKey = app.locals.processService.keyOfName(value);
+            for (const id of ids) await app.locals.processService.move(id, toKey, { actor: { type: 'admin', id: 'admin', name: 'Yönetici' }, reason: 'Toplu aşama güncellemesi', force: true });
         } else if (action === 'germanyStage' && GERMANY_STAGES.includes(value)) {
             await Candidate.updateMany({ _id: { $in: ids } }, { $set: { germanyStage: value } });
         } else if (action === 'message' && value && value.trim()) {
@@ -661,6 +654,7 @@ app.post('/admin/candidates/bulk', adminAuthCheck, async (req, res) => {
         } else if (action === 'delete') {
             await Promise.all([
                 Candidate.deleteMany({ _id: { $in: ids } }),
+                mongoose.model('CandidateStage').deleteMany({ candidateId: { $in: ids } }),
                 Appointment.deleteMany({ candidateId: { $in: ids } }),
                 Message.deleteMany({ candidateId: { $in: ids } })
             ]);
@@ -749,7 +743,8 @@ app.post('/admin/candidate/company', adminAuthCheck, async (req, res) => {
 app.post('/admin/candidate/update', adminAuthCheck, async (req, res) => {
     try {
         if (!STAGES.includes(req.body.newStage)) return redirectBack(req, res, 'error', 'invalid_action');
-        await Candidate.findByIdAndUpdate(req.body.candidateId, { currentStage: req.body.newStage });
+        const r = await app.locals.processService.move(req.body.candidateId, app.locals.processService.keyOfName(req.body.newStage), { actor: { type: 'admin', id: 'admin', name: 'Yönetici' }, reason: (req.body.reason || '').trim() || 'Manuel aşama güncellemesi', force: true });
+        if (!r.ok && r.code !== 'same') return redirectBack(req, res, 'error', 'invalid_action');
         redirectBack(req, res, 'status', 'updated');
     } catch (error) { redirectBack(req, res, 'error', 'update_failed'); }
 });
@@ -1000,7 +995,7 @@ app.get('/seed-candidates-full', adminAuthCheck, async (req, res) => {
         {id: 60, ad: "Melih Çopuroğlu", meslek: "Tır Şoförü", durumId: 8, lokasyon: "Almanya", basvuruNo: "BER-2026-060", pasaport: "U32999180", telefon: "+90 555 555 55 55", email: "melih.copuroglu@gmail.com", puan: 90 }
     ];
 
-    const stageMap = { 4: "Vize Ön Onay", 5: "Vize Başvurusu" };
+    const stageMap = { 4: "Ön Onay", 5: "Vize Randevusu", 7: "Seyahat Planı", 8: "Almanya" };
 
     const formattedCandidates = rawData.map(item => {
         const parts = item.ad.trim().split(' ');
@@ -1018,7 +1013,7 @@ app.get('/seed-candidates-full', adminAuthCheck, async (req, res) => {
             phone: item.telefon,
             job: item.meslek,
             location: item.lokasyon,
-            currentStage: stageMap[item.durumId] || "Başvuru Alındı",
+            currentStage: stageMap[item.durumId] || STAGES[0],
             applicationDate: new Date(),
             password: "123456"
         };
@@ -1027,6 +1022,8 @@ app.get('/seed-candidates-full', adminAuthCheck, async (req, res) => {
     try {
         await Candidate.deleteMany({});
         await Candidate.insertMany(formattedCandidates);
+        await mongoose.model('CandidateStage').deleteMany({});
+        await app.locals.processMigrate();
         res.send('✅ Adaylar yüklendi!');
     } catch (error) {
         res.send("Hata: " + error.message);

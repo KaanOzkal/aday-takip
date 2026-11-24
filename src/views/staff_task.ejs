@@ -131,6 +131,7 @@
         <div class="c-card mb-3">
             <div class="c-card-h"><h2>Görev Bilgileri</h2></div>
             <div class="c-card-b py-2">
+                <% if (wo.stageKey && locals.stageByKey && stageByKey[wo.stageKey]) { %><div class="kv"><span>Süreç aşaması</span><span><%= stageByKey[wo.stageKey].name %></span></div><% } %>
                 <div class="kv"><span>Başlangıç</span><span><%= fmtDT(wo.startDate, false) %></span></div>
                 <div class="kv"><span>Son teslim</span><span><%= wo.dueDate ? fmtDT(wo.dueDate) : '—' %></span></div>
                 <div class="kv"><span>Atanma</span><span><%= fmtDT(wo.createdAt) %></span></div>
