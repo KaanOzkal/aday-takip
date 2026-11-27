@@ -1,0 +1,65 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+    <title>Duyurular | BERLINER Yönetim</title>
+    <%- include('partials/admin_head') %>
+</head>
+<body>
+<% const lvl = { info: ['Bilgi', 't-info', 'fa-circle-info'], important: ['Önemli', 't-warn', 'fa-star'], urgent: ['Acil', 't-bad', 'fa-bullhorn'] }; %>
+<div class="app">
+    <%- include('partials/admin_sidebar', { active: 'announcements', onMain: false }) %>
+    <div class="main">
+        <header class="topbar">
+            <button class="btn btn-soft btn-icon menu-toggle" aria-label="Menü"><i class="fas fa-bars"></i></button>
+            <div><div class="crumb">Ekip &amp; Görevler</div><h1>Personel Duyuruları</h1></div>
+        </header>
+        <main class="content">
+            <div class="row g-3">
+                <div class="col-lg-5">
+                    <form class="card-x" method="POST" action="/admin/duyurular">
+                        <div class="card-h"><div><h3>Yeni duyuru</h3><p class="sub">Tüm aktif personelin panelinde görünür ve bildirim gönderilir.</p></div></div>
+                        <div class="card-b"><div class="row g-2">
+                            <div class="col-12"><label class="form-label">Başlık *</label><input name="title" class="form-control" maxlength="160" required></div>
+                            <div class="col-12"><label class="form-label">İçerik</label><textarea name="body" rows="4" maxlength="4000" class="form-control"></textarea></div>
+                            <div class="col-6"><label class="form-label">Önem</label><select name="level" class="form-select"><option value="info">Bilgi</option><option value="important">Önemli</option><option value="urgent">Acil</option></select></div>
+                            <div class="col-6"><label class="form-label">Bitiş tarihi</label><input type="date" name="expiresAt" class="form-control"></div>
+                            <div class="col-12"><label class="small d-flex align-items-center gap-2"><input type="checkbox" name="pinned" class="form-check-input m-0"> Üstte sabitle</label></div>
+                        </div></div>
+                        <div class="px-3 pb-3"><button class="btn btn-brand w-100"><i class="fas fa-bullhorn me-1"></i>Yayınla</button></div>
+                    </form>
+                </div>
+                <div class="col-lg-7">
+                    <div class="card-x">
+                        <div class="card-h"><h3>Yayınlanan duyurular</h3><span class="muted small ms-auto"><%= staffList.length %> aktif personel</span></div>
+                        <% if (!list.length) { %><div class="empty"><i class="fas fa-bullhorn"></i>Henüz duyuru yok.</div><% } %>
+                        <% list.forEach(a => { const L = lvl[a.level] || lvl.info; const readIds = (a.reads || []).map(r => String(r.staffId)); const readers = staffList.filter(s => readIds.includes(String(s._id))); const unread = staffList.filter(s => !readIds.includes(String(s._id))); const expired = a.expiresAt && new Date(a.expiresAt) < new Date(); %>
+                        <div class="p-3 border-bottom" style="border-color:var(--line)!important;<%= !a.active || expired ? 'opacity:.65' : '' %>">
+                            <div class="d-flex align-items-start gap-2 flex-wrap">
+                                <span class="pill <%= L[1] %>"><i class="fas <%= L[2] %>"></i><%= L[0] %></span>
+                                <% if (a.pinned) { %><span class="pill t-brand"><i class="fas fa-thumbtack"></i>Sabit</span><% } %>
+                                <% if (!a.active) { %><span class="pill t-gray">Yayından kaldırıldı</span><% } else if (expired) { %><span class="pill t-gray">Süresi doldu</span><% } %>
+                                <span class="muted small ms-auto"><%= fmtDT(a.createdAt) %> · <%= a.createdByName %></span>
+                            </div>
+                            <div class="fw-bold mt-2"><%= a.title %></div>
+                            <% if (a.body) { %><div class="small mt-1" style="white-space:pre-wrap"><%= a.body %></div><% } %>
+                            <div class="d-flex align-items-center gap-2 mt-2 flex-wrap">
+                                <details class="small"><summary class="fw-semibold" style="cursor:pointer"><i class="fas fa-eye me-1"></i>Okuyan <%= readers.length %>/<%= staffList.length %></summary>
+                                    <div class="mt-1"><% readers.forEach(s => { const r = a.reads.find(x => String(x.staffId) === String(s._id)); %><span class="pill t-ok me-1 mb-1"><i class="fas fa-check"></i><%= s.fullName %> · <%= fmtDT(r.at) %></span><% }) %>
+                                    <% unread.forEach(s => { %><span class="pill t-gray me-1 mb-1"><%= s.fullName %></span><% }) %></div></details>
+                                <div class="ms-auto d-flex gap-1">
+                                    <form method="POST" action="/admin/duyurular/<%= a._id %>/pin"><button class="btn btn-soft btn-sm" title="<%= a.pinned ? 'Sabitlemeyi kaldır' : 'Sabitle' %>"><i class="fas fa-thumbtack"></i></button></form>
+                                    <form method="POST" action="/admin/duyurular/<%= a._id %>/toggle"><button class="btn btn-soft btn-sm" title="<%= a.active ? 'Yayından kaldır' : 'Yeniden yayınla' %>"><i class="fas <%= a.active ? 'fa-eye-slash' : 'fa-eye' %>"></i></button></form>
+                                    <form method="POST" action="/admin/duyurular/<%= a._id %>/delete" data-confirm="Duyuru kalıcı olarak silinecek." data-danger><button class="btn btn-bad-soft btn-sm" title="Sil" data-no-busy="1"><i class="fas fa-trash"></i></button></form>
+                                </div>
+                            </div>
+                        </div>
+                        <% }) %>
+                    </div>
+                </div>
+            </div>
+        </main>
+    </div>
+</div>
+<%- include('partials/admin_scripts') %>
+</body>
+</html>

@@ -34,7 +34,16 @@
         candidate_cancelled: 'Aday iptal durumuna alındı. Süreç geçmişi korunuyor.', candidate_reactivated: 'Aday yeniden aktifleştirildi.',
         legacy_resolved: 'Seçilen adayların aşaması onaylandı (' + (new URLSearchParams(location.search).get('n') || 0) + ' aday).',
         company_converted: 'Grup iptal durumuna dönüştürüldü (' + (new URLSearchParams(location.search).get('n') || 0) + ' aday iptal edildi).',
-        orphans_cleaned: 'Silinmiş adaylara ait açık görevler iptal edildi.', contact_added: 'İletişim kaydı eklendi.'
+        orphans_cleaned: 'Silinmiş adaylara ait açık görevler iptal edildi.', contact_added: 'İletişim kaydı eklendi.',
+        wo_group_created: 'Ortak iş emri oluşturuldu; seçilen her personele ayrı görev atandı ve bildirildi.',
+        category_created: 'Kategori eklendi.', category_updated: 'Kategori güncellendi.', category_deleted: 'Kategori silindi.', category_deactivated: 'Kategori kullanımda olduğu için silinmedi, pasife alındı.',
+        recurring_created: 'Tekrarlayan görev oluşturuldu.', recurring_updated: 'Tekrarlayan görev güncellendi.', recurring_deleted: 'Tekrarlayan görev silindi.',
+        recurring_paused: 'Tekrarlayan görev durduruldu.', recurring_resumed: 'Tekrarlayan görev yeniden başlatıldı.', recurring_ran: 'Kural çalıştırıldı, iş emirleri oluşturuldu.',
+        announcement_created: 'Duyuru yayınlandı ve personele bildirildi.',
+        dossier_saved: 'Aday bilgileri kaydedildi.', verified: 'Bölüm doğrulandı; aday artık bu bölümü değiştiremez.', unverified: 'Doğrulama kaldırıldı; aday bölümü yeniden düzenleyebilir.',
+        payment_marked: 'Ödeme aday dosyasına eklendi ve adaya bildirildi.', payment_unmarked: 'Ödeme işareti kaldırıldı (geçmiş korunuyor).', receipt_uploaded: 'Dekont yüklendi, onayınızı bekliyor.',
+        payment_approved: 'Dekont onaylandı; ödeme tamamlandı olarak işaretlendi.', payment_rejected: 'Dekont reddedildi; adaya bildirildi.',
+        document_uploaded: 'Belge arşive eklendi.', document_updated: 'Belge kategorisi güncellendi.', cv_saved: 'CV bilgileri kaydedildi.', announcement_updated: 'Duyuru güncellendi.', announcement_deleted: 'Duyuru silindi.'
     };
     const ERR = {
         company_exists: 'Bu isimde bir şirket zaten var.',
@@ -60,7 +69,10 @@
         too_large: 'Dosya 5 MB\'dan büyük olamaz.', upload_failed: 'Dosya yüklenemedi. Google Drive bağlantısını kontrol edin.',
         needs_confirm: 'Bu geçiş için onay ve gerekçe gerekiyor.', reason_required: 'Aşama atlamak veya geri almak için gerekçe yazmalısınız.', same_stage: 'Aday zaten bu aşamada.',
         cancel_reason_required: 'İptal için en az 3 karakterlik bir neden yazmalısınız.', already_cancelled: 'Aday zaten iptal durumunda.',
-        candidate_cancelled_locked: 'İptal edilmiş adayda aşama değiştirilemez. Önce adayı yeniden aktifleştirin.', rate_limited: 'Çok fazla istek gönderildi. Lütfen biraz bekleyin.'
+        candidate_cancelled_locked: 'İptal edilmiş adayda aşama değiştirilemez. Önce adayı yeniden aktifleştirin.', rate_limited: 'Çok fazla istek gönderildi. Lütfen biraz bekleyin.',
+        bad_category: 'Geçerli bir kategori seçin.', category_exists: 'Bu isimde bir kategori zaten var.', last_category: 'En az bir aktif kategori kalmalıdır.', create_failed: 'İş emri oluşturulamadı.',
+        bad_passport: 'Pasaport numarası geçersiz.', passport_required: 'Pasaport numarası boş bırakılamaz.', bad_tc: 'T.C. kimlik numarası geçersiz.', bad_birthdate: 'Doğum tarihi geçersiz.', bad_children: 'Çocuk sayısı geçersiz.', bad_phone: 'Telefon numarası geçersiz.', end_required: 'Bitiş tarihi girin veya "Halen" seçin.',
+        verify_incomplete: 'Eksik alanları olan bölüm doğrulanamaz.', payment_approved_locked: 'Onaylanmış ödeme değiştirilemez.', payment_not_marked: 'Önce ödemeyi aday için işaretleyin.', receipt_required: 'Dekont yüklenmeden ödeme onaylanamaz.', reason_required_payment: 'Ret nedeni yazmalısınız.', bad_photo: 'Fotoğraf JPG/PNG ve en fazla 2 MB olmalı.'
     };
     const p = new URLSearchParams(location.search);
     const st = p.get('status'), er = p.get('error');

@@ -124,7 +124,7 @@
                                 <% orders.forEach(w => { const due = dueLabel(w); %>
                                     <tr class="clickable" onclick="location.href='/admin/is-emirleri/<%= w._id %>'">
                                         <td style="max-width:280px"><div class="fw-650 text-dark text-truncate-1"><%= w.title %></div><div class="muted small font-monospace"><%= w.code %> · <%= w.category %></div></td>
-                                        <td><%= w.candidateName %></td>
+                                        <td><%= w.candidateName || 'Genel görev' %></td>
                                         <td><span class="pill <%= woStatusTone(w.status) %>"><span class="dot"></span><%= woStatusLabel(w.status) %></span></td>
                                         <td style="white-space:nowrap"><%= w.dueDate ? fmtDT(w.dueDate, false) : '—' %><% if (due) { %><div><span class="pill <%= due.tone %>" style="font-size:11px;padding:1px 8px"><%= due.text %></span></div><% } %></td>
                                         <td class="muted small"><%= w.completedAt ? fmtDuration((new Date(w.completedAt) - new Date(w.startedAt || w.createdAt)) / 36e5) : '—' %></td>

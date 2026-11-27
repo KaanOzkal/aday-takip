@@ -5,7 +5,7 @@
 %>
 <aside class="sidebar" id="sidebar">
     <a class="brand" href="/admin#dashboard">
-        <div class="brand-mark">B</div>
+        <img src="/img/berliner-logo-96.png" alt="BERLINER" class="brand-logo">
         <div class="brand-text"><strong>BERLINER</strong><small>Aday Takip Sistemi</small></div>
     </a>
 
@@ -39,6 +39,7 @@
         <li><a href="/admin/is-emirleri" class="<%= act === 'workorders' ? 'active' : '' %>"><i class="fas fa-clipboard-list"></i> İş Emirleri
             <% if (typeof woToReview !== 'undefined' && woToReview) { %><span class="count" style="background:#F79009" title="Onay bekleyen tamamlanmış görev"><%= woToReview %></span><% } %></a></li>
         <li><a href="/admin/personel" class="<%= act === 'staff' ? 'active' : '' %>"><i class="fas fa-user-tie"></i> Personel Yönetimi</a></li>
+        <li><a href="/admin/duyurular" class="<%= act === 'announcements' ? 'active' : '' %>"><i class="fas fa-bullhorn"></i> Duyurular</a></li>
         <li><a href="/admin/bildirimler" class="<%= act === 'notifications' ? 'active' : '' %>"><i class="fas fa-bell"></i> Bildirimler
             <span class="count js-admin-unread" <%= (typeof adminUnread !== 'undefined' && adminUnread) ? '' : 'hidden' %>><%= typeof adminUnread !== 'undefined' ? adminUnread : 0 %></span></a></li>
         <li><a href="/admin/islem-gecmisi" class="<%= act === 'audit' ? 'active' : '' %>"><i class="fas fa-shield-halved"></i> İşlem Geçmişi</a></li>

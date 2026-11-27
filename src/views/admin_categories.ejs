@@ -1,0 +1,62 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+    <title>İş Emri Kategorileri | BERLINER Yönetim</title>
+    <%- include('partials/admin_head') %>
+    <style>
+        .cat-row { display: grid; grid-template-columns: 44px 1fr 110px 80px auto; gap: 10px; align-items: center; padding: 12px 18px; border-bottom: 1px solid var(--line); }
+        .cat-row:last-child { border-bottom: 0; }
+        .cat-row.off { background: #FAFAFB; }
+        .cat-row.off input[name=name] { color: var(--muted); }
+        .sw { width: 34px; height: 34px; border-radius: 10px; border: 1px solid var(--line); padding: 2px; cursor: pointer; }
+        @media (max-width: 767.98px) { .cat-row { grid-template-columns: 40px 1fr; } .cat-row .meta { grid-column: 2; } .cat-row .acts { grid-column: 1 / -1; justify-content: flex-end; } }
+    </style>
+</head>
+<body>
+<div class="app">
+    <%- include('partials/admin_sidebar', { active: 'workorders', onMain: false }) %>
+    <div class="main">
+        <header class="topbar">
+            <button class="btn btn-soft btn-icon menu-toggle" aria-label="Menü"><i class="fas fa-bars"></i></button>
+            <a href="/admin/is-emirleri" class="btn btn-soft btn-icon" title="İş emirlerine dön"><i class="fas fa-arrow-left"></i></a>
+            <div><div class="crumb"><a href="/admin/is-emirleri" class="text-decoration-none muted">İş Emirleri</a> / Kategoriler</div><h1>İş Emri Kategorileri</h1></div>
+        </header>
+        <main class="content">
+            <form class="card-x card-b mb-3 row g-2 align-items-end m-0" method="POST" action="/admin/is-emirleri/kategoriler">
+                <div class="col-auto"><label class="form-label">Renk</label><input type="color" name="color" value="#D4111B" class="sw d-block"></div>
+                <div class="col"><label class="form-label">Yeni kategori</label><input name="name" class="form-control" maxlength="60" required placeholder="Örn: Müşteri Araması"></div>
+                <div class="col-12 col-sm-auto"><button class="btn btn-brand w-100"><i class="fas fa-plus me-1"></i>Ekle</button></div>
+            </form>
+            <div class="card-x">
+                <div class="card-h"><div><h2>Kategoriler</h2><p class="sub">Yeniden adlandırdığınızda mevcut iş emirleri, tekrarlayan görevler ve otomasyon şablonları da güncellenir. Kullanılan kategori silinmez, pasife alınır.</p></div></div>
+                <% list.forEach(c => { %>
+                <form method="POST" action="/admin/is-emirleri/kategoriler/<%= c._id %>" class="cat-row <%= c.active ? '' : 'off' %>">
+                    <input type="color" name="color" value="<%= c.color %>" class="sw" title="Renk">
+                    <div><input name="name" value="<%= c.name %>" class="form-control form-control-sm fw-650" maxlength="60" required>
+                        <% if (!c.active) { %><span class="pill t-gray mt-1" style="font-size:11px">Pasif — yeni görevlerde seçilemez</span><% } %></div>
+                    <div class="meta small muted"><b class="text-dark"><%= c.used %></b> iş emri<% if (c.open) { %> · <%= c.open %> açık<% } %></div>
+                    <div class="meta"><input type="number" name="order" value="<%= c.order %>" min="0" max="9999" class="form-control form-control-sm" title="Sıra"></div>
+                    <div class="acts d-flex gap-1">
+                        <button class="btn btn-soft btn-sm" name="_action" value="save" title="Kaydet"><i class="fas fa-check"></i></button>
+                        <button class="btn btn-soft btn-sm" name="_action" value="toggle" title="<%= c.active ? 'Pasife al' : 'Aktifleştir' %>"><i class="fas <%= c.active ? 'fa-eye-slash' : 'fa-eye' %>"></i></button>
+                        <button class="btn btn-bad-soft btn-sm js-del" name="_action" value="delete" title="Sil" data-used="<%= c.used %>" data-name="<%= c.name %>"><i class="fas fa-trash"></i></button>
+                    </div>
+                </form>
+                <% }) %>
+            </div>
+        </main>
+    </div>
+</div>
+<%- include('partials/admin_scripts') %>
+<script>
+document.querySelectorAll('.js-del').forEach(b => b.addEventListener('click', async e => {
+    e.preventDefault();
+    const used = +b.dataset.used;
+    const r = await Swal.fire({ icon: 'warning', title: 'Kategori silinsin mi?', text: used ? `“${b.dataset.name}” ${used} iş emrinde kullanılıyor. Geçmiş kayıtlar bozulmasın diye silinmeyecek, pasife alınacak.` : `“${b.dataset.name}” kalıcı olarak silinecek.`, showCancelButton: true, confirmButtonText: used ? 'Pasife al' : 'Sil', cancelButtonText: 'Vazgeç', confirmButtonColor: '#D4111B', reverseButtons: true });
+    if (!r.isConfirmed) return;
+    const f = b.form; const h = document.createElement('input'); h.type = 'hidden'; h.name = '_action'; h.value = 'delete'; f.appendChild(h);
+    f.querySelectorAll('button[name=_action]').forEach(x => x.removeAttribute('name')); f.submit();
+}));
+</script>
+</body>
+</html>

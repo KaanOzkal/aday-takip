@@ -1,0 +1,158 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+    <title>CV · <%= c.firstName %> <%= c.lastName %> | BERLINER</title>
+    <% if (mode === 'admin') { %><%- include('partials/admin_head') %><% } else { %><%- include('partials/cand_head') %><% } %>
+    <style>
+        .cvp { background: #fff; border: 1px solid #E3E5E9; box-shadow: 0 10px 30px -12px rgba(16,24,40,.18); padding: 0 34px 26px; font-family: 'Inter', Arial, sans-serif; color: #1A1A1A; font-size: 13px; line-height: 1.5; max-width: 820px; margin: 0 auto; position: relative; }
+        .cvp-top { height: 5px; background: #C8102E; margin: 0 -34px 22px; }
+        .cvp-head { display: flex; gap: 18px; align-items: flex-start; }
+        .cvp-logo { width: 70px; height: 70px; flex-shrink: 0; object-fit: contain; }
+        .cvp-id { flex: 1; min-width: 0; }
+        .cvp-doc { color: #C8102E; font-weight: 800; font-size: 10.5px; letter-spacing: 2.5px; text-transform: uppercase; }
+        .cvp-name { font-size: 26px; font-weight: 800; letter-spacing: -.4px; line-height: 1.2; }
+        .cvp-title { font-size: 14px; color: #2B2B2B; }
+        .cvp-photo { width: 96px; height: 122px; object-fit: cover; border: 1px solid #D9DCE1; flex-shrink: 0; }
+        .cvp-rule { height: 1.5px; background: #1A1A1A; margin: 16px 0 14px; }
+        .cvp-sec { margin-bottom: 14px; }
+        .cvp-sec h4 { color: #C8102E; font-size: 11.5px; font-weight: 800; letter-spacing: 1.4px; text-transform: uppercase; border-bottom: 1px solid #D9DCE1; padding-bottom: 4px; margin: 0 0 8px; }
+        .cvp-row { display: grid; grid-template-columns: 150px 1fr; gap: 12px; margin-bottom: 4px; }
+        .cvp-row > span { color: #5F6368; font-size: 12px; }
+        .cvp-e { margin-bottom: 10px; }
+        .cvp-org { color: #2B2B2B; font-size: 12.5px; } .cvp-sub { color: #5F6368; font-size: 12px; }
+        .cvp-desc { font-size: 12.5px; white-space: pre-wrap; margin-top: 3px; }
+        .cvp-p { margin: 0; white-space: pre-wrap; }
+        .cvp-ul { margin: 0 0 0 162px; padding-left: 14px; } .cvp-ul li::marker { color: #C8102E; }
+        .cvp-foot { display: flex; justify-content: space-between; gap: 10px; border-top: 1px solid #D9DCE1; padding-top: 6px; color: #5F6368; font-size: 10.5px; margin-top: 18px; }
+        @media (max-width: 640px) { .cvp { padding: 0 16px 18px; font-size: 12.5px; } .cvp-top { margin: 0 -16px 16px; } .cvp-row { grid-template-columns: 1fr; gap: 0; } .cvp-row > span { font-weight: 600; } .cvp-ul { margin-left: 0; } .cvp-logo { width: 52px; height: 52px; } .cvp-photo { width: 70px; height: 90px; } .cvp-name { font-size: 20px; } }
+        .tr-src { font-size: 12px; color: var(--muted); background: #F7F8FA; border-radius: 8px; padding: 6px 10px; margin-bottom: 6px; white-space: pre-wrap; }
+        .warn-box { border-radius: 14px; padding: 12px 16px; font-size: 13px; }
+        .lang-seg { display: inline-flex; background: #ECEEF2; border-radius: 10px; padding: 3px; gap: 2px; }
+        .lang-seg a { padding: 6px 14px; border-radius: 8px; font-weight: 700; font-size: 13px; color: #475467; text-decoration: none; }
+        .lang-seg a.on { background: #fff; color: var(--brand); box-shadow: 0 1px 2px rgba(16,24,40,.08); }
+        .cv-card { background: #fff; border: 1px solid var(--line); border-radius: 16px; }
+        .cv-card .hd { padding: 14px 18px; border-bottom: 1px solid var(--line); font-weight: 700; display: flex; align-items: center; gap: 8px; }
+        .cv-card .bd { padding: 16px 18px; }
+    </style>
+</head>
+<body>
+<%
+    const mTr = buildCv(c, 'tr'), mDe = buildCv(c, 'de');
+    const d = c.dossier || {}; const cv = d.cv || {};
+    const editInfo = mode === 'admin' ? `/admin/candidate/${c._id}#dossier` : '/kisisel-bilgiler';
+    const editWork = mode === 'admin' ? `/admin/candidate/${c._id}#dossier` : '/is-gecmisi';
+    const issues = (mm) => mm.warnings.length + (mm.untranslated ? mm.untranslated.length : 0);
+    const hasPhoto = !!(c.cvDetails && /^data:image\/(jpeg|png)/.test(c.cvDetails.profilePhoto || ''));
+%>
+<% if (mode === 'admin') { %>
+<div class="app">
+    <%- include('partials/admin_sidebar', { active: 'candidates', onMain: false }) %>
+    <div class="main">
+        <header class="topbar">
+            <button class="btn btn-soft btn-icon menu-toggle" aria-label="Menü"><i class="fas fa-bars"></i></button>
+            <a href="/admin/candidate/<%= c._id %>#dossier" class="btn btn-soft btn-icon" title="Aday dosyasına dön"><i class="fas fa-arrow-left"></i></a>
+            <div style="min-width:0"><div class="crumb"><a href="/admin/candidate/<%= c._id %>" class="text-decoration-none muted"><%= c.firstName %> <%= c.lastName %></a> / CV</div><h1>Profesyonel CV</h1></div>
+        </header>
+        <main class="content">
+<% } else { %>
+<%- include('partials/cand_shell_start', { page: 'cv', title: 'CV\'m (Lebenslauf)', subtitle: 'Bilgilerinden otomatik oluşan Türkçe ve Almanca CV' }) %>
+<% } %>
+
+<div class="d-flex align-items-center gap-2 flex-wrap mb-3">
+    <div class="lang-seg"><a href="<%= base %>?lang=tr" class="<%= lang === 'tr' ? 'on' : '' %>">Türkçe önizleme</a><a href="<%= base %>?lang=de" class="<%= lang === 'de' ? 'on' : '' %>">Almanca (Lebenslauf)</a></div>
+    <div class="ms-auto d-flex gap-2 flex-wrap">
+        <a href="<%= base %>.pdf?lang=tr" class="btn btn-soft js-dl" data-issues="<%= issues(mTr) %>"><i class="fas fa-file-pdf me-1"></i>Türkçe PDF</a>
+        <a href="<%= base %>.pdf?lang=de" class="btn btn-brand js-dl" data-issues="<%= issues(mDe) %>"><i class="fas fa-file-pdf me-1"></i>Almanca PDF</a>
+    </div>
+</div>
+
+<div class="row g-3">
+    <div class="col-xl-7 order-xl-2">
+        <% const cur = lang === 'de' ? mDe : mTr; %>
+        <% if (cur.warnings.length || (lang === 'de' && cur.untranslated.length)) { %>
+        <div class="warn-box mb-3" style="background:#FFFAEB;border:1px solid #FEDF89;color:#7A2E0E">
+            <div class="fw-bold mb-1"><i class="fas fa-triangle-exclamation me-1"></i>CV oluşturmadan önce kontrol edin</div>
+            <% if (cur.warnings.length) { %><div><b>Eksik bilgiler:</b> <%= cur.warnings.join(' · ') %> <a href="<%= editInfo %>" class="ms-1">Bilgileri düzenle →</a></div><% } %>
+            <% if (lang === 'de' && cur.untranslated.length) { %><div class="mt-1"><b>Almancası girilmemiş:</b> <%= cur.untranslated.join(' · ') %>. <span class="small">Başlık ve pozisyonlar Türkçe kalır; açıklamalar Almanca CV'ye eklenmez. Soldaki “Almanca karşılıklar” bölümünden tamamlayın.</span></div><% } %>
+        </div>
+        <% } else { %>
+        <div class="warn-box mb-3" style="background:var(--ok-50);border:1px solid #A6F4C5;color:#05603A"><i class="fas fa-circle-check me-1"></i>CV için gerekli bilgiler tamam.</div>
+        <% } %>
+        <%- include('partials/cv_preview', { m: cur }) %>
+        <div class="small muted text-center mt-2"><i class="fas fa-circle-info me-1"></i>CV yalnızca dosyadaki bilgilerden oluşturulur; girilmeyen deneyim, sertifika veya dil seviyesi eklenmez.</div>
+    </div>
+    <div class="col-xl-5 order-xl-1">
+        <form method="POST" action="<%= base %>/save" enctype="multipart/form-data" id="cvForm">
+            <input type="hidden" name="lang" value="<%= lang %>">
+            <div class="cv-card mb-3">
+                <div class="hd"><i class="fas fa-user-tie" style="color:var(--brand)"></i>Başlık ve profil</div>
+                <div class="bd"><div class="row g-2">
+                    <div class="col-sm-6"><label class="form-label">Meslek (Türkçe)</label><input name="job" class="form-control" value="<%= c.job || '' %>" maxlength="120" placeholder="Örn: Tır şoförü"></div>
+                    <div class="col-sm-6"><label class="form-label">Berufsbezeichnung (DE)</label><input name="titleDe" class="form-control" value="<%= cv.titleDe || '' %>" maxlength="120" placeholder="z. B. Berufskraftfahrer (CE)"></div>
+                    <div class="col-12"><label class="form-label">Mesleki profil (Türkçe)</label><textarea name="profileTr" rows="3" maxlength="1500" class="form-control" placeholder="3-4 cümlelik kısa tanıtım: deneyim süresi, araç tipleri, güçlü yönler"><%= cv.profileTr || (c.cvDetails && c.cvDetails.summary) || '' %></textarea></div>
+                    <div class="col-12"><label class="form-label">Kurzprofil (Deutsch)</label><textarea name="profileDe" rows="3" maxlength="1500" class="form-control" placeholder="Deutsche Fassung des Profils"><%= cv.profileDe || '' %></textarea></div>
+                    <div class="col-sm-6"><label class="form-label">Mesleki yeterlilikler (TR)</label><textarea name="skillsTr" rows="4" maxlength="1500" class="form-control" placeholder="Her satıra bir madde"><%= cv.skillsTr || '' %></textarea></div>
+                    <div class="col-sm-6"><label class="form-label">Fachliche Kenntnisse (DE)</label><textarea name="skillsDe" rows="4" maxlength="1500" class="form-control" placeholder="Ein Punkt pro Zeile"><%= cv.skillsDe || '' %></textarea></div>
+                </div></div>
+            </div>
+            <div class="cv-card mb-3">
+                <div class="hd"><i class="fas fa-camera" style="color:var(--brand)"></i>Fotoğraf <span class="muted small fw-normal">(isteğe bağlı)</span></div>
+                <div class="bd d-flex gap-3 align-items-center flex-wrap">
+                    <% if (hasPhoto) { %><img src="<%= c.cvDetails.profilePhoto %>" alt="" style="width:64px;height:80px;object-fit:cover;border-radius:6px;border:1px solid var(--line)"><% } %>
+                    <div class="flex-grow-1" style="min-width:200px">
+                        <input type="file" name="photo" accept="image/jpeg,image/png" class="form-control form-control-sm mb-2">
+                        <label class="small d-flex gap-2 align-items-center"><input type="checkbox" name="includePhoto" class="form-check-input m-0" <%= cv.includePhoto !== false ? 'checked' : '' %>> Fotoğrafı CV'de göster</label>
+                        <% if (hasPhoto) { %><label class="small d-flex gap-2 align-items-center mt-1"><input type="checkbox" name="removePhoto" class="form-check-input m-0"> Fotoğrafı kaldır</label><% } %>
+                    </div>
+                </div>
+            </div>
+            <div class="cv-card mb-3">
+                <div class="hd"><i class="fas fa-language" style="color:var(--brand)"></i>Almanca karşılıklar <a href="<%= editWork %>" class="ms-auto small fw-normal">Kayıtları düzenle</a></div>
+                <div class="bd">
+                    <% if (!(d.work || []).length && !(d.education || []).length && !(d.certificates || []).length) { %><div class="small muted">Önce iş geçmişi, eğitim ve sertifika bilgilerini ekleyin.</div><% } %>
+                    <% (d.work || []).forEach((w, i) => { %>
+                    <div class="mb-3 pb-3 border-bottom">
+                        <div class="fw-650 small mb-1"><i class="fas fa-briefcase me-1 muted"></i><%= w.position || w.job %> · <%= w.company %></div>
+                        <div class="row g-2">
+                            <div class="col-sm-6"><input name="w_positionDe_<%= w._id %>" class="form-control form-control-sm" value="<%= w.positionDe || '' %>" maxlength="120" placeholder="Position (DE)<%= w.position ? ': ' + w.position : '' %>"></div>
+                            <div class="col-sm-6"><input name="w_jobDe_<%= w._id %>" class="form-control form-control-sm" value="<%= w.jobDe || '' %>" maxlength="120" placeholder="Beruf (DE)<%= w.job ? ': ' + w.job : '' %>"></div>
+                            <% if (w.description) { %><div class="col-12"><div class="tr-src"><%= w.description %></div><textarea name="w_descriptionDe_<%= w._id %>" rows="2" maxlength="2000" class="form-control form-control-sm" placeholder="Tätigkeitsbeschreibung (DE)"><%= w.descriptionDe || '' %></textarea></div><% } %>
+                        </div>
+                    </div>
+                    <% }) %>
+                    <% (d.education || []).forEach(e => { %>
+                    <div class="mb-3 pb-3 border-bottom"><div class="fw-650 small mb-1"><i class="fas fa-graduation-cap me-1 muted"></i><%= e.degree %><%= e.field ? ' – ' + e.field : '' %> · <%= e.school %></div>
+                        <div class="row g-2"><div class="col-sm-6"><input name="e_degreeDe_<%= e._id %>" class="form-control form-control-sm" value="<%= e.degreeDe || '' %>" maxlength="120" placeholder="Abschluss (DE): <%= e.degree %>"></div>
+                        <% if (e.field) { %><div class="col-sm-6"><input name="e_fieldDe_<%= e._id %>" class="form-control form-control-sm" value="<%= e.fieldDe || '' %>" maxlength="120" placeholder="Fachrichtung (DE): <%= e.field %>"></div><% } %></div></div>
+                    <% }) %>
+                    <% (d.certificates || []).forEach(x => { %>
+                    <div class="mb-2"><div class="fw-650 small mb-1"><i class="fas fa-award me-1 muted"></i><%= x.name %></div><input name="c_nameDe_<%= x._id %>" class="form-control form-control-sm" value="<%= x.nameDe || '' %>" maxlength="160" placeholder="Bezeichnung (DE)"></div>
+                    <% }) %>
+                    <div class="small muted mt-2"><i class="fas fa-circle-info me-1"></i>Tarih, ehliyet sınıfı, dil seviyesi, medeni durum ve uyruk Almancaya otomatik çevrilir.</div>
+                </div>
+            </div>
+            <button class="btn btn-brand w-100"><i class="fas fa-check me-1"></i>Kaydet ve önizlemeyi güncelle</button>
+        </form>
+    </div>
+</div>
+
+<% if (mode === 'admin') { %>
+        </main>
+    </div>
+</div>
+<%- include('partials/admin_scripts') %>
+<% } else { %>
+<%- include('partials/cand_shell_end', { page: 'cv' }) %>
+<%- include('partials/dossier_msgs') %>
+<script>cNotify(DOSSIER_MSG);</script>
+<% } %>
+<script>
+document.querySelectorAll('.js-dl').forEach(a => a.addEventListener('click', async e => {
+    if (!+a.dataset.issues) return;
+    e.preventDefault();
+    const r = await Swal.fire({ icon: 'warning', title: 'Eksik bilgiler var', text: 'Bu CV\'de eksik veya Almancası girilmemiş bilgiler bulunuyor. Eksik alanlar CV\'ye eklenmeyecek. Yine de PDF oluşturulsun mu?', showCancelButton: true, confirmButtonText: 'PDF oluştur', cancelButtonText: 'Vazgeç', confirmButtonColor: '#D4111B', reverseButtons: true });
+    if (r.isConfirmed) location.href = a.href;
+}));
+</script>
+</body>
+</html>

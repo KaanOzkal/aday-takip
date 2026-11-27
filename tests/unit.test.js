@@ -61,3 +61,50 @@ test('istek sınırlama 429 döndürür', () => {
     mw(req, res, next); mw(req, res, next); mw(req, res, next);
     assert.strictEqual(passed, 2); assert.strictEqual(code, 429);
 });
+
+test('tekrarlayan görev sonraki çalışma zamanı', () => {
+    process.env.TZ = 'Europe/Istanbul';
+    const { computeNext } = require('../src/ops');
+    const from = new Date(2026, 10, 27, 10, 0); // 27 Kasım 2026 Cuma 10:00
+    const d1 = computeNext({ frequency: 'daily', time: '09:00' }, from);
+    assert.strictEqual(d1.getDate(), 28); assert.strictEqual(d1.getHours(), 9);
+    const d2 = computeNext({ frequency: 'daily', time: '15:30' }, from);
+    assert.strictEqual(d2.getDate(), 27); assert.strictEqual(d2.getMinutes(), 30);
+    const d3 = computeNext({ frequency: 'weekdays', time: '09:00' }, from);
+    assert.strictEqual(d3.getDay(), 1, 'Cuma sonrası hafta içi → Pazartesi');
+    const d4 = computeNext({ frequency: 'weekly', weekday: 3, time: '08:00' }, from);
+    assert.strictEqual(d4.getDay(), 3);
+    const d5 = computeNext({ frequency: 'monthly', monthDay: 1, time: '09:00' }, from);
+    assert.strictEqual(d5.getMonth(), 11); assert.strictEqual(d5.getDate(), 1);
+});
+
+test('T.C. kimlik doğrulama ve belge kategorisi', () => {
+    const { tcValid, categoryOf } = require('../src/dossier');
+    assert.ok(tcValid('10000000146'));
+    assert.ok(!tcValid('12345678901'));
+    assert.ok(!tcValid('01234567890'));
+    assert.strictEqual(categoryOf({ name: 'Pasaport' }), 'Pasaport');
+    assert.strictEqual(categoryOf({ name: 'Sürücü Belgesi (Ehliyet)' }), 'Ehliyet');
+    assert.strictEqual(categoryOf({ name: 'Adli Sicil' }), 'Resmi Kayıtlar');
+    assert.strictEqual(categoryOf({ name: 'x', category: 'CV' }), 'CV');
+});
+
+test('CV modeli: kural tabanlı Almanca, uydurma yok, kronolojik', () => {
+    const { buildCv } = require('../src/cv');
+    const c = { firstName: 'Ali', lastName: 'Kaya', job: 'Tır şoförü', phone: '+90 5', dossier: {
+        birthDate: new Date('1990-01-05T12:00:00'), birthPlace: 'Konya', maritalStatus: 'Bekar', nationality: 'Türkiye Cumhuriyeti',
+        germanLevel: 'B1', otherLanguages: [{ lang: 'Türkçe', level: 'Anadil' }, { lang: 'Klingonca', level: 'A1' }], licenseClasses: ['C', 'CE'],
+        work: [{ company: 'A', job: 'Şoför', start: new Date('2015-01-01'), end: new Date('2018-01-01') }, { company: 'B', job: 'Şoför', jobDe: 'Lkw-Fahrer', start: new Date('2018-02-01'), current: true }],
+        cv: {} } };
+    const de = buildCv(c, 'de');
+    assert.strictEqual(de.experience[0].when.endsWith('heute'), true, 'en yeni üstte');
+    assert.ok(de.personal.some(([k, v]) => k === 'Familienstand' && v === 'ledig'));
+    assert.ok(de.personal.some(([k, v]) => v === 'türkisch'));
+    assert.ok(de.languages.some(([n, l]) => n === 'Türkisch' && l === 'Muttersprache'));
+    assert.ok(de.untranslated.some(x => /Klingonca/.test(x)), 'bilinmeyen dil adı uyarı verir');
+    assert.ok(de.untranslated.some(x => /İş deneyimi/.test(x)), 'Almancası olmayan pozisyon uyarı verir');
+    assert.ok(!de.languages.some(([n]) => n === 'Englisch'), 'girilmeyen dil eklenmez');
+    assert.ok(de.warnings.includes('Eğitim bilgisi eklenmemiş'));
+    const tr = buildCv(c, 'tr');
+    assert.strictEqual(tr.l.doc, 'Özgeçmiş');
+});

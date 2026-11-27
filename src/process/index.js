@@ -278,7 +278,7 @@ module.exports = function mountProcess(app, deps) {
     app.locals.processHooks = {
         workOrder(wo, action, actor) {
             const labels = { created: 'Görev oluşturuldu', started: 'Göreve başlandı', completed: 'Görev tamamlandı', cancelled: 'Görev iptal edildi', approved: 'Görev onaylandı' };
-            if (!labels[action] || (action === 'created' && wo.source === 'automation')) return;
+            if (!wo.candidateId || !labels[action] || (action === 'created' && wo.source === 'automation')) return;
             event(wo.candidateId, wo.stageKey, action === 'completed' ? 'task_completed' : 'task', `${labels[action]}: ${wo.code} ${wo.title}`, actor && actor.type ? actor : SYSTEM, { workOrderId: wo._id });
         }
     };
@@ -494,7 +494,7 @@ module.exports = function mountProcess(app, deps) {
             Candidate.find({ automationPaused: true }).select('firstName lastName currentStage').lean(),
             AutomationLog.countDocuments({ status: { $in: ['failed', 'partial'] }, resolvedAt: null })
         ]);
-        res.render('admin_automation', { cfgs, staffList, logs, paused, tab, logFilter, failedOpen, CATEGORIES: WorkOrder.CATEGORIES, PRIORITIES: WorkOrder.PRIORITIES, user: { firstName: 'Admin' } });
+        res.render('admin_automation', { cfgs, staffList, logs, paused, tab, logFilter, failedOpen, CATEGORIES: require('../lib/categories').names(), PRIORITIES: WorkOrder.PRIORITIES, user: { firstName: 'Admin' } });
     });
 
     app.post('/admin/otomasyon/:key/settings', adminAuthCheck, async (req, res) => {
@@ -515,7 +515,7 @@ module.exports = function mountProcess(app, deps) {
     });
 
     function readTemplate(b) {
-        const t = { title: str(b.title, 160), description: str(b.description, 2000), category: WorkOrder.CATEGORIES.includes(b.category) ? b.category : 'Diğer', priority: WorkOrder.PRIORITIES.includes(b.priority) ? b.priority : 'Normal', dueDays: Math.max(0, Math.min(365, parseInt(b.dueDays, 10) || 0)), active: b.active === 'on', staffId: isId(b.staffId) ? b.staffId : undefined };
+        const t = { title: str(b.title, 160), description: str(b.description, 2000), category: require('../lib/categories').isValid(b.category) ? b.category : 'Genel Görevler', priority: WorkOrder.PRIORITIES.includes(b.priority) ? b.priority : 'Normal', dueDays: Math.max(0, Math.min(365, parseInt(b.dueDays, 10) || 0)), active: b.active === 'on', staffId: isId(b.staffId) ? b.staffId : undefined };
         return t.title ? t : null;
     }
     app.post('/admin/otomasyon/:key/template', adminAuthCheck, async (req, res) => {
@@ -588,7 +588,7 @@ module.exports = function mountProcess(app, deps) {
             Candidate.find({ stageReviewNeeded: true }).select('firstName lastName currentStage legacyStage company').lean(),
             mongoose.model('Company').find().lean(),
             Candidate.find().select('firstName lastName passportNo email phone phoneNumber company status currentStage').lean(),
-            WorkOrder.aggregate([{ $match: { status: { $in: ['Yeni', 'Devam Ediyor', 'Revizyon'] } } }, { $lookup: { from: 'candidates', localField: 'candidateId', foreignField: '_id', as: 'c' } }, { $match: { c: { $size: 0 } } }, { $project: { code: 1, title: 1, candidateName: 1 } }]).catch(() => []),
+            WorkOrder.aggregate([{ $match: { status: { $in: ['Yeni', 'Devam Ediyor', 'Revizyon'] }, candidateId: { $ne: null } } }, { $lookup: { from: 'candidates', localField: 'candidateId', foreignField: '_id', as: 'c' } }, { $match: { c: { $size: 0 } } }, { $project: { code: 1, title: 1, candidateName: 1 } }]).catch(() => []),
             WorkOrder.aggregate([{ $match: { automationKey: { $type: 'string' } } }, { $group: { _id: '$automationKey', n: { $sum: 1 } } }, { $match: { n: { $gt: 1 } } }]).catch(() => []),
             WorkOrder.find({ status: { $in: ['Yeni', 'Devam Ediyor', 'Revizyon'] } }).select('assignedTo').populate('assignedTo', 'fullName status deletedAt').lean()
         ]);

@@ -4,46 +4,73 @@
 %>
 <div class="modal fade" id="<%= modalId %>" tabindex="-1">
     <div class="modal-dialog modal-lg modal-dialog-centered modal-dialog-scrollable">
-        <form class="modal-content" action="/admin/is-emirleri" method="POST" id="<%= modalId %>Form">
+        <form class="modal-content js-wo-form" action="/admin/is-emirleri" method="POST" id="<%= modalId %>Form">
             <input type="hidden" name="returnTo" value="<%= returnTo %>">
-            <div class="modal-header"><h5 class="modal-title"><i class="fas fa-clipboard-list me-2 text-primary"></i>Yeni İş Emri</h5><button type="button" class="btn-close" data-bs-dismiss="modal"></button></div>
+            <div class="modal-header"><h5 class="modal-title"><i class="fas fa-clipboard-list me-2" style="color:var(--brand)"></i>Yeni İş Emri</h5><button type="button" class="btn-close" data-bs-dismiss="modal"></button></div>
             <div class="modal-body">
                 <% if (!staffList.length) { %>
                     <div class="alert border-0 d-flex gap-2" style="background:var(--warn-50);color:#93370D;border-radius:12px"><i class="fas fa-circle-info mt-1"></i><div>Atanabilecek aktif personel yok. Önce <a href="/admin/personel">Personel Yönetimi</a> sayfasından personel ekleyin.</div></div>
                 <% } %>
                 <div class="row g-3">
                     <div class="col-12">
-                        <label class="form-label">Aday *</label>
                         <% if (fixedCandidate) { %>
+                            <label class="form-label">Aday</label>
                             <input type="hidden" name="candidateId" value="<%= fixedCandidate.id %>">
                             <div class="form-control bg-light"><i class="fas fa-user me-2 muted"></i><%= fixedCandidate.name %></div>
                         <% } else { %>
-                            <input type="search" class="form-control mb-2" placeholder="Aday ara (ad, soyad, pasaport)…" oninput="(function(i){const q=i.value.toLocaleLowerCase('tr-TR');const s=i.nextElementSibling;[...s.options].forEach((o,k)=>{if(k)o.hidden=q&&!o.dataset.s.includes(q)});})(this)">
-                            <select name="candidateId" class="form-select" required size="5" style="height:auto">
-                                <option value="" disabled>Aday seçin</option>
-                                <% candidates.forEach(c => { const n = `${c.firstName || ''} ${c.lastName || ''}`.trim(); %>
-                                    <option value="<%= c._id %>" data-s="<%= (n + ' ' + (c.passportNo || '')).toLocaleLowerCase('tr-TR') %>"><%= n %><%= c.passportNo ? ' · ' + c.passportNo : '' %></option>
-                                <% }) %>
-                            </select>
+                            <label class="form-label">Görev türü</label>
+                            <div class="d-flex gap-3 mb-2 flex-wrap">
+                                <label class="d-flex align-items-center gap-2 small fw-semibold"><input type="radio" class="form-check-input m-0 js-scope" name="_scope" value="general" checked> Genel görev (adaydan bağımsız)</label>
+                                <label class="d-flex align-items-center gap-2 small fw-semibold"><input type="radio" class="form-check-input m-0 js-scope" name="_scope" value="candidate"> Bir adaya bağlı</label>
+                            </div>
+                            <div class="js-cand-box" hidden>
+                                <input type="search" class="form-control mb-2" placeholder="Aday ara (ad, soyad, pasaport)…" oninput="(function(i){const q=i.value.toLocaleLowerCase('tr-TR');const s=i.nextElementSibling;[...s.options].forEach((o,k)=>{if(k)o.hidden=q&&!o.dataset.s.includes(q)});})(this)">
+                                <select name="candidateId" class="form-select" size="5" style="height:auto">
+                                    <option value="" selected>— Aday seçilmedi —</option>
+                                    <% candidates.forEach(c => { const n = `${c.firstName || ''} ${c.lastName || ''}`.trim(); %>
+                                        <option value="<%= c._id %>" data-s="<%= (n + ' ' + (c.passportNo || '')).toLocaleLowerCase('tr-TR') %>"><%= n %><%= c.passportNo ? ' · ' + c.passportNo : '' %></option>
+                                    <% }) %>
+                                </select>
+                            </div>
                         <% } %>
                     </div>
-                    <div class="col-md-6"><label class="form-label">Kategori *</label>
+                    <div class="col-12"><label class="form-label">Görev başlığı *</label><input type="text" name="title" class="form-control" maxlength="160" required placeholder="Örn: Haftalık evrak kontrolü"></div>
+                    <div class="col-md-6"><label class="form-label">Kategori * <a href="/admin/is-emirleri/kategoriler" class="small fw-normal ms-1">düzenle</a></label>
                         <select name="category" class="form-select" required><% CATEGORIES.forEach(c => { %><option><%= c %></option><% }) %></select></div>
-                    <div class="col-md-6"><label class="form-label">Atanacak personel *</label>
-                        <select name="assignedTo" class="form-select" required>
-                            <option value="" selected disabled>Personel seçin</option>
-                            <% staffList.forEach(s => { %><option value="<%= s._id %>"><%= s.fullName %><%= s.title ? ' · ' + s.title : '' %></option><% }) %>
-                        </select></div>
-                    <div class="col-12"><label class="form-label">Görev başlığı *</label><input type="text" name="title" class="form-control" maxlength="160" required placeholder="Örn: Diploma yeminli tercümesini tamamla"></div>
-                    <div class="col-12"><label class="form-label">Detaylı açıklama</label><textarea name="description" class="form-control" rows="4" maxlength="6000" placeholder="Yapılacak işi, beklenen çıktıyı ve dikkat edilmesi gerekenleri yazın."></textarea></div>
-                    <div class="col-md-4"><label class="form-label">Öncelik</label>
+                    <div class="col-md-6"><label class="form-label">Öncelik</label>
                         <select name="priority" class="form-select"><% PRIORITIES.forEach(p => { %><option <%= p === 'Normal' ? 'selected' : '' %>><%= p %></option><% }) %></select></div>
-                    <div class="col-md-4"><label class="form-label">Başlangıç tarihi</label><input type="date" name="startDate" class="form-control" value="<%= today %>"></div>
-                    <div class="col-md-4"><label class="form-label">Son teslim tarihi</label><input type="date" name="dueDate" class="form-control" value="<%= inAWeek %>" min="<%= today %>"></div>
+                    <div class="col-12">
+                        <label class="form-label d-flex align-items-center">Atanacak personel * <span class="muted small fw-normal ms-2 js-staff-count">0 seçili</span>
+                            <button type="button" class="btn btn-link btn-sm ms-auto p-0 js-staff-all">Tümünü seç</button></label>
+                        <div class="staff-pick">
+                            <% staffList.forEach(s => { %>
+                            <label class="staff-opt"><input type="checkbox" class="form-check-input m-0" name="assignedTo" value="<%= s._id %>"><span class="flex-grow-1"><b><%= s.fullName %></b><% if (s.title) { %><span class="muted small"> · <%= s.title %></span><% } %></span></label>
+                            <% }) %>
+                        </div>
+                        <div class="form-text">Birden fazla personel seçerseniz her biri için ayrı görev oluşur; her personel kendi görevini bağımsız tamamlar.</div>
+                    </div>
+                    <div class="col-12"><label class="form-label">Açıklama</label><textarea name="description" class="form-control" rows="3" maxlength="6000" placeholder="Yapılacak işi, beklenen çıktıyı ve dikkat edilmesi gerekenleri yazın."></textarea></div>
+                    <div class="col-md-6"><label class="form-label">Başlangıç tarihi</label><input type="date" name="startDate" class="form-control" value="<%= today %>"></div>
+                    <div class="col-md-6"><label class="form-label">Son teslim tarihi</label><input type="date" name="dueDate" class="form-control" value="<%= inAWeek %>" min="<%= today %>"></div>
+                    <div class="col-12"><label class="form-label">Kontrol listesi <span class="muted small fw-normal">(her satır bir madde, isteğe bağlı)</span></label><textarea name="checklist" class="form-control" rows="3" maxlength="6000" placeholder="Pasaport fotokopisi kontrol edildi&#10;Diploma aslı görüldü"></textarea></div>
                     <div class="col-12"><label class="form-label">Admin notu</label><textarea name="adminNote" class="form-control" rows="2" maxlength="4000" placeholder="Personelin göreceği ek not (isteğe bağlı)"></textarea></div>
                 </div>
             </div>
-            <div class="modal-footer"><span class="muted small me-auto"><i class="far fa-bell me-1"></i>Personele anında bildirim gönderilir.</span><button type="button" class="btn btn-soft" data-bs-dismiss="modal">Vazgeç</button><button class="btn btn-brand" <%= staffList.length ? '' : 'disabled' %>><i class="fas fa-paper-plane me-1"></i>Oluştur ve Ata</button></div>
+            <div class="modal-footer"><span class="muted small me-auto"><i class="far fa-bell me-1"></i>Seçilen her personele anında bildirim gönderilir.</span><button type="button" class="btn btn-soft" data-bs-dismiss="modal">Vazgeç</button><button class="btn btn-brand" data-no-busy="1" <%= staffList.length ? '' : 'disabled' %>><i class="fas fa-paper-plane me-1"></i>Oluştur ve Ata</button></div>
         </form>
     </div>
 </div>
+<script>
+(function () {
+    const f = document.getElementById('<%= modalId %>Form'); if (!f || f.dataset.wired) return; f.dataset.wired = '1';
+    const boxes = () => [...f.querySelectorAll('input[name=assignedTo]')];
+    const upd = () => { const n = boxes().filter(b => b.checked).length; f.querySelector('.js-staff-count').textContent = n + ' seçili'; boxes().forEach(b => b.closest('.staff-opt').classList.toggle('on', b.checked)); };
+    f.addEventListener('change', e => { if (e.target.name === 'assignedTo') upd(); if (e.target.classList.contains('js-scope')) { const c = e.target.value === 'candidate'; f.querySelector('.js-cand-box').hidden = !c; if (!c) f.querySelector('select[name=candidateId]').value = ''; } });
+    f.querySelector('.js-staff-all').addEventListener('click', () => { const all = boxes().every(b => b.checked); boxes().forEach(b => b.checked = !all); upd(); });
+    f.addEventListener('submit', e => {
+        if (!boxes().some(b => b.checked)) { e.preventDefault(); f.querySelector('.staff-pick').classList.add('err'); f.querySelector('.js-staff-count').textContent = 'En az bir personel seçin'; return; }
+        const sc = f.querySelector('.js-scope:checked');
+        if (sc && sc.value === 'candidate' && !f.querySelector('select[name=candidateId]').value) { e.preventDefault(); const s = f.querySelector('select[name=candidateId]'); s.classList.add('is-invalid'); s.focus(); }
+    });
+})();
+</script>

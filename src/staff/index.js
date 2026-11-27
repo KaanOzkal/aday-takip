@@ -10,11 +10,14 @@ const AuditLog = require('../models/AuditLog');
 const { hashPassword, verifyPassword, passwordProblem, randomToken, sha256, loginLimiter } = require('../lib/security');
 const rt = require('../lib/realtime');
 const { isAllowedFile, safeName } = require('../lib/files');
+const cats = require('../lib/categories');
 
-const { STATUSES, PRIORITIES, CATEGORIES } = WorkOrder;
+const { STATUSES, PRIORITIES } = WorkOrder;
+const CAND_LABEL = (w) => w.candidateName || 'Genel görev';
+const REMINDER_HOURS = Math.max(1, Math.min(48, parseInt(process.env.TASK_REMINDER_HOURS, 10) || 2));
 const OPEN = ['Yeni', 'Devam Ediyor', 'Revizyon'];
 const PRIORITY_RANK = { 'Acil': 0, 'Yüksek': 1, 'Normal': 2, 'Düşük': 3 };
-const SENSITIVE_CATEGORIES = ['Vize İşlemleri', 'Tercüme', 'Evrak Takibi', 'Seyahat & Konaklama'];
+const SENSITIVE_CATEGORIES = ['Vize İşlemleri', 'Tercüme', 'Evrak Takibi', 'Seyahat & Konaklama', 'Evrak Kontrolü', 'Belge Takibi'];
 const INVITE_HOURS = 72;
 
 const isId = (v) => typeof v === 'string' && mongoose.Types.ObjectId.isValid(v);
@@ -57,9 +60,9 @@ module.exports = function mountStaffSystem(app, deps) {
         return Notification.countDocuments(q);
     }
 
-    async function notify({ recipientType, recipientId, type, title, message, workOrder }) {
+    async function notify({ recipientType, recipientId, type, title, message, workOrder, link: customLink }) {
         try {
-            const link = workOrder ? (recipientType === 'staff' ? `/personel/gorev/${workOrder._id}` : `/admin/is-emirleri/${workOrder._id}`) : (recipientType === 'staff' ? '/personel/bildirimler' : '/admin/bildirimler');
+            const link = customLink ? customLink : workOrder ? (recipientType === 'staff' ? `/personel/gorev/${workOrder._id}` : `/admin/is-emirleri/${workOrder._id}`) : (recipientType === 'staff' ? '/personel/bildirimler' : '/admin/bildirimler');
             const n = await Notification.create({ recipientType, recipientId: recipientType === 'staff' ? recipientId : undefined, type, title, message, link, workOrderId: workOrder ? workOrder._id : undefined });
             const key = recipientType === 'staff' ? `staff:${recipientId}` : 'admin';
             const unread = await unreadFor(recipientType, recipientId);
@@ -73,21 +76,37 @@ module.exports = function mountStaffSystem(app, deps) {
         wo.history.push({ action, byType: a.type, byName: a.name, note: note ? String(note).slice(0, 600) : '' });
     };
 
-    // Ortak iş emri oluşturma servisi (admin formu, süreç otomasyonu ve AI asistanı kullanır)
+    // Ortak iş emri oluşturma servisi (admin formu, süreç otomasyonu, tekrarlayan görevler ve AI asistanı kullanır)
+    // candidate isteğe bağlıdır: verilmezse adaydan bağımsız "genel görev" oluşur.
     async function createWorkOrder(o) {
         const { candidate, staff, actor } = o;
+        const category = cats.isValid(o.category) ? o.category : (typeof o.category === 'string' && o.category.trim() ? o.category.trim().slice(0, 60) : 'Genel Görevler');
         const wo = new WorkOrder({
-            code: await nextCode(), candidateId: candidate._id, candidateName: `${candidate.firstName || ''} ${candidate.lastName || ''}`.trim(),
-            category: CATEGORIES.includes(o.category) ? o.category : 'Diğer', title: String(o.title).slice(0, 160), description: String(o.description || '').slice(0, 6000),
+            code: await nextCode(), candidateId: candidate ? candidate._id : undefined,
+            candidateName: candidate ? `${candidate.firstName || ''} ${candidate.lastName || ''}`.trim() : '',
+            category, title: String(o.title).slice(0, 160), description: String(o.description || '').slice(0, 6000),
             assignedTo: staff._id, priority: PRIORITIES.includes(o.priority) ? o.priority : 'Normal', startDate: o.startDate || new Date(), dueDate: o.dueDate || null,
             adminNote: String(o.adminNote || '').slice(0, 4000), status: 'Yeni',
+            groupId: o.groupId || undefined, groupSize: o.groupSize || 1,
+            checklist: (o.checklist || []).filter(Boolean).slice(0, 30).map(t => ({ text: String(t).slice(0, 200) })),
+            recurringId: o.recurringId || undefined, createdByType: actor.type, createdByName: actor.name,
             stageKey: o.stageKey || undefined, templateId: o.templateId || undefined, automationKey: o.automationKey || undefined, source: o.source || 'manual'
         });
-        wo.history.push({ action: 'Oluşturuldu', byType: actor.type, byName: actor.name, note: o.historyNote || `${staff.fullName} kişisine atandı` });
+        wo.history.push({ action: 'Oluşturuldu', byType: actor.type, byName: actor.name, note: o.historyNote || `${staff.fullName} kişisine atandı${o.groupSize > 1 ? ` (${o.groupSize} kişilik ortak görev)` : ''}` });
         await wo.save();
-        await notify({ recipientType: 'staff', recipientId: staff._id, type: 'assigned', title: 'Yeni iş emri atandı', message: `${wo.code} · ${wo.title} (${wo.candidateName})`, workOrder: wo });
+        await notify({ recipientType: 'staff', recipientId: staff._id, type: 'assigned', title: 'Yeni iş emri atandı', message: `${wo.code} · ${wo.title} (${CAND_LABEL(wo)})`, workOrder: wo });
         fireHook(wo, 'created', actor);
         return wo;
+    }
+
+    // Aynı iş emrini birden fazla personele ata: her personel için ayrı kayıt, ortak groupId.
+    // Bir personelin tamamlaması diğerlerinin durumunu değiştirmez.
+    async function createWorkOrderGroup(o) {
+        const staffList = o.staffList;
+        const groupId = staffList.length > 1 ? new mongoose.Types.ObjectId() : undefined;
+        const out = [];
+        for (const staff of staffList) out.push(await createWorkOrder({ ...o, staff, groupId, groupSize: staffList.length }));
+        return out;
     }
 
     // Süreç modülüne iş emri olaylarını bildir (aday süreç geçmişi için)
@@ -127,7 +146,7 @@ module.exports = function mountStaffSystem(app, deps) {
     async function attachFile(req, wo, type) {
         if (!req.file) return null;
         if (!isAllowedFile(req.file, ALLOWED)) throw Object.assign(new Error('bad_type'), { code: 'bad_type' });
-        const folder = `İş Emirleri - ${wo.candidateName || 'Aday'}`;
+        const folder = `İş Emirleri - ${wo.candidateName || 'Genel Görevler'}`;
         req.file.originalname = safeName(req.file.originalname);
         const f = await uploadToGoogleDrive(req.file, folder);
         const a = actorOf(req);
@@ -163,7 +182,7 @@ module.exports = function mountStaffSystem(app, deps) {
     app.locals.woStatusTone = (s) => ({ 'Yeni': 't-brand', 'Devam Ediyor': 't-info', 'Revizyon': 't-warn', 'Tamamlandı': 't-ok', 'İptal': 't-gray' })[s] || 't-gray';
     app.locals.woPriorityTone = (p) => ({ 'Acil': 't-bad', 'Yüksek': 't-warn', 'Normal': 't-brand', 'Düşük': 't-gray' })[p] || 't-gray';
     app.locals.woPriorityIcon = (p) => ({ 'Acil': 'fa-angles-up', 'Yüksek': 'fa-angle-up', 'Normal': 'fa-minus', 'Düşük': 'fa-angle-down' })[p] || 'fa-minus';
-    app.locals.notifIcon = (t) => ({ assigned: ['fa-clipboard-list', 't-brand'], updated: ['fa-pen', 't-info'], cancelled: ['fa-ban', 't-gray'], due_soon: ['fa-hourglass-half', 't-warn'], overdue: ['fa-triangle-exclamation', 't-bad'], comment: ['fa-comment-dots', 't-info'], completed: ['fa-circle-check', 't-ok'], revision: ['fa-rotate-left', 't-warn'], started: ['fa-play', 't-brand'] })[t] || ['fa-bell', 't-gray'];
+    app.locals.notifIcon = (t) => ({ assigned: ['fa-clipboard-list', 't-brand'], updated: ['fa-pen', 't-info'], cancelled: ['fa-ban', 't-gray'], due_soon: ['fa-hourglass-half', 't-warn'], overdue: ['fa-triangle-exclamation', 't-bad'], comment: ['fa-comment-dots', 't-info'], completed: ['fa-circle-check', 't-ok'], revision: ['fa-rotate-left', 't-warn'], started: ['fa-play', 't-brand'], announcement: ['fa-bullhorn', 't-warn'], reminder: ['fa-alarm-clock', 't-warn'] })[t] || ['fa-bell', 't-gray'];
     app.locals.fmtDT = (d, withTime = true) => { if (!d) return '—'; const x = new Date(d); if (isNaN(x)) return '—'; return x.toLocaleString('tr-TR', { timeZone: 'Europe/Istanbul', day: '2-digit', month: 'short', year: 'numeric', ...(withTime ? { hour: '2-digit', minute: '2-digit' } : {}) }); };
     app.locals.fmtAgo = (d) => { const s = (Date.now() - new Date(d)) / 1000; if (s < 60) return 'az önce'; if (s < 3600) return Math.floor(s / 60) + ' dk önce'; if (s < 86400) return Math.floor(s / 3600) + ' sa önce'; if (s < 7 * 86400) return Math.floor(s / 86400) + ' gün önce'; return new Date(d).toLocaleDateString('tr-TR', { timeZone: 'Europe/Istanbul', day: 'numeric', month: 'short' }); };
     app.locals.dueLabel = (w) => { if (!w.dueDate) return null; const ms = new Date(w.dueDate) - Date.now(); const open = OPEN.includes(w.status); if (!open) return null; if (ms < 0) { const d = Math.ceil(-ms / 864e5); return { text: d <= 1 ? 'Gecikti' : `${d} gün gecikti`, tone: 't-bad' }; } const h = ms / 36e5; if (h < 24) return { text: 'Bugün / 24 sa içinde', tone: 't-warn' }; const d = Math.ceil(h / 24); return { text: `${d} gün kaldı`, tone: d <= 3 ? 't-warn' : 't-gray' }; };
@@ -227,10 +246,10 @@ module.exports = function mountStaffSystem(app, deps) {
 
     function inviteMailHtml(staff, link, reset) {
         return `<div style="font-family:Arial,sans-serif;background:#f4f6fb;padding:24px"><div style="max-width:560px;margin:auto;background:#fff;border:1px solid #e5e7eb;border-radius:12px;overflow:hidden">
-        <div style="background:#0b1220;color:#fff;padding:16px 22px;font-weight:bold;letter-spacing:1px">BERLINER · Personel Paneli</div>
+        <div style="background:#0b1220;color:#fff;padding:14px 22px;font-weight:bold;letter-spacing:1px;border-bottom:4px solid #D4111B">${process.env.APP_URL ? `<img src="${esc(process.env.APP_URL.replace(/\/$/, ''))}/img/berliner-logo-96.png" alt="" width="36" height="36" style="vertical-align:middle;margin-right:10px;border-radius:50%;background:#fff">` : ''}BERLINER · Personel Paneli</div>
         <div style="padding:22px;color:#1f2937;font-size:15px;line-height:1.6"><p>Merhaba ${esc(staff.fullName)},</p>
         <p>${reset ? 'Şifre sıfırlama talebiniz oluşturuldu.' : 'BERLINER personel paneline davet edildiniz.'} Aşağıdaki bağlantıdan şifrenizi belirleyebilirsiniz. Bağlantı ${INVITE_HOURS} saat geçerlidir.</p>
-        <p><a href="${esc(link)}" style="display:inline-block;background:#2F54EB;color:#fff;text-decoration:none;padding:12px 20px;border-radius:10px;font-weight:bold">Şifremi Belirle</a></p>
+        <p><a href="${esc(link)}" style="display:inline-block;background:#D4111B;color:#fff;text-decoration:none;padding:12px 20px;border-radius:10px;font-weight:bold">Şifremi Belirle</a></p>
         <p style="color:#6b7280;font-size:13px">Kullanıcı adınız: <b>${esc(staff.username)}</b></p></div></div></div>`;
     }
 
@@ -277,7 +296,7 @@ module.exports = function mountStaffSystem(app, deps) {
         const activeStaffCount = Math.max(1, await Staff.countDocuments({ deletedAt: null, status: 'active' }));
         const myOpen = orders.filter(o => OPEN.includes(o.status));
         const candMap = {};
-        orders.forEach(o => { const k = String(o.candidateId); const e = candMap[k] || (candMap[k] = { id: k, name: o.candidateName, open: 0, total: 0 }); e.total++; if (OPEN.includes(o.status)) e.open++; });
+        orders.filter(o => o.candidateId).forEach(o => { const k = String(o.candidateId); const e = candMap[k] || (candMap[k] = { id: k, name: o.candidateName, open: 0, total: 0 }); e.total++; if (OPEN.includes(o.status)) e.open++; });
         const workload = { open: myOpen.length, overdue: myOpen.filter(isOverdue).length, teamAvg: teamOpen.reduce((a, x) => a + x.n, 0) / activeStaffCount, teamMax: Math.max(1, ...teamOpen.map(x => x.n)) };
         const st = computeStats(orders);
         res.render('admin_staff_detail', { staff, orders, stats: st, logs, flash, workload, workedCands: Object.values(candMap).sort((a, b) => b.open - a.open || b.total - a.total), completionRate: st.total ? Math.round(st.completed / Math.max(1, st.total) * 100) : null, user: { firstName: 'Admin' } });
@@ -362,62 +381,84 @@ module.exports = function mountStaffSystem(app, deps) {
     //  ADMIN · İŞ EMİRLERİ
     // ==================================================================
     app.get('/admin/is-emirleri', adminAuthCheck, async (req, res) => {
+        const dateOk = (v) => typeof v === 'string' && /^\d{4}-\d{2}-\d{2}$/.test(v);
         const f = {
             q: str(req.query.q, 80),
-            status: STATUSES.includes(req.query.status) ? req.query.status : (req.query.status === 'open' ? 'open' : ''),
+            status: STATUSES.includes(req.query.status) ? req.query.status : (['open', 'pending'].includes(req.query.status) ? req.query.status : ''),
             staff: isId(req.query.staff) ? req.query.staff : '',
             priority: PRIORITIES.includes(req.query.priority) ? req.query.priority : '',
-            category: CATEGORIES.includes(req.query.category) ? req.query.category : '',
+            category: typeof req.query.category === 'string' ? req.query.category.slice(0, 60) : '',
+            scope: ['candidate', 'general', 'group'].includes(req.query.scope) ? req.query.scope : '',
+            from: dateOk(req.query.from) ? req.query.from : '', to: dateOk(req.query.to) ? req.query.to : '',
             overdue: req.query.overdue === '1', review: req.query.review === '1',
             sort: ['due', 'priority', 'created', 'updated'].includes(req.query.sort) ? req.query.sort : 'created'
         };
         const query = {};
-        if (f.status === 'open') query.status = { $in: OPEN }; else if (f.status) query.status = f.status;
+        if (f.status === 'open') query.status = { $in: OPEN }; else if (f.status === 'pending') query.status = { $in: ['Yeni', 'Revizyon'] }; else if (f.status) query.status = f.status;
         if (f.staff) query.assignedTo = f.staff;
         if (f.priority) query.priority = f.priority;
         if (f.category) query.category = f.category;
+        if (f.scope === 'candidate') query.candidateId = { $ne: null };
+        if (f.scope === 'general') query.candidateId = null;
+        if (f.scope === 'group') query.groupSize = { $gt: 1 };
+        if (f.from || f.to) { query.createdAt = {}; if (f.from) query.createdAt.$gte = new Date(`${f.from}T00:00:00+03:00`); if (f.to) query.createdAt.$lte = new Date(`${f.to}T23:59:59+03:00`); }
         if (f.overdue) { query.status = { $in: OPEN }; query.dueDate = { $lt: new Date() }; }
         if (f.review) { query.status = 'Tamamlandı'; query['history.action'] = { $ne: 'Onaylandı' }; }
         let list = await WorkOrder.find(query).select('-history -comments').populate('assignedTo', 'fullName title deletedAt').sort({ createdAt: -1 }).limit(1000).lean();
-        if (f.q) { const q = f.q.toLocaleLowerCase('tr-TR'); list = list.filter(w => [w.code, w.title, w.candidateName, w.category, w.assignedTo && w.assignedTo.fullName].join(' ').toLocaleLowerCase('tr-TR').includes(q)); }
+        if (f.q) { const q = f.q.toLocaleLowerCase('tr-TR'); list = list.filter(w => [w.code, w.title, w.candidateName, w.category, w.createdByName, w.assignedTo && w.assignedTo.fullName].join(' ').toLocaleLowerCase('tr-TR').includes(q)); }
         const far = new Date(8640000000000000);
         if (f.sort === 'due') list.sort((a, b) => new Date(a.dueDate || far) - new Date(b.dueDate || far));
         if (f.sort === 'priority') list.sort((a, b) => (PRIORITY_RANK[a.priority] - PRIORITY_RANK[b.priority]) || (new Date(a.dueDate || far) - new Date(b.dueDate || far)));
         if (f.sort === 'updated') list.sort((a, b) => new Date(b.updatedAt) - new Date(a.updatedAt));
         const [staffList, candidates, all] = await Promise.all([
             Staff.find({ deletedAt: null }).sort({ fullName: 1 }).select('fullName title status').lean(),
-            Candidate.find().select('firstName lastName passportNo').sort({ firstName: 1 }).lean(),
+            Candidate.find({ status: { $ne: 'cancelled' } }).select('firstName lastName passportNo').sort({ firstName: 1 }).lean(),
             WorkOrder.find().select('status dueDate history.action').lean()
         ]);
         const counts = {
-            open: all.filter(w => OPEN.includes(w.status)).length, overdue: all.filter(isOverdue).length,
-            review: all.filter(w => w.status === 'Tamamlandı' && !(w.history || []).some(h => h.action === 'Onaylandı')).length, total: all.length
+            total: all.length,
+            pending: all.filter(w => w.status === 'Yeni' || w.status === 'Revizyon').length,
+            progress: all.filter(w => w.status === 'Devam Ediyor').length,
+            done: all.filter(w => w.status === 'Tamamlandı').length,
+            overdue: all.filter(isOverdue).length,
+            cancelled: all.filter(w => w.status === 'İptal').length,
+            open: all.filter(w => OPEN.includes(w.status)).length,
+            review: all.filter(w => w.status === 'Tamamlandı' && !(w.history || []).some(h => h.action === 'Onaylandı')).length
         };
-        res.render('admin_workorders', { list, f, staffList, candidates, counts, STATUSES, PRIORITIES, CATEGORIES, user: { firstName: 'Admin' } });
+        res.render('admin_workorders', { list, f, staffList, candidates, counts, STATUSES, PRIORITIES, CATEGORIES: cats.names(), user: { firstName: 'Admin' } });
     });
 
     app.post('/admin/is-emirleri', adminAuthCheck, async (req, res) => {
         const back = safeBack(req, '/admin/is-emirleri');
         try {
             const b = req.body;
-            if (!isId(b.candidateId) || !isId(b.assignedTo)) return res.redirect(withParam(back, 'error', 'missing_fields'));
+            // Çoklu personel seçimi (assignedTo tek değer veya dizi gelebilir)
+            const staffIds = [...new Set((Array.isArray(b.assignedTo) ? b.assignedTo : [b.assignedTo]).filter(isId))];
             const title = str(b.title, 160);
-            if (!title) return res.redirect(withParam(back, 'error', 'missing_fields'));
-            const [cand, staff] = await Promise.all([Candidate.findById(b.candidateId).select('firstName lastName'), Staff.findById(b.assignedTo)]);
-            if (!cand) return res.redirect(withParam(back, 'error', 'not_found'));
-            if (!staff || staff.deletedAt || staff.status !== 'active') return res.redirect(withParam(back, 'error', 'staff_inactive'));
+            if (!staffIds.length || !title) return res.redirect(withParam(back, 'error', 'missing_fields'));
+            if (staffIds.length > 25) return res.redirect(withParam(back, 'error', 'invalid_action'));
+            let cand = null;
+            if (b.candidateId) { // aday isteğe bağlı
+                if (!isId(b.candidateId)) return res.redirect(withParam(back, 'error', 'not_found'));
+                cand = await Candidate.findById(b.candidateId).select('firstName lastName status');
+                if (!cand) return res.redirect(withParam(back, 'error', 'not_found'));
+            }
+            const staffList = await Staff.find({ _id: { $in: staffIds } });
+            if (staffList.length !== staffIds.length || staffList.some(s => s.deletedAt || s.status !== 'active')) return res.redirect(withParam(back, 'error', 'staff_inactive'));
+            if (!cats.isValid(b.category)) return res.redirect(withParam(back, 'error', 'bad_category'));
             const startDate = parseDate(b.startDate) || new Date();
             const dueDate = endOfDay(b.dueDate || null);
             if (b.dueDate && !dueDate) return res.redirect(withParam(back, 'error', 'bad_date'));
             if (dueDate && dueDate < new Date(new Date(startDate).setHours(0, 0, 0, 0))) return res.redirect(withParam(back, 'error', 'bad_date'));
-            const stageKey = app.locals.stageKeys && app.locals.stageKeys.includes(b.stageKey) ? b.stageKey : undefined;
-            const wo = await createWorkOrder({
-                candidate: cand, staff, actor: actorOf(req), category: b.category, title, description: str(b.description, 6000),
-                priority: b.priority, startDate, dueDate, adminNote: str(b.adminNote, 4000), stageKey, source: 'manual'
+            const stageKey = cand && app.locals.stageKeys && app.locals.stageKeys.includes(b.stageKey) ? b.stageKey : undefined;
+            const checklist = str(b.checklist, 6000).split(/\r?\n/).map(x => x.trim()).filter(Boolean);
+            const created = await createWorkOrderGroup({
+                candidate: cand, staffList, actor: actorOf(req), category: b.category, title, description: str(b.description, 6000),
+                priority: b.priority, startDate, dueDate, adminNote: str(b.adminNote, 4000), stageKey, checklist, source: 'manual'
             });
-            await audit(req, 'workorder.create', 'WorkOrder', wo._id, `${wo.code} "${wo.title}" → ${staff.fullName}`);
+            await audit(req, 'workorder.create', 'WorkOrder', created[0]._id, `${created.map(w => w.code).join(', ')} "${title}" → ${staffList.map(s => s.fullName).join(', ')}${cand ? '' : ' (genel görev)'}`);
             if (back.startsWith('/admin/candidate/')) return res.redirect(withParam(back, 'status', 'wo_created'));
-            res.redirect(`/admin/is-emirleri/${wo._id}?status=wo_created`);
+            res.redirect(`/admin/is-emirleri/${created[0]._id}?status=${created.length > 1 ? 'wo_group_created' : 'wo_created'}`);
         } catch (e) {
             console.error('İş emri oluşturma hatası:', e);
             res.redirect(withParam(back, 'error', 'create_failed'));
@@ -436,10 +477,12 @@ module.exports = function mountStaffSystem(app, deps) {
         const wo = await WorkOrder.findById(req.params.id).populate('assignedTo', 'fullName title email phone status deletedAt').lean();
         if (!wo) return res.redirect('/admin/is-emirleri?error=not_found');
         const [candidate, staffList] = await Promise.all([
-            Candidate.findById(wo.candidateId).select('firstName lastName passportNo email phone phoneNumber job location currentStage company').lean(),
+            wo.candidateId ? Candidate.findById(wo.candidateId).select('firstName lastName passportNo email phone phoneNumber job location currentStage company').lean() : null,
             Staff.find({ deletedAt: null, status: 'active' }).sort({ fullName: 1 }).select('fullName title').lean()
         ]);
-        res.render('admin_workorder_detail', { wo, candidate, staffList, STATUSES, PRIORITIES, CATEGORIES, overdue: isOverdue(wo), user: { firstName: 'Admin' } });
+        const group = wo.groupId ? await WorkOrder.find({ groupId: wo.groupId }).select('code status assignedTo startedAt completedAt dueDate checklist').populate('assignedTo', 'fullName title').sort({ createdAt: 1 }).lean() : [];
+        const catList = cats.names(); if (wo.category && !catList.includes(wo.category)) catList.push(wo.category);
+        res.render('admin_workorder_detail', { wo, candidate, staffList, group, STATUSES, PRIORITIES, CATEGORIES: catList, overdue: isOverdue(wo), user: { firstName: 'Admin' } });
     });
 
     app.post('/admin/is-emirleri/:id/edit', adminAuthCheck, async (req, res) => {
@@ -457,7 +500,16 @@ module.exports = function mountStaffSystem(app, deps) {
             };
             set('title', title, 'başlık');
             set('description', str(b.description, 6000), 'açıklama');
-            if (CATEGORIES.includes(b.category)) set('category', b.category, 'kategori');
+            if (cats.isValid(b.category) || b.category === wo.category) set('category', b.category, 'kategori');
+            if (typeof b.checklist === 'string') { // kontrol listesi: aynı metinli maddelerin işaret durumu korunur
+                const lines = b.checklist.split(/\r?\n/).map(x => x.trim().slice(0, 200)).filter(Boolean).slice(0, 30);
+                const prev = wo.checklist.map(c => c.text);
+                if (lines.join('\n') !== prev.join('\n')) {
+                    const old = Object.fromEntries(wo.checklist.map(c => [c.text, c]));
+                    wo.checklist = lines.map(t => old[t] ? { text: t, done: old[t].done, doneAt: old[t].doneAt } : { text: t });
+                    changes.push('kontrol listesi');
+                }
+            }
             if (PRIORITIES.includes(b.priority)) set('priority', b.priority, 'öncelik');
             set('adminNote', str(b.adminNote, 4000), 'admin notu');
             const sd = parseDate(b.startDate); if (sd) set('startDate', sd, 'başlangıç tarihi');
@@ -476,7 +528,7 @@ module.exports = function mountStaffSystem(app, deps) {
             pushHistory(wo, req, 'Güncellendi', changes.join(', '));
             await wo.save();
             if (newStaff) {
-                await notify({ recipientType: 'staff', recipientId: newStaff._id, type: 'assigned', title: 'Yeni iş emri atandı', message: `${wo.code} · ${wo.title} (${wo.candidateName})`, workOrder: wo });
+                await notify({ recipientType: 'staff', recipientId: newStaff._id, type: 'assigned', title: 'Yeni iş emri atandı', message: `${wo.code} · ${wo.title} (${CAND_LABEL(wo)})`, workOrder: wo });
                 await notify({ recipientType: 'staff', recipientId: prevStaff, type: 'cancelled', title: 'İş emri başka personele aktarıldı', message: `${wo.code} · ${wo.title} artık size atanmış değil.`, workOrder: null });
             }
             const other = changes.filter(c => c !== 'atanan personel');
@@ -603,7 +655,7 @@ module.exports = function mountStaffSystem(app, deps) {
     });
 
     // Diğer modüllerin kullandığı servisler
-    app.locals.services = { createWorkOrder, notify, audit, actorOf, unreadFor, computeStats, isOverdue, OPEN };
+    app.locals.services = { createWorkOrder, createWorkOrderGroup, notify, audit, actorOf, unreadFor, computeStats, isOverdue, OPEN };
 
     // Aday detay sayfası için iş emri verisi (app.js'teki rota kullanır)
     app.locals.loadCandidateWorkOrders = async (candidateId) => {
@@ -611,7 +663,7 @@ module.exports = function mountStaffSystem(app, deps) {
             WorkOrder.find({ candidateId }).select('-history -comments -attachments').populate('assignedTo', 'fullName').sort({ createdAt: -1 }).lean(),
             Staff.find({ deletedAt: null, status: 'active' }).sort({ fullName: 1 }).select('fullName title').lean()
         ]);
-        return { orders, staff, CATEGORIES, PRIORITIES };
+        return { orders, staff, CATEGORIES: cats.names(), PRIORITIES };
     };
 
     // ==================================================================
@@ -720,21 +772,31 @@ module.exports = function mountStaffSystem(app, deps) {
     app.get('/personel/panel', staffAuth, async (req, res) => {
         const all = await WorkOrder.find({ assignedTo: req.staff._id }).select('-history -comments -attachments -adminNote').lean();
         const stats = computeStats(all);
+        stats.pending = all.filter(w => w.status === 'Yeni' || w.status === 'Revizyon').length;
+        stats.progressOnly = all.filter(w => w.status === 'Devam Ediyor').length;
         const now = Date.now();
-        const upcoming = all.filter(w => OPEN.includes(w.status) && w.dueDate && new Date(w.dueDate) >= now && new Date(w.dueDate) - now < 7 * 864e5)
-            .sort((a, b) => new Date(a.dueDate) - new Date(b.dueDate)).slice(0, 6);
+        const open = all.filter(w => OPEN.includes(w.status));
+        const far = new Date(8640000000000000);
+        const byPriority = (a, b) => (PRIORITY_RANK[a.priority] - PRIORITY_RANK[b.priority]) || (new Date(a.dueDate || far) - new Date(b.dueDate || far));
+        const upcoming = open.filter(w => w.dueDate && new Date(w.dueDate) >= now && new Date(w.dueDate) - now < 7 * 864e5).sort((a, b) => new Date(a.dueDate) - new Date(b.dueDate)).slice(0, 6);
+        const endToday = new Date(); endToday.setHours(23, 59, 59, 999);
+        const today = open.filter(w => isOverdue(w) || (w.dueDate && new Date(w.dueDate) <= endToday) || w.status === 'Devam Ediyor').sort(byPriority).slice(0, 8);
+        const latest = all.slice().sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt)).slice(0, 5);
+        const doneRecent = all.filter(w => w.status === 'Tamamlandı').sort((a, b) => new Date(b.completedAt || 0) - new Date(a.completedAt || 0)).slice(0, 5);
+        const activeTask = open.filter(w => w.status === 'Devam Ediyor').sort((a, b) => new Date(b.startedAt || 0) - new Date(a.startedAt || 0))[0] || null;
+        const nextTask = open.filter(w => w.status !== 'Devam Ediyor' && (!w.startDate || new Date(w.startDate) <= now)).sort(byPriority)[0] || null;
         const filter = ['new', 'progress', 'done', 'overdue', 'cancelled', 'open', 'all'].includes(req.query.f) ? req.query.f : 'open';
         const sort = ['priority', 'due', 'created'].includes(req.query.sort) ? req.query.sort : 'priority';
         const list = all.filter(w => ({
             new: w.status === 'Yeni', progress: w.status === 'Devam Ediyor' || w.status === 'Revizyon', done: w.status === 'Tamamlandı',
             overdue: isOverdue(w), cancelled: w.status === 'İptal', open: OPEN.includes(w.status), all: true
         })[filter]);
-        const far = new Date(8640000000000000);
-        if (sort === 'priority') list.sort((a, b) => (PRIORITY_RANK[a.priority] - PRIORITY_RANK[b.priority]) || (new Date(a.dueDate || far) - new Date(b.dueDate || far)));
+        if (sort === 'priority') list.sort(byPriority);
         if (sort === 'due') list.sort((a, b) => new Date(a.dueDate || far) - new Date(b.dueDate || far));
         if (sort === 'created') list.sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
         const recent = await Notification.find({ recipientType: 'staff', recipientId: req.staff._id }).sort({ createdAt: -1 }).limit(5).lean();
-        res.render('staff_dashboard', { stats, upcoming, list, filter, sort, recent, page: 'panel' });
+        const ops = app.locals.opsStaffDashboard ? await app.locals.opsStaffDashboard(req.staff) : { team: [], maxActive: 1, announcements: [], eta: null };
+        res.render('staff_dashboard', { stats, upcoming, today, latest, doneRecent, activeTask, nextTask, list, filter, sort, recent, ops, page: 'panel' });
     });
 
     async function ownTask(req, res) {
@@ -753,7 +815,7 @@ module.exports = function mountStaffSystem(app, deps) {
         const wo = await ownTask(req, res); if (!wo) return;
         const sensitive = SENSITIVE_CATEGORIES.includes(wo.category);
         let candidate = null;
-        if (wo.status !== 'İptal') {
+        if (wo.status !== 'İptal' && wo.candidateId) {
             const fields = 'firstName lastName email phone phoneNumber job location currentStage targetState documents._id documents.name documents.status documents.date documents.fileId' + (sensitive ? ' passportNo' : '');
             candidate = await Candidate.findById(wo.candidateId).select(fields).lean();
         }
@@ -777,6 +839,21 @@ module.exports = function mountStaffSystem(app, deps) {
         fireHook(wo, 'started', actorOf(req));
         await audit(req, 'workorder.start', 'WorkOrder', wo._id, `${wo.code} başlatıldı`);
         res.redirect(withParam(staffBack(req), 'status', 'started'));
+    });
+
+    // Kontrol listesi maddesi işaretle / kaldır (yalnızca kendi görevinde, görev açıkken)
+    app.post('/personel/gorev/:id/checklist/:itemId', staffAuth, async (req, res) => {
+        const wo = await ownTask(req, res); if (!wo) return;
+        const json = (req.get('accept') || '').includes('application/json');
+        const item = isId(req.params.itemId) ? wo.checklist.id(req.params.itemId) : null;
+        if (!item || !OPEN.includes(wo.status)) return json ? res.status(400).json({ error: 'invalid_state' }) : res.redirect(withParam(staffBack(req), 'error', 'invalid_state'));
+        item.done = !item.done; item.doneAt = item.done ? new Date() : undefined;
+        if (wo.status === 'Yeni' && item.done) { wo.status = 'Devam Ediyor'; if (!wo.startedAt) wo.startedAt = new Date(); pushHistory(wo, req, 'Göreve başladı'); }
+        pushHistory(wo, req, item.done ? 'Kontrol maddesi tamamlandı' : 'Kontrol maddesi geri alındı', item.text);
+        await wo.save();
+        const done = wo.checklist.filter(c => c.done).length;
+        if (json) return res.json({ ok: true, done: item.done, progress: { done, total: wo.checklist.length } });
+        res.redirect(staffBack(req) + '#checklist');
     });
 
     app.post('/personel/gorev/:id/complete', staffAuth, uploadSingle('file', staffBack), async (req, res) => {
@@ -840,6 +917,7 @@ module.exports = function mountStaffSystem(app, deps) {
     app.post('/personel/bildirimler/read-all', staffAuth, async (req, res) => {
         await Notification.updateMany({ recipientType: 'staff', recipientId: req.staff._id, isRead: false }, { $set: { isRead: true, readAt: new Date() } });
         rt.publish(`staff:${req.staff._id}`, 'unread', { unread: 0 });
+        if ((req.get('accept') || '').includes('application/json')) return res.json({ ok: true, unread: 0 });
         res.redirect('/personel/bildirimler?status=all_read');
     });
     app.post('/personel/bildirimler/:id/read', staffAuth, async (req, res) => {
@@ -875,16 +953,24 @@ module.exports = function mountStaffSystem(app, deps) {
         try {
             const now = new Date(), soon = new Date(Date.now() + 24 * 36e5);
             const dueSoon = await WorkOrder.find({ status: { $in: OPEN }, dueDate: { $gte: now, $lte: soon }, dueSoonNotifiedAt: null });
+            const remindLimit = new Date(Date.now() + REMINDER_HOURS * 36e5);
             for (const wo of dueSoon) {
-                wo.dueSoonNotifiedAt = now; await wo.save();
+                wo.dueSoonNotifiedAt = now; if (wo.dueDate <= remindLimit) wo.reminderNotifiedAt = now; await wo.save();
                 const when = wo.dueDate.toLocaleString('tr-TR', { timeZone: 'Europe/Istanbul', day: 'numeric', month: 'long', hour: '2-digit', minute: '2-digit' });
                 await notify({ recipientType: 'staff', recipientId: wo.assignedTo, type: 'due_soon', title: 'Son teslim tarihi yaklaşıyor', message: `${wo.code} · ${wo.title} — ${when}`, workOrder: wo });
+            }
+            // Teslim hatırlatması: son REMINDER_HOURS saat kala ikinci bildirim
+            const remind = await WorkOrder.find({ status: { $in: OPEN }, dueDate: { $gte: now, $lte: remindLimit }, reminderNotifiedAt: null });
+            for (const wo of remind) {
+                wo.reminderNotifiedAt = now; await wo.save();
+                const mins = Math.max(1, Math.round((wo.dueDate - now) / 60000));
+                await notify({ recipientType: 'staff', recipientId: wo.assignedTo, type: 'due_soon', title: 'Teslim hatırlatması', message: `${wo.code} · ${wo.title} — teslime ${mins >= 60 ? Math.round(mins / 60) + ' saat' : mins + ' dakika'} kaldı`, workOrder: wo });
             }
             const overdue = await WorkOrder.find({ status: { $in: OPEN }, dueDate: { $lt: now }, overdueNotifiedAt: null });
             for (const wo of overdue) {
                 wo.overdueNotifiedAt = now; await wo.save();
                 await notify({ recipientType: 'staff', recipientId: wo.assignedTo, type: 'overdue', title: 'Görev gecikti', message: `${wo.code} · ${wo.title} teslim tarihini geçti.`, workOrder: wo });
-                await notify({ recipientType: 'admin', type: 'overdue', title: 'Geciken görev', message: `${wo.code} · ${wo.title} (${wo.candidateName})`, workOrder: wo });
+                await notify({ recipientType: 'admin', type: 'overdue', title: 'Geciken görev', message: `${wo.code} · ${wo.title} (${CAND_LABEL(wo)})`, workOrder: wo });
             }
         } catch (e) { console.error('Teslim tarihi taraması hatası:', e.message); }
     }

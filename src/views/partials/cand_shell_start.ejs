@@ -6,12 +6,15 @@
         { lbl: 'Genel', items: [
             { k: 'panel', href: '/panel', i: 'fa-house', t: 'Ana Sayfa' },
             { k: 'processes', href: '/processes', i: 'fa-list-check', t: 'Süreç Takibi' },
-            { k: 'germany_process', href: '/germany-process', i: 'fa-plane-departure', t: 'Almanya Süreci' }
+            { k: 'germany_process', href: '/germany-process', i: 'fa-plane-departure', t: 'Almanya Entegrasyonu' }
         ]},
         { lbl: 'Başvurum', items: [
+            { k: 'personal', href: '/kisisel-bilgiler', i: 'fa-id-card', t: 'Kişisel Bilgilerim' },
+            { k: 'work', href: '/is-gecmisi', i: 'fa-briefcase', t: 'İş Geçmişim' },
             { k: 'documents', href: '/documents', i: 'fa-folder-open', t: 'Belgelerim' },
+            { k: 'payments', href: '/odemelerim', i: 'fa-receipt', t: 'Ödemelerim' },
+            { k: 'cv', href: '/cv', i: 'fa-file-lines', t: 'CV\'m (Lebenslauf)' },
             { k: 'application_form', href: '/application-form', i: 'fa-file-signature', t: 'Başvuru Formu' },
-            { k: 'cv-builder', href: '/cv-builder', i: 'fa-id-badge', t: 'CV Oluşturucu' },
             { k: 'appointments', href: '/appointments', i: 'fa-calendar-check', t: 'Randevular' },
             { k: 'messages', href: '/messages', i: 'fa-comments', t: 'Mesajlar', badge: _unread }
         ]},
@@ -29,7 +32,7 @@
 %>
 <aside class="c-side" id="cSide">
     <a href="/panel" class="c-brand">
-        <img src="/images/BERLINERLOGO.webp" alt="" onerror="this.outerHTML='<div class=&quot;mk&quot;>B</div>'">
+        <img src="/img/berliner-logo-96.png" alt="" onerror="this.outerHTML='<div class=&quot;mk&quot;>B</div>'">
         <div><strong>BERLINER</strong><small>Aday Portalı</small></div>
     </a>
     <nav class="c-nav">

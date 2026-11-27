@@ -1,0 +1,29 @@
+<div class="cvp" lang="<%= m.lang %>">
+    <div class="cvp-top"></div>
+    <div class="cvp-head">
+        <img src="/img/berliner-logo.png" alt="BERLINER" class="cvp-logo">
+        <div class="cvp-id">
+            <div class="cvp-doc"><%= m.l.doc %></div>
+            <div class="cvp-name"><%= m.name %></div>
+            <% if (m.title) { %><div class="cvp-title"><%= m.title %></div><% } %>
+        </div>
+        <% if (m.photo) { %><img src="<%= m.photo %>" alt="" class="cvp-photo"><% } %>
+    </div>
+    <div class="cvp-rule"></div>
+    <div class="cvp-sec"><h4><%= m.l.personal %></h4>
+        <div class="cvp-row"><span><%= m.l.name %></span><b><%= m.name %></b></div>
+        <% m.personal.forEach(([k, v]) => { %><div class="cvp-row"><span><%= k %></span><div><%= v %></div></div><% }) %>
+    </div>
+    <% if (m.profile) { %><div class="cvp-sec"><h4><%= m.l.profile %></h4><p class="cvp-p"><%= m.profile %></p></div><% } %>
+    <% if (m.experience.length) { %><div class="cvp-sec"><h4><%= m.l.experience %></h4>
+        <% m.experience.forEach(e => { %><div class="cvp-row cvp-e"><span><%= e.when %></span><div><b><%= e.title %></b><% if (e.org) { %><div class="cvp-org"><%= e.org %></div><% } %><% if (e.sub) { %><div class="cvp-sub"><%= e.sub %></div><% } %><% if (e.desc) { %><div class="cvp-desc"><%= e.desc %></div><% } %></div></div><% }) %>
+    </div><% } %>
+    <% if (m.education.length) { %><div class="cvp-sec"><h4><%= m.l.education %></h4>
+        <% m.education.forEach(e => { %><div class="cvp-row cvp-e"><span><%= e.when %></span><div><b><%= e.title %></b><div class="cvp-org"><%= e.org %></div></div></div><% }) %>
+    </div><% } %>
+    <% if (m.license) { %><div class="cvp-sec"><h4><%= m.l.license %></h4><div class="cvp-row"><span><%= m.l.classes %></span><b><%= m.license.classes %></b></div><% if (m.license.valid) { %><div class="cvp-row"><span><%= m.l.validUntil %></span><div><%= m.license.valid %></div></div><% } %></div><% } %>
+    <% if (m.languages.length) { %><div class="cvp-sec"><h4><%= m.l.languages %></h4><% m.languages.forEach(([n, lv]) => { %><div class="cvp-row"><span><%= n %></span><div><%= lv || '—' %></div></div><% }) %></div><% } %>
+    <% if (m.skills.length) { %><div class="cvp-sec"><h4><%= m.l.skills %></h4><ul class="cvp-ul"><% m.skills.forEach(s => { %><li><%= s %></li><% }) %></ul></div><% } %>
+    <% if (m.certificates.length) { %><div class="cvp-sec"><h4><%= m.l.certs %></h4><% m.certificates.forEach(x => { %><div class="cvp-row cvp-e"><span><%= x.date %></span><div><b><%= x.name %></b><% if (x.issuer) { %><div class="cvp-org"><%= x.issuer %></div><% } %><% if (x.valid) { %><div class="cvp-sub"><%= m.l.valid %> <%= x.valid %></div><% } %></div></div><% }) %></div><% } %>
+    <div class="cvp-foot"><span><%= m.name %> · <%= m.l.doc %></span><span><%= m.l.date %>: <%= m.date %></span></div>
+</div>

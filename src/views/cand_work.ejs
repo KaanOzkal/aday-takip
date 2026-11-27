@@ -1,0 +1,127 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+    <title>İş Geçmişim | BERLINER Aday Portalı</title>
+    <%- include('partials/cand_head') %>
+    <style>
+        .tl-e { display: flex; gap: 14px; padding: 14px 20px; border-bottom: 1px solid #F0F2F5; }
+        .tl-e:last-child { border-bottom: 0; }
+        .tl-e .dt { width: 128px; flex-shrink: 0; font-size: 12.5px; color: var(--muted); font-weight: 600; }
+        .tl-e .bd { flex: 1; min-width: 0; }
+        @media (max-width: 575.98px) { .tl-e { flex-direction: column; gap: 4px; } .tl-e .dt { width: auto; } }
+    </style>
+</head>
+<body>
+<%
+    const d = user.dossier || {}; const v = d.verified || {};
+    const ym = (x) => x ? `${new Date(x).getFullYear()}-${String(new Date(x).getMonth() + 1).padStart(2, '0')}` : '';
+    const my = (x) => x ? new Date(x).toLocaleDateString('tr-TR', { month: '2-digit', year: 'numeric' }) : '';
+    const sk = (x) => x.current ? Infinity : new Date(x.end || x.start || 0).getTime();
+    const work = (d.work || []).slice().sort((a, b) => sk(b) - sk(a));
+    const edu = (d.education || []).slice().sort((a, b) => sk(b) - sk(a));
+    const lockW = !!(v.work && v.work.at), lockE = !!(v.education && v.education.at);
+    const old = user.cvDetails || {}; const af = user.applicationForm || {};
+    const oldExp = [old.experience1, old.experience2].filter(x => x && (x.title || x.company)).concat((old.exp_additional_title || []).map((t, i) => ({ title: t, company: (old.exp_additional_company || [])[i], date: (old.exp_additional_date || [])[i] })).filter(x => x.title || x.company));
+    const j = (o) => JSON.stringify(o).replace(/</g, '\\u003c').replace(/'/g, '&#39;');
+%>
+<%- include('partials/cand_shell_start', { page: 'work', title: 'İş Geçmişim', subtitle: 'İş deneyimlerin, eğitimin ve sertifikaların — CV\'n buradan oluşturulur' }) %>
+
+<% if (!work.length && (oldExp.length || af.workHistory)) { %>
+<div class="c-card c-card-b mb-3" style="background:var(--warn-50);border-color:#FEDF89">
+    <div class="fw-bold mb-1"><i class="fas fa-clock-rotate-left me-1"></i>Daha önce girdiğin bilgiler</div>
+    <div class="small">Eski CV / başvuru formunda şu bilgiler var; tarihleriyle birlikte aşağıya yeniden eklemen gerekiyor:</div>
+    <ul class="small mb-0 mt-1"><% oldExp.forEach(x => { %><li><%= [x.title, x.company, x.date].filter(Boolean).join(' · ') %></li><% }) %><% if (af.workHistory) { %><li style="white-space:pre-wrap"><%= af.workHistory %></li><% } %></ul>
+</div>
+<% } %>
+
+<div class="c-card mb-3" id="work">
+    <div class="c-card-h"><div class="c-ic t-brand"><i class="fas fa-briefcase"></i></div><div><h2>İş deneyimleri</h2><p class="sub">En yeni en üstte · yalnızca gerçekten çalıştığın işleri ekle</p></div>
+        <% if (lockW) { %><span class="pill t-ok ms-auto"><i class="fas fa-lock"></i>Doğrulandı · kilitli</span><% } else { %><button class="btn btn-brand btn-sm ms-auto js-add" data-kind="work"><i class="fas fa-plus me-1"></i>Deneyim ekle</button><% } %></div>
+    <% work.forEach(w => { %>
+    <div class="tl-e">
+        <div class="dt"><%= my(w.start) %> – <%= w.current ? 'Halen' : my(w.end) %></div>
+        <div class="bd"><div class="fw-bold text-dark"><%= w.position || w.job %></div><div class="small"><%= w.company %><%= w.location ? ' · ' + w.location : '' %><%= w.position && w.job && w.position !== w.job ? ' · ' + w.job : '' %></div><% if (w.description) { %><div class="small muted mt-1" style="white-space:pre-wrap"><%= w.description %></div><% } %></div>
+        <% if (!lockW) { %><div class="d-flex gap-1 align-self-start"><button class="btn btn-soft btn-sm btn-icon js-edit" data-kind="work" data-e='<%= j({ id: w._id, company: w.company, job: w.job, position: w.position, location: w.location, start: ym(w.start), end: ym(w.end), current: w.current, description: w.description }) %>' title="Düzenle"><i class="fas fa-pen"></i></button>
+            <form method="POST" action="/is-gecmisi/work" data-confirm="Bu iş deneyimi silinecek."><input type="hidden" name="_action" value="delete"><input type="hidden" name="id" value="<%= w._id %>"><button class="btn btn-soft btn-sm btn-icon text-danger" title="Sil"><i class="fas fa-trash"></i></button></form></div><% } %>
+    </div>
+    <% }) %>
+    <% if (!work.length) { %><div class="empty py-4"><div class="small">Henüz iş deneyimi eklemedin.</div></div><% } %>
+</div>
+
+<div class="row g-3">
+    <div class="col-lg-6">
+        <div class="c-card h-100" id="education">
+            <div class="c-card-h"><div class="c-ic t-info"><i class="fas fa-graduation-cap"></i></div><div><h2>Eğitim</h2></div>
+                <% if (lockE) { %><span class="pill t-ok ms-auto"><i class="fas fa-lock"></i>Kilitli</span><% } else { %><button class="btn btn-soft btn-sm ms-auto js-add" data-kind="education"><i class="fas fa-plus me-1"></i>Ekle</button><% } %></div>
+            <% edu.forEach(e => { %>
+            <div class="tl-e"><div class="dt"><%= e.start ? my(e.start) + ' – ' + (e.current ? 'Halen' : my(e.end)) : my(e.end) %></div>
+                <div class="bd"><div class="fw-bold text-dark"><%= e.degree %><%= e.field ? ' – ' + e.field : '' %></div><div class="small"><%= e.school %><%= e.location ? ' · ' + e.location : '' %></div></div>
+                <% if (!lockE) { %><div class="d-flex gap-1 align-self-start"><button class="btn btn-soft btn-sm btn-icon js-edit" data-kind="education" data-e='<%= j({ id: e._id, school: e.school, degree: e.degree, field: e.field, location: e.location, start: ym(e.start), end: ym(e.end), current: e.current }) %>'><i class="fas fa-pen"></i></button>
+                <form method="POST" action="/is-gecmisi/education" data-confirm="Bu eğitim kaydı silinecek."><input type="hidden" name="_action" value="delete"><input type="hidden" name="id" value="<%= e._id %>"><button class="btn btn-soft btn-sm btn-icon text-danger"><i class="fas fa-trash"></i></button></form></div><% } %></div>
+            <% }) %>
+            <% if (!edu.length) { %><div class="empty py-4"><div class="small">Henüz eğitim bilgisi eklemedin.</div></div><% } %>
+        </div>
+    </div>
+    <div class="col-lg-6">
+        <div class="c-card h-100" id="certificates">
+            <div class="c-card-h"><div class="c-ic t-ok"><i class="fas fa-award"></i></div><div><h2>Sertifikalar ve belgeler</h2><p class="sub">SRC, Kod95, psikoteknik, takograf kartı, dil sertifikası…</p></div>
+                <% if (!lockE) { %><button class="btn btn-soft btn-sm ms-auto js-add" data-kind="certificates"><i class="fas fa-plus me-1"></i>Ekle</button><% } %></div>
+            <% (d.certificates || []).forEach(x => { %>
+            <div class="tl-e"><div class="dt"><%= my(x.date) || '—' %></div>
+                <div class="bd"><div class="fw-bold text-dark"><%= x.name %></div><div class="small muted"><%= [x.issuer, x.validUntil ? 'Geçerlilik: ' + new Date(x.validUntil).toLocaleDateString('tr-TR') : ''].filter(Boolean).join(' · ') %></div></div>
+                <% if (!lockE) { %><div class="d-flex gap-1 align-self-start"><button class="btn btn-soft btn-sm btn-icon js-edit" data-kind="certificates" data-e='<%= j({ id: x._id, name: x.name, issuer: x.issuer, date: ym(x.date), validUntil: x.validUntil ? new Date(x.validUntil).toISOString().slice(0, 10) : '' }) %>'><i class="fas fa-pen"></i></button>
+                <form method="POST" action="/is-gecmisi/certificates" data-confirm="Bu sertifika silinecek."><input type="hidden" name="_action" value="delete"><input type="hidden" name="id" value="<%= x._id %>"><button class="btn btn-soft btn-sm btn-icon text-danger"><i class="fas fa-trash"></i></button></form></div><% } %></div>
+            <% }) %>
+            <% if (!(d.certificates || []).length) { %><div class="empty py-4"><div class="small">Sertifika eklenmedi.</div></div><% } %>
+        </div>
+    </div>
+</div>
+
+<!-- Ortak düzenleme penceresi -->
+<div class="modal fade" id="entryModal" tabindex="-1"><div class="modal-dialog modal-dialog-centered modal-dialog-scrollable"><form class="modal-content" method="POST" id="entryForm">
+    <input type="hidden" name="id">
+    <div class="modal-header"><h5 class="modal-title" id="entryTitle">Kayıt</h5><button type="button" class="btn-close" data-bs-dismiss="modal"></button></div>
+    <div class="modal-body"><div class="row g-3">
+        <div class="col-12 k-work"><label class="form-label">Şirket / işveren adı *</label><input name="company" class="form-control" maxlength="160"></div>
+        <div class="col-sm-6 k-work"><label class="form-label">Yapılan iş / meslek *</label><input name="job" class="form-control" maxlength="120" placeholder="Örn: Tır şoförü"></div>
+        <div class="col-sm-6 k-work"><label class="form-label">Pozisyon</label><input name="position" class="form-control" maxlength="120" placeholder="Örn: Uluslararası taşıma şoförü"></div>
+        <div class="col-12 k-education"><label class="form-label">Okul *</label><input name="school" class="form-control" maxlength="160"></div>
+        <div class="col-sm-6 k-education"><label class="form-label">Derece *</label><input name="degree" class="form-control" maxlength="120" placeholder="Örn: Lise, Meslek lisesi, Lisans" list="degList"><datalist id="degList"><option>İlkokul</option><option>Ortaokul</option><option>Lise</option><option>Meslek Lisesi</option><option>Ön Lisans</option><option>Lisans</option><option>Yüksek Lisans</option></datalist></div>
+        <div class="col-sm-6 k-education"><label class="form-label">Bölüm</label><input name="field" class="form-control" maxlength="120"></div>
+        <div class="col-12 k-certificates"><label class="form-label">Sertifika / belge adı *</label><input name="name" class="form-control" maxlength="160" placeholder="Örn: SRC 2 Uluslararası Yük Taşımacılığı"></div>
+        <div class="col-sm-6 k-certificates"><label class="form-label">Veren kurum</label><input name="issuer" class="form-control" maxlength="160"></div>
+        <div class="col-sm-6 k-certificates"><label class="form-label">Alış tarihi (ay/yıl)</label><input type="month" name="date" class="form-control"></div>
+        <div class="col-sm-6 k-certificates"><label class="form-label">Geçerlilik bitişi</label><input type="date" name="validUntil" class="form-control"></div>
+        <div class="col-sm-6 k-work k-education"><label class="form-label">Konum</label><input name="location" class="form-control" maxlength="120" placeholder="Şehir, ülke"></div>
+        <div class="col-6 k-work k-education"><label class="form-label">Başlangıç (ay/yıl) <span class="k-work">*</span></label><input type="month" name="start" class="form-control"></div>
+        <div class="col-6 k-work k-education"><label class="form-label">Bitiş (ay/yıl)</label><input type="month" name="end" class="form-control"></div>
+        <div class="col-12 k-work k-education"><label class="small d-flex gap-2 align-items-center"><input type="checkbox" name="current" class="form-check-input m-0"><span class="k-work">Halen çalışıyorum</span><span class="k-education">Halen devam ediyor</span></label></div>
+        <div class="col-12 k-work"><label class="form-label">Açıklama (isteğe bağlı)</label><textarea name="description" rows="3" class="form-control" maxlength="2000" placeholder="Görevlerin, kullandığın araçlar, güzergâhlar…"></textarea></div>
+    </div></div>
+    <div class="modal-footer"><button type="button" class="btn btn-soft" data-bs-dismiss="modal">Vazgeç</button><button class="btn btn-brand"><i class="fas fa-check me-1"></i>Kaydet</button></div>
+</form></div></div>
+
+<%- include('partials/cand_shell_end', { page: 'work' }) %>
+<%- include('partials/dossier_msgs') %>
+<script>
+cNotify(DOSSIER_MSG);
+(function () {
+    document.body.appendChild(document.getElementById('entryModal')); // modal, yerleşim katmanlarının üstünde açılsın
+    const f = document.getElementById('entryForm'), titles = { work: 'İş deneyimi', education: 'Eğitim', certificates: 'Sertifika' };
+    const open = (kind, e) => {
+        f.reset(); f.action = '/is-gecmisi/' + kind; f.elements.id.value = '';
+        // Önce kapsayıcı alanlar, sonra içlerindeki etikete özel (span) metinler
+        f.querySelectorAll('div.k-work, div.k-education, div.k-certificates').forEach(el => { const show = el.classList.contains('k-' + kind); el.hidden = !show; el.querySelectorAll('input,textarea,select').forEach(i => i.disabled = !show); });
+        f.querySelectorAll('span.k-work, span.k-education').forEach(el => { el.hidden = !el.classList.contains('k-' + kind); });
+        if (e) Object.entries(e).forEach(([k, v]) => { const el = f.elements[k]; if (!el) return; if (el.type === 'checkbox') el.checked = !!v; else el.value = v || ''; });
+        document.getElementById('entryTitle').textContent = titles[kind] + (e ? ' · düzenle' : ' · ekle');
+        sync(); bootstrap.Modal.getOrCreateInstance(document.getElementById('entryModal')).show();
+    };
+    const sync = () => { const c = f.elements.current; if (c && !c.disabled) f.elements.end.disabled = c.checked; };
+    f.addEventListener('change', e => { if (e.target.name === 'current') sync(); });
+    document.querySelectorAll('.js-add').forEach(b => b.addEventListener('click', () => open(b.dataset.kind)));
+    document.querySelectorAll('.js-edit').forEach(b => b.addEventListener('click', () => open(b.dataset.kind, JSON.parse(b.dataset.e))));
+})();
+</script>
+</body>
+</html>

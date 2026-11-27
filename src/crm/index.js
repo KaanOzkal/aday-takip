@@ -69,7 +69,7 @@ module.exports = function mountCRM(app, deps) {
         const dueToday = orders.filter(o => o.dueDate && new Date(o.dueDate) >= now && new Date(o.dueDate) < tomorrow);
         const issueStates = await CandidateStage.find({ status: 'Sorun Var' }).select('candidateId').lean();
         const issueSet = new Set(issueStates.map(s => String(s.candidateId)));
-        const openByCand = new Set(orders.map(o => String(o.candidateId)));
+        const openByCand = new Set(orders.filter(o => o.candidateId).map(o => String(o.candidateId)));
         const pendingDocCands = inProcess.filter(c => (c.documents || []).some(d => d.status === 'İnceleniyor'));
         // İşlem bekleyen: süreçte olup bekleyen belgesi, açık görevi veya sorunu olan aday
         const needsAction = inProcess.filter(c => (c.documents || []).some(d => d.status === 'İnceleniyor') || openByCand.has(String(c._id)) || issueSet.has(String(c._id)));
@@ -168,7 +168,7 @@ module.exports = function mountCRM(app, deps) {
     app.post('/personel/gorev/:id/contact', (req, res, next) => app.locals.staffAuth(req, res, next), async (req, res) => {
         const wo = await app.locals.ownTask(req, res); if (!wo) return;
         const back = `/personel/gorev/${wo._id}#contacts`;
-        if (wo.status === 'İptal') return res.redirect(withParam(back, 'error', 'invalid_state'));
+        if (wo.status === 'İptal' || !wo.candidateId) return res.redirect(withParam(back, 'error', 'invalid_state'));
         const data = readContact(req.body);
         if (!data) return res.redirect(withParam(back, 'error', 'missing_fields'));
         await CandidateContact.create({ ...data, candidateId: wo.candidateId, source: 'manual', authorType: 'staff', authorId: String(req.staff._id), authorName: req.staff.fullName });
@@ -319,7 +319,7 @@ module.exports = function mountCRM(app, deps) {
         const staffPerf = staffList.map(s => {
             const m = wos.filter(w => String(w.assignedTo) === String(s._id));
             const st = svc().computeStats(m);
-            return { name: s.fullName + (s.deletedAt ? ' (devre dışı)' : s.status !== 'active' ? ' (pasif)' : ''), ...st, candidates: new Set(m.map(w => String(w.candidateId))).size, rate: st.total ? Math.round(st.completed / st.total * 100) : null };
+            return { name: s.fullName + (s.deletedAt ? ' (devre dışı)' : s.status !== 'active' ? ' (pasif)' : ''), ...st, candidates: new Set(m.filter(w => w.candidateId).map(w => String(w.candidateId))).size, rate: st.total ? Math.round(st.completed / st.total * 100) : null };
         }).filter(r => r.total || r.cancelled || f.staff).sort((a, b) => b.total - a.total);
         // Aşama bekleme süreleri
         const sts = await CandidateStage.find({ candidateId: { $in: ids }, startedAt: { $ne: null } }).select('stageKey status startedAt completedAt skipped').lean();
@@ -386,8 +386,11 @@ module.exports = function mountCRM(app, deps) {
         const W = doc.page.width - 80;
         doc.rect(0, 0, doc.page.width, 70).fill('#0B1220');
         doc.rect(0, 70, doc.page.width, 4).fill(RED);
-        doc.font('B').fontSize(18).fill('#fff').text('BERLINER · Yönetim Raporu', 40, 24);
-        doc.font('R').fontSize(9).fill('#CBD5E1').text(`Oluşturulma: ${new Date().toLocaleString('tr-TR')}`, 40, 48);
+        const logo = path.join(__dirname, '..', '..', 'public', 'img', 'berliner-logo.png');
+        let tx = 40;
+        try { if (require('fs').existsSync(logo)) { doc.image(logo, 40, 12, { width: 46, height: 46 }); tx = 96; } } catch (e) { /* logo yoksa metinle devam */ }
+        doc.font('B').fontSize(18).fill('#fff').text('BERLINER · Yönetim Raporu', tx, 22);
+        doc.font('R').fontSize(9).fill('#CBD5E1').text(`Oluşturulma: ${new Date().toLocaleString('tr-TR')}`, tx, 46);
         doc.y = 90; doc.font('R').fontSize(9).fill(MUTED).text(filterText(f, staffName), 40, doc.y, { width: W });
         const section = (t) => { if (doc.y > 720) doc.addPage(); doc.moveDown(1); doc.font('B').fontSize(12).fill(RED).text(t, 40); doc.moveDown(0.3); };
         const table = (cols, rows, widths) => {

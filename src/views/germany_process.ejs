@@ -1,15 +1,9 @@
 <!DOCTYPE html>
 <html lang="tr">
 <head>
-    <title>Almanya Süreci | BERLINER Aday Portalı</title>
+    <title>Almanya Entegrasyonu | BERLINER Aday Portalı</title>
     <%- include('partials/cand_head') %>
     <style>
-        .gs { display: flex; flex-direction: column; gap: 8px; }
-        .gs-i { display: flex; align-items: center; gap: 12px; padding: 12px 14px; border-radius: 12px; border: 1px solid var(--line); background: #fff; }
-        .gs-i .n { width: 30px; height: 30px; border-radius: 50%; display: grid; place-items: center; font-weight: 700; font-size: 13px; background: #F2F4F7; color: #98A2B3; flex-shrink: 0; }
-        .gs-i.done .n { background: var(--brand); color: #fff; }
-        .gs-i.cur { border-color: var(--brand); background: var(--brand-50); }
-        .gs-i.cur .n { background: #fff; color: var(--brand); border: 2px solid var(--brand); }
         .int { padding: 18px; text-align: center; height: 100%; display: flex; flex-direction: column; align-items: center; gap: 8px; }
         .int .c-ic { width: 52px; height: 52px; font-size: 20px; }
         .int.done { background: var(--ok-50); border-color: #A6F4C5; }
@@ -29,15 +23,14 @@
     ];
     const done = intSteps.filter(s => user.integrationSteps && user.integrationSteps[s.key]).length;
     const pct = Math.round(done / intSteps.length * 100);
-    const gi = germanyStages.indexOf(user.germanyStage);
 %>
-<%- include('partials/cand_shell_start', { page: 'germany_process', title: 'Almanya Süreci', subtitle: 'Almanya tarafındaki ilerleme ve yerleşim adımların' }) %>
+<%- include('partials/cand_shell_start', { page: 'germany_process', title: 'Almanya Entegrasyonu', subtitle: 'Varış sonrası yerleşim ve entegrasyon adımların' }) %>
 
 <section class="hero mb-3">
     <div class="row align-items-center g-4 position-relative" style="z-index:1">
         <div class="col-lg-8">
             <span class="pill mb-3" style="background:rgba(255,255,255,.1);color:#fff"><i class="fas fa-plane-departure"></i> Almanya Yolculuğu</span>
-            <h2 class="mb-2" style="font-size:26px"><%= user.germanyStage || germanyStages[0] %></h2>
+            <h2 class="mb-2" style="font-size:26px">Entegrasyon ve Yerleşim</h2>
             <p class="mb-0" style="color:rgba(255,255,255,.75)">Genel başvuru aşaman: <strong style="color:#fff"><%= user.currentStage %></strong>. Almanya'ya vardığında entegrasyon adımların burada işaretlenir.</p>
         </div>
         <div class="col-lg-4">
@@ -49,34 +42,20 @@
     </div>
 </section>
 
-<div class="row g-3">
-    <div class="col-lg-4">
-        <div class="c-card h-100">
-            <div class="c-card-h"><h2>Almanya Aşamaları</h2></div>
-            <div class="c-card-b gs">
-                <% germanyStages.forEach((s, i) => { const st = i < gi ? 'done' : i === gi ? 'cur' : ''; %>
-                <div class="gs-i <%= st %>"><div class="n"><% if (st === 'done') { %><i class="fas fa-check"></i><% } else { %><%= i + 1 %><% } %></div><div class="fw-650 <%= st ? 'text-dark' : 'muted' %>" style="font-size:13.5px"><%= s.replace(/^\d+\.\s*/, '') %></div></div>
-                <% }) %>
-            </div>
-        </div>
-    </div>
-    <div class="col-lg-8">
-        <div class="c-card h-100">
-            <div class="c-card-h"><div><h2>Entegrasyon ve Yerleşim</h2><p class="sub">Danışmanın tamamlanan adımları işaretler.</p></div></div>
-            <div class="c-card-b">
-                <div class="row g-2">
-                    <% intSteps.forEach(s => { const ok = user.integrationSteps && user.integrationSteps[s.key]; %>
-                    <div class="col-6 col-md-3">
-                        <div class="c-card int <%= ok ? 'done' : '' %>">
-                            <div class="c-ic <%= ok ? 't-ok' : 't-gray' %>"><i class="fas <%= s.icon %>"></i></div>
-                            <div class="fw-650 text-dark" style="font-size:13.5px;line-height:1.25"><%= s.name %></div>
-                            <div class="small muted" style="font-size:11.5px"><%= s.german %></div>
-                            <span class="pill <%= ok ? 't-ok' : 't-gray' %> mt-auto"><i class="fas <%= ok ? 'fa-check' : 'fa-hourglass-half' %>"></i><%= ok ? 'Tamam' : 'Bekliyor' %></span>
-                        </div>
-                    </div>
-                    <% }) %>
+<div class="c-card">
+    <div class="c-card-h"><div><h2>Entegrasyon Adımları</h2><p class="sub">Danışmanın tamamlanan adımları işaretler.</p></div></div>
+    <div class="c-card-b">
+        <div class="row g-2">
+            <% intSteps.forEach(s => { const ok = user.integrationSteps && user.integrationSteps[s.key]; %>
+            <div class="col-6 col-md-3">
+                <div class="c-card int <%= ok ? 'done' : '' %>">
+                    <div class="c-ic <%= ok ? 't-ok' : 't-gray' %>"><i class="fas <%= s.icon %>"></i></div>
+                    <div class="fw-650 text-dark" style="font-size:13.5px;line-height:1.25"><%= s.name %></div>
+                    <div class="small muted" style="font-size:11.5px"><%= s.german %></div>
+                    <span class="pill <%= ok ? 't-ok' : 't-gray' %> mt-auto"><i class="fas <%= ok ? 'fa-check' : 'fa-hourglass-half' %>"></i><%= ok ? 'Tamam' : 'Bekliyor' %></span>
                 </div>
             </div>
+            <% }) %>
         </div>
     </div>
 </div>

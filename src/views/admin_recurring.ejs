@@ -1,0 +1,91 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+    <title>Tekrarlayan Görevler | BERLINER Yönetim</title>
+    <%- include('partials/admin_head') %>
+</head>
+<body>
+<div class="app">
+    <%- include('partials/admin_sidebar', { active: 'workorders', onMain: false }) %>
+    <div class="main">
+        <header class="topbar">
+            <button class="btn btn-soft btn-icon menu-toggle" aria-label="Menü"><i class="fas fa-bars"></i></button>
+            <a href="/admin/is-emirleri" class="btn btn-soft btn-icon" title="İş emirlerine dön"><i class="fas fa-arrow-left"></i></a>
+            <div><div class="crumb"><a href="/admin/is-emirleri" class="text-decoration-none muted">İş Emirleri</a> / Tekrarlayan</div><h1>Tekrarlayan Görevler</h1></div>
+            <div class="ms-auto"><button class="btn btn-brand js-new" data-bs-toggle="modal" data-bs-target="#ruleModal" <%= staffList.length ? '' : 'disabled' %>><i class="fas fa-plus me-1"></i><span class="d-none d-sm-inline">Yeni kural</span></button></div>
+        </header>
+        <main class="content">
+            <div class="alert border-0 d-flex gap-2 mb-3" style="background:var(--info-50);color:#065986;border-radius:12px"><i class="fas fa-circle-info mt-1"></i><div class="small">Zamanı gelen kural, seçili her personel için ayrı bir iş emri oluşturur ve bildirim gönderir. Personel panelindeki “tahmini yeni iş emri” bilgisi bu kuralların bir sonraki çalışma zamanından hesaplanır. Saatler Türkiye saatidir.</div></div>
+            <div class="card-x">
+                <div class="table-responsive"><table class="table table-x mb-0">
+                    <thead><tr><th>Görev</th><th>Zamanlama</th><th>Personel</th><th>Sonraki çalışma</th><th class="d-none d-lg-table-cell">Son çalışma</th><th></th></tr></thead>
+                    <tbody>
+                    <% if (!rules.length) { %><tr><td colspan="6"><div class="empty"><i class="fas fa-repeat"></i>Henüz tekrarlayan görev yok.</div></td></tr><% } %>
+                    <% rules.forEach(r => { %>
+                    <tr class="<%= r.active ? '' : 'opacity-75' %>">
+                        <td style="max-width:300px"><div class="fw-650 text-truncate-1"><%= r.title %></div><div class="muted small"><%= r.category %> · <%= r.priority %> · <%= r.dueHours %> sa süre<%= r.candidateId ? ' · ' + r.candidateId.firstName + ' ' + r.candidateId.lastName : '' %><%= (r.checklist || []).length ? ' · ' + r.checklist.length + ' madde' : '' %></div></td>
+                        <td class="small"><%= describeRule(r) %><% if (!r.active) { %><div><span class="pill t-gray" style="font-size:11px">Durduruldu</span></div><% } %></td>
+                        <td class="small"><%= (r.assignees || []).map(a => a.fullName + (a.deletedAt || a.status !== 'active' ? ' (pasif)' : '')).join(', ') || '—' %></td>
+                        <td class="small fw-650"><%= r.active && r.nextRunAt ? fmtDT(r.nextRunAt) : '—' %></td>
+                        <td class="small d-none d-lg-table-cell"><%= r.lastRunAt ? fmtDT(r.lastRunAt) : '—' %><div class="muted"><%= r.runCount || 0 %> kez</div></td>
+                        <td class="text-end" style="white-space:nowrap">
+                            <button class="btn btn-soft btn-icon btn-sm js-edit" title="Düzenle" data-rule='<%= JSON.stringify({ id: r._id, title: r.title, description: r.description, category: r.category, priority: r.priority, frequency: r.frequency, weekday: r.weekday, monthDay: r.monthDay, time: r.time, dueHours: r.dueHours, checklist: (r.checklist || []).join("\n"), assignees: (r.assignees || []).map(a => String(a._id)), candidateId: r.candidateId ? String(r.candidateId._id) : "" }).replace(/'/g, "&#39;") %>'><i class="fas fa-pen"></i></button>
+                            <form method="POST" action="/admin/is-emirleri/tekrarlayan/<%= r._id %>/run" class="d-inline" data-confirm="Kural şimdi çalıştırılacak ve seçili personellere iş emri oluşturulacak."><button class="btn btn-soft btn-icon btn-sm" title="Şimdi çalıştır" data-no-busy="1"><i class="fas fa-play"></i></button></form>
+                            <form method="POST" action="/admin/is-emirleri/tekrarlayan/<%= r._id %>/toggle" class="d-inline"><button class="btn btn-soft btn-icon btn-sm" title="<%= r.active ? 'Durdur' : 'Devam ettir' %>"><i class="fas <%= r.active ? 'fa-pause' : 'fa-rotate-right' %>"></i></button></form>
+                            <form method="POST" action="/admin/is-emirleri/tekrarlayan/<%= r._id %>/delete" class="d-inline" data-confirm="Kural silinecek. Daha önce oluşturulmuş iş emirleri silinmez." data-danger><button class="btn btn-bad-soft btn-icon btn-sm" title="Sil" data-no-busy="1"><i class="fas fa-trash"></i></button></form>
+                        </td>
+                    </tr>
+                    <% }) %>
+                    </tbody>
+                </table></div>
+            </div>
+        </main>
+    </div>
+</div>
+
+<div class="modal fade" id="ruleModal" tabindex="-1">
+    <div class="modal-dialog modal-lg modal-dialog-centered modal-dialog-scrollable">
+        <form class="modal-content" method="POST" action="/admin/is-emirleri/tekrarlayan" id="ruleForm">
+            <input type="hidden" name="id">
+            <div class="modal-header"><h5 class="modal-title" id="ruleTitle">Yeni tekrarlayan görev</h5><button type="button" class="btn-close" data-bs-dismiss="modal"></button></div>
+            <div class="modal-body"><div class="row g-3">
+                <div class="col-12"><label class="form-label">Görev başlığı *</label><input name="title" class="form-control" maxlength="160" required placeholder="Örn: Günlük aday araması"></div>
+                <div class="col-md-6"><label class="form-label">Kategori *</label><select name="category" class="form-select" required><% CATEGORIES.forEach(c => { %><option><%= c %></option><% }) %></select></div>
+                <div class="col-md-6"><label class="form-label">Öncelik</label><select name="priority" class="form-select"><% PRIORITIES.forEach(p => { %><option <%= p === 'Normal' ? 'selected' : '' %>><%= p %></option><% }) %></select></div>
+                <div class="col-md-4"><label class="form-label">Sıklık *</label><select name="frequency" class="form-select" required><% Object.entries(FREQ).forEach(([k, v]) => { %><option value="<%= k %>"><%= v %></option><% }) %></select></div>
+                <div class="col-md-4 js-wd" hidden><label class="form-label">Gün</label><select name="weekday" class="form-select"><% WEEKDAYS.forEach((d, i) => { %><option value="<%= i %>" <%= i === 1 ? 'selected' : '' %>><%= d %></option><% }) %></select></div>
+                <div class="col-md-4 js-md" hidden><label class="form-label">Ayın günü</label><input type="number" name="monthDay" min="1" max="28" value="1" class="form-control"></div>
+                <div class="col-md-4"><label class="form-label">Saat *</label><input type="time" name="time" value="09:00" class="form-control" required></div>
+                <div class="col-md-4"><label class="form-label">Tamamlama süresi (saat)</label><input type="number" name="dueHours" min="1" max="720" value="8" class="form-control"></div>
+                <div class="col-12">
+                    <label class="form-label">Personel * <span class="muted small fw-normal js-cnt">0 seçili</span></label>
+                    <div class="staff-pick"><% staffList.forEach(s => { %><label class="staff-opt"><input type="checkbox" class="form-check-input m-0" name="assignees" value="<%= s._id %>"><span><b><%= s.fullName %></b><% if (s.title) { %><span class="muted small"> · <%= s.title %></span><% } %></span></label><% }) %></div>
+                </div>
+                <div class="col-12"><label class="form-label">Bağlı aday (isteğe bağlı)</label><select name="candidateId" class="form-select"><option value="">— Genel görev —</option><% candidates.forEach(c => { %><option value="<%= c._id %>"><%= c.firstName %> <%= c.lastName %><%= c.passportNo ? ' · ' + c.passportNo : '' %></option><% }) %></select></div>
+                <div class="col-12"><label class="form-label">Açıklama</label><textarea name="description" rows="3" maxlength="6000" class="form-control"></textarea></div>
+                <div class="col-12"><label class="form-label">Kontrol listesi <span class="muted small fw-normal">(her satır bir madde)</span></label><textarea name="checklist" rows="3" maxlength="6000" class="form-control"></textarea></div>
+            </div></div>
+            <div class="modal-footer"><button type="button" class="btn btn-soft" data-bs-dismiss="modal">Vazgeç</button><button class="btn btn-brand"><i class="fas fa-check me-1"></i>Kaydet</button></div>
+        </form>
+    </div>
+</div>
+<%- include('partials/admin_scripts') %>
+<script>
+(function () {
+    const f = document.getElementById('ruleForm');
+    const sync = () => { const E = f.elements; const v = E.frequency.value; f.querySelector('.js-wd').hidden = v !== 'weekly'; f.querySelector('.js-md').hidden = v !== 'monthly'; const n = f.querySelectorAll('input[name=assignees]:checked').length; f.querySelector('.js-cnt').textContent = n + ' seçili'; f.querySelectorAll('.staff-opt').forEach(o => o.classList.toggle('on', o.querySelector('input').checked)); };
+    f.addEventListener('change', sync);
+    f.addEventListener('submit', e => { if (!f.querySelector('input[name=assignees]:checked')) { e.preventDefault(); f.querySelector('.staff-pick').classList.add('err'); f.querySelector('.js-cnt').textContent = 'En az bir personel seçin'; } });
+    document.querySelector('.js-new').addEventListener('click', () => { f.reset(); f.elements.id.value = ''; document.getElementById('ruleTitle').textContent = 'Yeni tekrarlayan görev'; sync(); });
+    document.querySelectorAll('.js-edit').forEach(b => b.addEventListener('click', () => {
+        const r = JSON.parse(b.dataset.rule); f.reset();
+        ['id', 'title', 'description', 'category', 'priority', 'frequency', 'weekday', 'monthDay', 'time', 'dueHours', 'checklist', 'candidateId'].forEach(k => { const el = f.elements[k]; if (el && r[k] != null) el.value = r[k]; });
+        f.querySelectorAll('input[name=assignees]').forEach(i => i.checked = r.assignees.includes(i.value));
+        document.getElementById('ruleTitle').textContent = 'Kuralı düzenle'; sync();
+        bootstrap.Modal.getOrCreateInstance(document.getElementById('ruleModal')).show();
+    }));
+    sync();
+})();
+</script>
+</body>
+</html>

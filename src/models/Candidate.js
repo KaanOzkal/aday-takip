@@ -2,9 +2,14 @@ const mongoose = require('mongoose');
 
 const documentSchema = new mongoose.Schema({
     name: String,
+    category: { type: String, default: '' }, // arşiv kategorisi (boşsa belge adından türetilir)
     filename: String,
     driveLink: String,
     fileId: String,
+    blobId: { type: mongoose.Schema.Types.ObjectId }, // Drive yapılandırılmamışsa dosya veritabanında saklanır
+    mimeType: String,
+    size: Number,
+    uploadedBy: { type: String, default: 'candidate' }, // candidate | admin
     status: { type: String, enum: ['İnceleniyor', 'Onaylandı', 'Reddedildi'], default: 'İnceleniyor' },
     date: { type: Date, default: Date.now }
 });
@@ -22,6 +27,70 @@ const noteSchema = new mongoose.Schema({
     author: { type: String, default: 'Admin' },
     date: { type: Date, default: Date.now }
 });
+
+
+// ---- Dijital aday dosyası ----
+const dated = { type: Date };
+const workSchema = new mongoose.Schema({
+    company: { type: String, maxlength: 160, default: '' },
+    job: { type: String, maxlength: 120, default: '' },          // yapılan iş / meslek
+    position: { type: String, maxlength: 120, default: '' },
+    start: dated, end: dated, current: { type: Boolean, default: false },
+    location: { type: String, maxlength: 120, default: '' },
+    description: { type: String, maxlength: 2000, default: '' },
+    // CV için Almanca karşılıklar (elle girilir; boşsa uyarı verilir)
+    jobDe: { type: String, maxlength: 120, default: '' },
+    positionDe: { type: String, maxlength: 120, default: '' },
+    descriptionDe: { type: String, maxlength: 2000, default: '' }
+}, { timestamps: true });
+const eduSchema = new mongoose.Schema({
+    school: { type: String, maxlength: 160, default: '' },
+    degree: { type: String, maxlength: 120, default: '' },       // ör. Lise, Ön lisans, Lisans
+    field: { type: String, maxlength: 120, default: '' },
+    start: dated, end: dated, current: { type: Boolean, default: false },
+    location: { type: String, maxlength: 120, default: '' },
+    degreeDe: { type: String, maxlength: 120, default: '' },
+    fieldDe: { type: String, maxlength: 120, default: '' }
+});
+const certSchema = new mongoose.Schema({
+    name: { type: String, maxlength: 160, default: '' },
+    issuer: { type: String, maxlength: 160, default: '' },
+    date: dated, validUntil: dated,
+    nameDe: { type: String, maxlength: 160, default: '' }
+});
+const verifySchema = new mongoose.Schema({ at: Date, by: String }, { _id: false });
+const dossierSchema = new mongoose.Schema({
+    tcNo: { type: String, default: '' },
+    address: { type: String, maxlength: 400, default: '' },
+    birthDate: dated,
+    birthPlace: { type: String, maxlength: 120, default: '' },
+    nationality: { type: String, maxlength: 60, default: 'Türkiye Cumhuriyeti' },
+    maritalStatus: { type: String, enum: ['', 'Evli', 'Bekar', 'Boşanmış'], default: '' },
+    children: { type: Number, min: 0, max: 30 },
+    licenseExpiry: dated,
+    licenseClasses: [{ type: String }],
+    germanLevel: { type: String, default: '' },
+    englishLevel: { type: String, default: '' },
+    otherLanguages: [new mongoose.Schema({ lang: String, level: String }, { _id: false })],
+    emergencyName: { type: String, maxlength: 120, default: '' },
+    emergencyRelation: { type: String, maxlength: 60, default: '' },
+    emergencyPhone: { type: String, maxlength: 40, default: '' },
+    work: [workSchema],
+    education: [eduSchema],
+    certificates: [certSchema],
+    cv: {
+        titleDe: { type: String, maxlength: 120, default: '' },    // CV başlığındaki meslek (Almanca); Türkçe için aday "job" alanı kullanılır
+        profileTr: { type: String, maxlength: 1500, default: '' },
+        profileDe: { type: String, maxlength: 1500, default: '' },
+        skillsTr: { type: String, maxlength: 1500, default: '' },   // mesleki yeterlilikler (satır satır)
+        skillsDe: { type: String, maxlength: 1500, default: '' },
+        includePhoto: { type: Boolean, default: true },
+        generatedAt: Date
+    },
+    // Bölüm doğrulamaları: doğrulanan bölüm aday tarafından değiştirilemez
+    verified: { identity: verifySchema, contact: verifySchema, license: verifySchema, languages: verifySchema, emergency: verifySchema, work: verifySchema, education: verifySchema },
+    updatedAt: Date
+}, { _id: false });
 
 const candidateSchema = new mongoose.Schema({
     firstName: String,
@@ -154,6 +223,7 @@ const candidateSchema = new mongoose.Schema({
         themeName: { type: String, default: 'Koyu Profesyonel' }
     },
 
+    dossier: { type: dossierSchema, default: () => ({}) },
     documents: [documentSchema],
     appointments: [appointmentSchema],
     notes: [noteSchema]

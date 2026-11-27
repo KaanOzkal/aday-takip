@@ -65,7 +65,7 @@
     const initials = (((c.firstName || '?').charAt(0)) + ((c.lastName || '').charAt(0))).toLocaleUpperCase('tr-TR');
     const fmtDate = (d, withTime) => { if (!d) return '—'; const x = new Date(d); if (isNaN(x)) return String(d); return withTime ? x.toLocaleString('tr-TR', { day: '2-digit', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit' }) : x.toLocaleDateString('tr-TR', { day: '2-digit', month: 'short', year: 'numeric' }); };
     const statusTone = (s) => s === 'Onaylandı' ? 't-ok' : s === 'Reddedildi' ? 't-bad' : 't-warn';
-    const docUrl = (d) => d.fileId ? `/documents/view/${d._id}` : (d.driveLink || (d.filename ? `/uploads/${encodeURIComponent(d.filename)}` : '#'));
+    const docUrl = (d) => (d.fileId || d.blobId) ? `/documents/view/${d._id}` : (d.driveLink || (d.filename ? `/uploads/${encodeURIComponent(d.filename)}` : '#'));
     const cur = stages.indexOf(c.currentStage);
     const docs = (c.documents || []).slice().sort((a, b) => new Date(b.date || 0) - new Date(a.date || 0));
     const notes = (c.notes || []).slice().sort((a, b) => new Date(b.date || 0) - new Date(a.date || 0));
@@ -159,6 +159,8 @@
 
             <nav class="tabs-x">
                 <a href="#overview" class="tab-link" data-tab="overview">Genel Bilgiler</a>
+                <% const _dz = (typeof dossier !== 'undefined' && dossier) ? dossier : null; %>
+                <% if (_dz) { const _pp = _dz.payments.filter(p => p.record && p.record.active && p.record.status === 'under_review').length; %><a href="#dossier" class="tab-link" data-tab="dossier">Dijital Dosya <span class="n <%= _pp ? 'warn' : '' %>"><%= _pp ? _pp + ' dekont' : '%' + _dz.completeness.pct %></span></a><% } %>
                 <a href="#pipeline" class="tab-link" data-tab="pipeline">Süreç Takibi <% if (pl && pl.stages.some(x => x.state.status === 'Sorun Var')) { %><span class="n" style="background:var(--bad-50);color:var(--bad)">sorun</span><% } else if (pl && pl.stages.some(x => x.stale)) { %><span class="n warn">bekliyor</span><% } %></a>
                 <a href="#process" class="tab-link" data-tab="process">Süreç &amp; Entegrasyon <span class="n"><%= intDone %>/8</span></a>
                 <a href="#documents" class="tab-link" data-tab="documents">Belgeler <span class="n <%= pendDocs ? 'warn' : '' %>"><%= pendDocs ? pendDocs + ' bekliyor' : docs.length %></span></a>
@@ -210,7 +212,6 @@
                             <div class="card-b">
                                 <dl class="kv mb-0">
                                     <dt>Genel aşama</dt><dd><%= c.currentStage %></dd>
-                                    <dt>Almanya aşaması</dt><dd><%= c.germanyStage || '—' %></dd>
                                     <dt>Entegrasyon</dt><dd><%= intDone %> / 8 adım</dd>
                                     <dt>Belgeler</dt><dd><%= docs.length %> (<%= pendDocs %> bekliyor)</dd>
                                     <dt>Başvuru tarihi</dt><dd><%= fmtDate(c.applicationDate) %></dd>
@@ -226,6 +227,11 @@
                         </div>
                     </div>
                 </div>
+            </div>
+
+            <!-- DİJİTAL DOSYA -->
+            <div class="pane" id="pane-dossier">
+                <% if (_dz) { %><%- include('partials/admin_dossier', { dossier: _dz, c }) %><% } %>
             </div>
 
             <!-- SÜREÇ TAKİBİ (9 aşama) -->
@@ -410,16 +416,6 @@
                                 <a href="#pipeline" class="btn btn-brand tab-link" data-tab="pipeline">Süreç Takibi</a>
                             </div>
                         </div>
-                        <div class="card-x">
-                            <div class="card-h"><div><h3>Almanya Süreci</h3><p class="sub">Almanya tarafındaki ilerleme.</p></div></div>
-                            <form class="card-b d-flex gap-2" action="/admin/candidate/update-germany" method="POST">
-                                <input type="hidden" name="returnTo" value="<%= ret('process') %>"><input type="hidden" name="candidateId" value="<%= c._id %>">
-                                <select name="newGermanyStage" class="form-select">
-                                    <% germanyStages.forEach(s => { %><option value="<%= s %>" <%= c.germanyStage === s ? 'selected' : '' %>><%= s %></option><% }) %>
-                                </select>
-                                <button class="btn btn-brand">Kaydet</button>
-                            </form>
-                        </div>
                     </div>
                     <div class="col-lg-7">
                         <form class="card-x" action="/admin/candidate/update-integration" method="POST">
@@ -451,22 +447,31 @@
 
             <!-- BELGELER -->
             <div class="pane" id="pane-documents">
+                <form class="card-x card-b mb-3 row g-2 align-items-end m-0" method="POST" action="/admin/candidate/<%= c._id %>/archive" enctype="multipart/form-data">
+                    <div class="col-md-3"><label class="form-label small">Kategori</label><select name="category" class="form-select form-select-sm" required><% DOC_CATEGORIES.forEach(k => { %><option><%= k %></option><% }) %></select></div>
+                    <div class="col-md-3"><label class="form-label small">Belge adı (isteğe bağlı)</label><input name="name" class="form-control form-control-sm" maxlength="120" placeholder="Örn: Pasaport ön yüz"></div>
+                    <div class="col-md-4"><label class="form-label small">Dosya</label><input type="file" name="file" class="form-control form-control-sm" required accept=".pdf,.jpg,.jpeg,.png,.webp,.heic,.doc,.docx"></div>
+                    <div class="col-md-2"><button class="btn btn-brand btn-sm w-100"><i class="fas fa-upload me-1"></i>Arşive ekle</button></div>
+                </form>
                 <div class="card-x">
-                    <div class="card-h"><div><h3>Belgeler</h3><p class="sub">Aday tarafından yüklenen veya Drive'dan eşleşen belgeler.</p></div></div>
+                    <div class="card-h"><div><h3>Belge Arşivi</h3><p class="sub">Aday ve yönetici tarafından yüklenen belgeler, kategorilere göre.</p></div>
+                        <div class="ms-auto d-flex flex-wrap gap-1" id="docCats"><button type="button" class="pill t-brand border-0" data-cat="">Tümü (<%= docs.length %>)</button><% DOC_CATEGORIES.forEach(k => { const n = docs.filter(d => docCategoryOf(d) === k).length; if (n) { %><button type="button" class="pill t-gray border-0" data-cat="<%= k %>"><%= k %> (<%= n %>)</button><% } }) %></div></div>
                     <% if (!docs.length) { %>
                         <div class="empty"><i class="fas fa-folder-open"></i>Henüz belge yüklenmemiş.</div>
                     <% } else { %>
                     <div class="table-responsive">
                         <table class="table table-x">
-                            <thead><tr><th>Belge</th><th class="d-none d-md-table-cell">Tarih</th><th>Durum</th><th class="text-end">İşlem</th></tr></thead>
+                            <thead><tr><th>Belge</th><th>Kategori</th><th class="d-none d-md-table-cell">Tarih</th><th>Durum</th><th class="text-end">İşlem</th></tr></thead>
                             <tbody>
                             <% docs.forEach(d => { %>
-                                <tr>
-                                    <td style="max-width:380px"><div class="fw-650 text-truncate-1"><%= d.name || 'Belge' %></div><div class="muted small text-truncate-1"><%= d.filename %></div></td>
+                                <tr data-cat="<%= docCategoryOf(d) %>">
+                                    <td style="max-width:340px"><div class="fw-650 text-truncate-1"><%= d.name || 'Belge' %></div><div class="muted small text-truncate-1"><%= d.filename %><%= d.uploadedBy === 'admin' ? ' · yönetici yükledi' : '' %></div></td>
+                                    <td><form method="POST" action="/admin/candidate/<%= c._id %>/document/<%= d._id %>/category" class="m-0"><select name="category" class="form-select form-select-sm" style="min-width:120px" onchange="this.form.submit()"><% DOC_CATEGORIES.forEach(k => { %><option <%= docCategoryOf(d) === k ? 'selected' : '' %>><%= k %></option><% }) %></select></form></td>
                                     <td class="d-none d-md-table-cell muted"><%= fmtDate(d.date) %></td>
                                     <td><span class="pill <%= statusTone(d.status) %>"><span class="dot"></span><%= d.status %></span></td>
                                     <td class="text-end" style="white-space:nowrap">
                                         <a href="<%= docUrl(d) %>" target="_blank" class="btn btn-soft btn-sm"><i class="fas fa-eye me-1"></i>Görüntüle</a>
+                                        <% if (d.fileId || d.blobId) { %><a href="/documents/view/<%= d._id %>?download=1" class="btn btn-soft btn-sm btn-icon" title="İndir"><i class="fas fa-download"></i></a><% } %>
                                         <% if (d.status !== 'Onaylandı') { %>
                                         <form action="/admin/document/status" method="POST" class="d-inline m-0">
                                             <input type="hidden" name="returnTo" value="<%= ret('documents') %>"><input type="hidden" name="candidateId" value="<%= c._id %>"><input type="hidden" name="docId" value="<%= d._id %>"><input type="hidden" name="status" value="Onaylandı">
@@ -727,6 +732,13 @@
     }
     window.addEventListener('hashchange', () => show(location.hash.slice(1)));
     show(location.hash.slice(1));
+    // Arşiv kategori filtresi
+    document.querySelectorAll('#docCats [data-cat]').forEach(b => b.addEventListener('click', () => {
+        document.querySelectorAll('#docCats [data-cat]').forEach(x => x.className = 'pill border-0 ' + (x === b ? 't-brand' : 't-gray'));
+        document.querySelectorAll('#pane-documents tr[data-cat]').forEach(r => r.style.display = !b.dataset.cat || r.dataset.cat === b.dataset.cat ? '' : 'none');
+    }));
+    // #payments gibi alt bağlantılar dosya sekmesini açsın
+    if (['payments', 'dossier-work'].includes(location.hash.slice(1))) { show('dossier'); setTimeout(() => document.getElementById(location.hash.slice(1)).scrollIntoView({ block: 'start' }), 50); }
 
     // Entegrasyon anahtarları: canlı sayaç ve renk
     const checks = [...document.querySelectorAll('.int-check')];

@@ -1,10 +1,12 @@
 <% const _sp2 = (typeof page !== 'undefined') ? page : ''; const _su2 = (typeof staffUnread !== 'undefined' && staffUnread) ? staffUnread : 0; %>
 </main>
+</div>
+</div>
 <nav class="s-bottom">
-    <a href="/personel/panel" class="<%= _sp2 === 'panel' ? 'active' : '' %>"><i class="fas fa-list-check"></i>Görevlerim</a>
+    <a href="/personel/panel" class="<%= _sp2 === 'panel' ? 'active' : '' %>"><i class="fas fa-gauge-high"></i>Panel</a>
+    <a href="/personel/panel?f=open#tasks"><i class="fas fa-list-check"></i>Görevlerim</a>
     <a href="/personel/bildirimler" class="<%= _sp2 === 'notifications' ? 'active' : '' %>"><i class="fas fa-bell"></i>Bildirimler<span class="s-badge js-s-unread" <%= _su2 ? '' : 'hidden' %>><%= _su2 %></span></a>
     <a href="/personel/hesap" class="<%= _sp2 === 'account' ? 'active' : '' %>"><i class="fas fa-user-gear"></i>Hesabım</a>
-    <a href="/personel/cikis"><i class="fas fa-arrow-right-from-bracket"></i>Çıkış</a>
 </nav>
 <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
 <script>
@@ -27,6 +29,43 @@
         }
         const b = f.querySelector('button[type=submit],button:not([type])');
         if (b && !f.hasAttribute('data-no-busy')) setTimeout(() => { b.disabled = true; b.innerHTML = '<span class="spinner-border spinner-border-sm me-2"></span>İşleniyor…'; }, 0);
+    });
+
+    // ---- Mobil menü ----
+    const side = document.getElementById('sSide'), back = document.getElementById('sBack');
+    const toggle = (o) => { side.classList.toggle('open', o); back.classList.toggle('show', o); };
+    document.getElementById('sToggle').addEventListener('click', () => toggle(!side.classList.contains('open')));
+    back.addEventListener('click', () => toggle(false));
+
+    // ---- Bildirim ön izleme penceresi ----
+    const nList = document.getElementById('nList');
+    const esc = (t) => String(t == null ? '' : t).replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' })[c]);
+    const fmt = (d) => new Date(d).toLocaleString('tr-TR', { timeZone: 'Europe/Istanbul', day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' });
+    const setCount = n => document.querySelectorAll('.js-np-count').forEach(x => x.textContent = n + ' okunmamış');
+    async function loadPop() {
+        try {
+            const r = await fetch('/personel/api/bildirimler', { headers: { Accept: 'application/json' } });
+            if (r.status === 401) { location.href = '/personel?error=session_expired'; return; }
+            const d = await r.json();
+            setCount(d.unread);
+            nList.innerHTML = d.items.length ? d.items.map(n => `<a href="${n.link}" class="np-i ${n.isRead ? '' : 'unread'}" data-id="${n.id}">
+                <div class="c-ic ${n.icon[1]}" style="width:34px;height:34px;font-size:13px;flex-shrink:0"><i class="fas ${n.icon[0]}"></i></div>
+                <div style="min-width:0"><div class="t">${esc(n.title)}</div><div class="m">${esc(n.message)}</div><div class="d">${fmt(n.createdAt)}</div></div>
+                ${n.isRead ? '' : '<button class="rd js-rd" title="Okundu olarak işaretle"><i class="fas fa-check"></i></button>'}</a>`).join('')
+                : '<div class="p-4 text-center muted small"><i class="far fa-bell-slash d-block fs-4 mb-2"></i>Henüz bildirim yok.</div>';
+        } catch (e) { nList.innerHTML = '<div class="p-4 text-center muted small">Bildirimler yüklenemedi.</div>'; }
+    }
+    document.getElementById('nBell').addEventListener('show.bs.dropdown', loadPop);
+    nList.addEventListener('click', async e => {
+        const b = e.target.closest('.js-rd'); if (!b) return;
+        e.preventDefault(); e.stopPropagation();
+        const it = b.closest('.np-i');
+        const r = await fetch('/personel/bildirimler/' + it.dataset.id + '/read', { method: 'POST', headers: { Accept: 'application/json' } }).then(x => x.json()).catch(() => null);
+        if (r) { it.classList.remove('unread'); b.remove(); last = r.unread; setUnread(r.unread); setTitle(r.unread); setCount(r.unread); }
+    });
+    document.querySelector('.js-np-all').addEventListener('click', async () => {
+        await fetch('/personel/bildirimler/read-all', { method: 'POST', headers: { Accept: 'application/json' } }).catch(() => {});
+        last = 0; setUnread(0); setTitle(0); setCount(0); nList.querySelectorAll('.np-i').forEach(i => i.classList.remove('unread')); nList.querySelectorAll('.js-rd').forEach(b => b.remove());
     });
 
     // ---- Gerçek zamanlı bildirimler: SSE, olmazsa 30 sn'de bir yenileme ----

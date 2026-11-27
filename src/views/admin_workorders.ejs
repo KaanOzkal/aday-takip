@@ -12,8 +12,8 @@
 </head>
 <body>
 <%
-    const qs = (over) => { const p = Object.assign({ q: f.q, status: f.status, staff: f.staff, priority: f.priority, category: f.category, overdue: f.overdue ? '1' : '', review: f.review ? '1' : '', sort: f.sort }, over); return '?' + Object.entries(p).filter(([k, v]) => v).map(([k, v]) => k + '=' + encodeURIComponent(v)).join('&'); };
-    const anyFilter = f.q || f.status || f.staff || f.priority || f.category || f.overdue || f.review;
+    const qs = (over) => { const p = Object.assign({ q: f.q, status: f.status, staff: f.staff, priority: f.priority, category: f.category, scope: f.scope, from: f.from, to: f.to, overdue: f.overdue ? '1' : '', review: f.review ? '1' : '', sort: f.sort }, over); return '?' + Object.entries(p).filter(([k, v]) => v).map(([k, v]) => k + '=' + encodeURIComponent(v)).join('&'); };
+    const anyFilter = f.q || f.status || f.staff || f.priority || f.category || f.scope || f.from || f.to || f.overdue || f.review;
 %>
 <div class="app">
     <%- include('partials/admin_sidebar', { active: 'workorders', onMain: false }) %>
@@ -22,22 +22,27 @@
             <button class="btn btn-soft btn-icon menu-toggle" aria-label="Menü"><i class="fas fa-bars"></i></button>
             <div><div class="crumb">Ekip &amp; Görevler</div><h1>İş Emirleri</h1></div>
             <div class="ms-auto d-flex gap-2">
+                <a href="/admin/is-emirleri/tekrarlayan" class="btn btn-soft"><i class="fas fa-repeat me-1"></i><span class="d-none d-md-inline">Tekrarlayan</span></a>
+                <a href="/admin/is-emirleri/kategoriler" class="btn btn-soft"><i class="fas fa-tags me-1"></i><span class="d-none d-md-inline">Kategoriler</span></a>
                 <button class="btn btn-brand" data-bs-toggle="modal" data-bs-target="#newWO" <%= staffList.filter(s => s.status === 'active').length ? '' : 'disabled title="Önce aktif bir personel ekleyin"' %>><i class="fas fa-plus me-1"></i><span class="d-none d-sm-inline"> Yeni İş Emri</span></button>
             </div>
         </header>
         <main class="content">
-            <div class="row g-3 mb-3">
-                <div class="col-6 col-xl-3"><a href="<%= qs({ status: 'open', overdue: '', review: '' }) %>" class="card-x kpi"><div class="ic t-brand"><i class="fas fa-list-check"></i></div><div><div class="lbl">Açık görev</div><div class="val"><%= counts.open %></div></div></a></div>
-                <div class="col-6 col-xl-3"><a href="<%= qs({ overdue: '1', status: '', review: '' }) %>" class="card-x kpi"><div class="ic t-bad"><i class="fas fa-triangle-exclamation"></i></div><div><div class="lbl">Geciken</div><div class="val"><%= counts.overdue %></div></div></a></div>
-                <div class="col-6 col-xl-3"><a href="<%= qs({ review: '1', status: '', overdue: '' }) %>" class="card-x kpi"><div class="ic t-warn"><i class="fas fa-clipboard-check"></i></div><div><div class="lbl">İnceleme bekleyen</div><div class="val"><%= counts.review %></div></div></a></div>
-                <div class="col-6 col-xl-3"><a href="/admin/is-emirleri" class="card-x kpi"><div class="ic t-gray"><i class="fas fa-layer-group"></i></div><div><div class="lbl">Toplam</div><div class="val"><%= counts.total %></div></div></a></div>
+            <div class="row g-3 mb-3 kpi-grid">
+                <div class="col-6 col-md-4 col-xl-2"><a href="<%= qs({ status: '', overdue: '', review: '' }) %>" class="card-x kpi"><div class="ic t-gray"><i class="fas fa-layer-group"></i></div><div><div class="lbl">Toplam iş emri</div><div class="val"><%= counts.total %></div></div></a></div>
+                <div class="col-6 col-md-4 col-xl-2"><a href="<%= qs({ status: 'pending', overdue: '', review: '' }) %>" class="card-x kpi"><div class="ic t-brand"><i class="fas fa-hourglass-start"></i></div><div><div class="lbl">Bekleyen</div><div class="val"><%= counts.pending %></div></div></a></div>
+                <div class="col-6 col-md-4 col-xl-2"><a href="<%= qs({ status: 'Devam Ediyor', overdue: '', review: '' }) %>" class="card-x kpi"><div class="ic t-info"><i class="fas fa-person-digging"></i></div><div><div class="lbl">Devam eden</div><div class="val"><%= counts.progress %></div></div></a></div>
+                <div class="col-6 col-md-4 col-xl-2"><a href="<%= qs({ status: 'Tamamlandı', overdue: '', review: '' }) %>" class="card-x kpi"><div class="ic t-ok"><i class="fas fa-circle-check"></i></div><div><div class="lbl">Tamamlanan</div><div class="val"><%= counts.done %></div></div></a></div>
+                <div class="col-6 col-md-4 col-xl-2"><a href="<%= qs({ overdue: '1', status: '', review: '' }) %>" class="card-x kpi"><div class="ic t-bad"><i class="fas fa-triangle-exclamation"></i></div><div><div class="lbl">Geciken</div><div class="val"><%= counts.overdue %></div></div></a></div>
+                <div class="col-6 col-md-4 col-xl-2"><a href="<%= qs({ status: 'İptal', overdue: '', review: '' }) %>" class="card-x kpi"><div class="ic t-gray"><i class="fas fa-ban"></i></div><div><div class="lbl">İptal edilen</div><div class="val"><%= counts.cancelled %></div></div></a></div>
             </div>
+            <% if (counts.review) { %><a href="<%= qs({ review: '1', status: '', overdue: '' }) %>" class="alert d-flex align-items-center gap-2 border-0 mb-3 text-decoration-none" style="background:var(--warn-50);color:#93370D;border-radius:12px"><i class="fas fa-clipboard-check"></i><div><strong><%= counts.review %></strong> tamamlanmış görev onayınızı bekliyor.</div><i class="fas fa-chevron-right ms-auto"></i></a><% } %>
 
             <div class="card-x">
                 <form class="card-h filters" method="GET" action="/admin/is-emirleri">
                     <div class="search flex-grow-1" style="min-width:200px;max-width:320px"><i class="fas fa-magnifying-glass"></i><input type="search" name="q" value="<%= f.q %>" class="form-control" placeholder="Kod, başlık, aday, personel…"></div>
                     <select name="status" class="form-select" style="width:auto" onchange="this.form.submit()">
-                        <option value="">Tüm durumlar</option><option value="open" <%= f.status === 'open' ? 'selected' : '' %>>Açık (tümü)</option>
+                        <option value="">Tüm durumlar</option><option value="open" <%= f.status === 'open' ? 'selected' : '' %>>Açık (tümü)</option><option value="pending" <%= f.status === 'pending' ? 'selected' : '' %>>Bekleyen (atandı + revizyon)</option>
                         <% STATUSES.forEach(s => { %><option value="<%= s %>" <%= f.status === s ? 'selected' : '' %>><%= woStatusLabel(s) %></option><% }) %>
                     </select>
                     <select name="staff" class="form-select" style="width:auto" onchange="this.form.submit()">
@@ -50,6 +55,10 @@
                     <select name="category" class="form-select" style="width:auto" onchange="this.form.submit()">
                         <option value="">Tüm kategoriler</option><% CATEGORIES.forEach(c => { %><option <%= f.category === c ? 'selected' : '' %>><%= c %></option><% }) %>
                     </select>
+                    <select name="scope" class="form-select" style="width:auto" onchange="this.form.submit()">
+                        <option value="">Tüm türler</option><option value="candidate" <%= f.scope === 'candidate' ? 'selected' : '' %>>Adaya bağlı</option><option value="general" <%= f.scope === 'general' ? 'selected' : '' %>>Genel (adaysız)</option><option value="group" <%= f.scope === 'group' ? 'selected' : '' %>>Çok personelli</option>
+                    </select>
+                    <div class="d-flex align-items-center gap-1"><input type="date" name="from" value="<%= f.from %>" class="form-control" style="width:auto" title="Oluşturulma: başlangıç"><span class="muted">–</span><input type="date" name="to" value="<%= f.to %>" class="form-control" style="width:auto" title="Oluşturulma: bitiş"></div>
                     <select name="sort" class="form-select" style="width:auto" onchange="this.form.submit()">
                         <option value="created" <%= f.sort === 'created' ? 'selected' : '' %>>En yeni</option>
                         <option value="due" <%= f.sort === 'due' ? 'selected' : '' %>>Teslim tarihine göre</option>
@@ -66,17 +75,18 @@
                 <% } %>
                 <div class="table-responsive">
                     <table class="table table-x">
-                        <thead><tr><th>İş Emri</th><th>Aday</th><th>Personel</th><th>Öncelik</th><th>Son Teslim</th><th>Durum</th><th></th></tr></thead>
+                        <thead><tr><th>İş Emri</th><th>Aday</th><th>Personel</th><th>Öncelik</th><th class="d-none d-lg-table-cell">Oluşturma</th><th>Son Teslim</th><th>Durum</th><th></th></tr></thead>
                         <tbody>
                         <% list.forEach(w => { const due = dueLabel(w); %>
                             <tr class="clickable" onclick="if(!event.target.closest('a,button'))location.href='/admin/is-emirleri/<%= w._id %>'">
                                 <td style="max-width:320px">
                                     <div class="wo-title text-truncate-1"><%= w.title %></div>
-                                    <div class="wo-code"><%= w.code %> · <%= w.category %><% if (w.attachments && w.attachments.length) { %> · <i class="fas fa-paperclip"></i> <%= w.attachments.length %><% } %></div>
+                                    <div class="wo-code"><%= w.code %> · <%= w.category %><% if (w.groupSize > 1) { %> · <span title="Ortak görev"><i class="fas fa-users"></i> <%= w.groupSize %> kişi</span><% } %><% if (w.recurringId) { %> · <i class="fas fa-repeat" title="Tekrarlayan görev"></i><% } %><% if ((w.checklist || []).length) { %> · <i class="fas fa-list-check"></i> <%= w.checklist.filter(c => c.done).length %>/<%= w.checklist.length %><% } %><% if (w.attachments && w.attachments.length) { %> · <i class="fas fa-paperclip"></i> <%= w.attachments.length %><% } %></div>
                                 </td>
-                                <td><a href="/admin/candidate/<%= w.candidateId %>#workorders" class="text-decoration-none fw-600"><%= w.candidateName %></a></td>
+                                <td><% if (w.candidateId) { %><a href="/admin/candidate/<%= w.candidateId %>#workorders" class="text-decoration-none fw-600"><%= w.candidateName %></a><% } else { %><span class="pill t-gray"><i class="fas fa-briefcase"></i>Genel görev</span><% } %></td>
                                 <td><% if (w.assignedTo) { %><div class="fw-650"><%= w.assignedTo.fullName %></div><div class="muted small"><%= w.assignedTo.deletedAt ? 'Devre dışı' : (w.assignedTo.title || '') %></div><% } else { %><span class="muted">—</span><% } %></td>
                                 <td><span class="pill <%= woPriorityTone(w.priority) %>"><i class="fas <%= woPriorityIcon(w.priority) %>"></i><%= w.priority %></span></td>
+                                <td class="d-none d-lg-table-cell" style="white-space:nowrap"><div class="small"><%= fmtDT(w.createdAt) %></div><div class="muted small"><%= w.createdByName || 'Yönetici' %><%= w.completedAt ? ' · ✓ ' + fmtDT(w.completedAt) : '' %></div></td>
                                 <td style="white-space:nowrap"><div><%= w.dueDate ? fmtDT(w.dueDate, false) : '—' %></div><% if (due) { %><span class="pill <%= due.tone %>" style="font-size:11px;padding:1px 8px"><%= due.text %></span><% } %></td>
                                 <td><span class="pill <%= woStatusTone(w.status) %>"><span class="dot"></span><%= woStatusLabel(w.status) %></span></td>
                                 <td class="text-end"><a href="/admin/is-emirleri/<%= w._id %>" class="btn btn-soft btn-icon" title="Aç"><i class="fas fa-chevron-right"></i></a></td>
@@ -85,7 +95,7 @@
                         </tbody>
                     </table>
                     <% if (!list.length) { %>
-                        <div class="empty"><i class="fas fa-clipboard-list"></i><%= anyFilter ? 'Filtrelere uyan iş emri yok.' : 'Henüz iş emri oluşturulmadı. Bir adayın detay sayfasından veya “Yeni İş Emri” butonuyla başlayabilirsiniz.' %></div>
+                        <div class="empty"><i class="fas fa-clipboard-list"></i><%= anyFilter ? 'Filtrelere uyan iş emri yok.' : 'Henüz iş emri oluşturulmadı. “Yeni İş Emri” butonuyla adaya bağlı veya genel bir görev oluşturabilirsiniz.' %></div>
                     <% } %>
                 </div>
                 <div class="px-3 py-2 border-top muted small" style="border-color:var(--line)!important"><%= list.length %> kayıt</div>

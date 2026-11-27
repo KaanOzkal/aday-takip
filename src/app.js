@@ -151,11 +151,25 @@ app.use(session({
     cookie: { httpOnly: true, sameSite: 'lax', secure: 'auto', maxAge: 1000 * 60 * 60 * 12 }
 }));
 
+// İptal edilen (veya silinen) adayın oturumu her istekte sunucu tarafında geçersiz kılınır.
+// Tüm aday sayfaları ve API'leri (belge görüntüleme dahil) bu kontrolden geçer; veriler silinmez.
+app.use(async (req, res, next) => {
+    if (!req.session || !req.session.userId) return next();
+    try {
+        const c = await Candidate.findById(req.session.userId).select('status').lean();
+        if (c && c.status !== 'cancelled') return next();
+        delete req.session.userId;
+        const wantsJson = req.xhr || (req.get('accept') || '').includes('application/json');
+        return req.session.save(() => wantsJson ? res.status(401).json({ error: 'account_cancelled' }) : res.redirect('/login?error=' + (c ? 'account_cancelled' : 'session_expired')));
+    } catch (e) { next(); }
+});
+
 // --- SABİT VERİLER ---
 // BERLINER resmi 9 aşamalı süreç (tanımlar: src/process/stages.js)
 const { STAGE_NAMES: STAGES, STAGE_DEFS } = require('./process/stages');
 const FINAL_STAGE = STAGES[STAGES.length - 1];
 
+// Almanya alt aşamaları artık kullanılmıyor (arayüzden kaldırıldı). Adaylardaki eski germanyStage verisi silinmez.
 const GERMANY_STAGES = [
     '1. Başvuru ve Kayıt',
     '2. Tercüme ve Denklik',
@@ -198,6 +212,9 @@ const adminAuthCheck = (req, res, next) => {
     }
 };
 
+// --- OPERASYON: KATEGORİLER, TEKRARLAYAN GÖREVLER, DUYURULAR (rota önceliği için staff'tan önce) ---
+require('./ops')(app, { adminAuthCheck, Candidate });
+
 // --- PERSONEL / İŞ EMRİ / BİLDİRİM SİSTEMİ ---
 require('./staff')(app, {
     adminAuthCheck, Candidate, uploadToGoogleDrive, transporter, upload, google,
@@ -213,14 +230,21 @@ require('./ai')(app, { adminAuthCheck, Candidate });
 // --- CRM: YÖNETİM PANELİ, İLETİŞİM, ŞİRKETLER, RAPORLAR ---
 require('./crm')(app, { adminAuthCheck, Candidate, Appointment });
 
+// --- DİJİTAL ADAY DOSYASI (kişisel bilgiler, iş geçmişi, ödemeler, belge arşivi) ve PROFESYONEL CV ---
+const fileStore = require('./lib/storage')({ uploadToGoogleDrive, google });
+app.locals.storage = fileStore;
+require('./dossier')(app, { adminAuthCheck, authCheck, Candidate, upload, storage: fileStore });
+require('./cv')(app, { adminAuthCheck, authCheck, Candidate, upload });
+
 // ============================================
 //  ROTALAR
 // ============================================
 
 app.get('/', (req, res) => res.redirect(req.session.userId ? '/panel' : '/login'));
+const LOGIN_REASONS = { account_cancelled: 'Hesabınız erişime kapatılmıştır. Bilgi için danışmanınızla iletişime geçin.', session_expired: 'Oturumunuz sona erdi. Lütfen tekrar giriş yapın.' };
 app.get('/login', (req, res) => {
     if (req.session.userId) return res.redirect('/panel');
-    res.render('login', { error: null, values: {} });
+    res.render('login', { error: LOGIN_REASONS[req.query.error] || null, values: {} });
 });
 
 app.post('/login', async (req, res) => {
@@ -243,6 +267,10 @@ app.post('/login', async (req, res) => {
         }
         if (!user) {
             return res.status(401).render('login', { error: 'Bilgiler eşleşmedi. Ad, soyad ve pasaport numaranızı kontrol edin.', values });
+        }
+        if (user.status === 'cancelled') { // iptal edilen aday giriş yapamaz (yeniden aktifleştirilince tekrar girebilir)
+            if (app.locals.services) app.locals.services.audit(req, 'candidate.login_denied', 'Candidate', user._id, 'İptal edilmiş aday giriş denemesi', { type: 'anonymous', id: '', name: `${user.firstName} ${user.lastName}` });
+            return res.status(403).render('login', { error: LOGIN_REASONS.account_cancelled, values });
         }
         req.session.regenerate((err) => {
             if (err) return res.status(500).render('login', { error: 'Oturum başlatılamadı, tekrar deneyin.', values });
@@ -348,10 +376,11 @@ app.post('/documents/upload', authCheck, (req, res, next) => {
     req.file.originalname = safeName(req.file.originalname);
     try {
         const candidateFolderName = `${req.user.firstName} ${req.user.lastName}`;
-        const driveFile = await uploadToGoogleDrive(req.file, candidateFolderName);
+        const saved = await fileStore.save(req.file, candidateFolderName, { type: 'candidate', id: req.user._id });
+        const docName = String(req.body.docType).slice(0, 80);
 
         await Candidate.findByIdAndUpdate(req.user._id, {
-            $push: { documents: { name: req.body.docType, filename: driveFile.name, driveLink: driveFile.webViewLink, fileId: driveFile.id, status: 'İnceleniyor', date: new Date() } },
+            $push: { documents: { name: docName, category: app.locals.docCategoryOf({ name: docName }), filename: saved.name, driveLink: saved.driveLink, fileId: saved.fileId, blobId: saved.blobId, mimeType: saved.mimeType, size: saved.size, uploadedBy: 'candidate', status: 'İnceleniyor', date: new Date() } },
             $set: { lastActivityAt: new Date() }
         });
         res.redirect('/documents?status=uploaded');
@@ -377,28 +406,17 @@ app.get('/documents/delete/:docId', authCheck, deleteOwnDocument);
 app.get('/documents/view/:docId', async (req, res) => {
     if (!req.session.userId && !req.session.isAdmin) return res.redirect('/login');
     try {
-        const docId = req.params.docId;
-        let fileId = null;
-
+        if (!mongoose.Types.ObjectId.isValid(req.params.docId)) return res.status(404).send('Belge bulunamadı.');
         // Aday yalnızca kendi belgesini görebilir; admin hepsini görebilir
-        const query = { 'documents._id': docId };
+        const query = { 'documents._id': req.params.docId };
         if (!req.session.isAdmin) query._id = req.session.userId;
-        const candidate = await Candidate.findOne(query, { 'documents.$': 1 });
-        if (candidate && candidate.documents && candidate.documents.length > 0) fileId = candidate.documents[0].fileId;
-        if (!fileId) return res.status(404).send('Belge bulunamadı.');
-
-        const auth = new google.auth.OAuth2(process.env.CLIENT_ID, process.env.CLIENT_SECRET, process.env.GOOGLE_REDIRECT_URI);
-        auth.setCredentials({ refresh_token: process.env.REFRESH_TOKEN });
-        const driveService = google.drive({ version: 'v3', auth });
-
-        const fileMeta = await driveService.files.get({ fileId: fileId, fields: 'mimeType, name' });
-        res.setHeader('Content-Type', fileMeta.data.mimeType);
-        res.setHeader('Content-Disposition', `inline; filename="${encodeURIComponent(fileMeta.data.name)}"`);
-
-        const response = await driveService.files.get({ fileId: fileId, alt: 'media' }, { responseType: 'stream' });
-        response.data.on('error', err => { if (!res.headersSent) res.status(500).send('Dosya okuma hatası.'); }).pipe(res);
+        const candidate = await Candidate.findOne(query).select('documents');
+        const doc = candidate && candidate.documents.id(req.params.docId);
+        if (!doc || (!doc.fileId && !doc.blobId)) return res.status(404).send('Belge bulunamadı.');
+        await fileStore.stream({ fileId: doc.fileId, blobId: doc.blobId, name: doc.filename }, res, { download: req.query.download === '1' });
     } catch (error) {
-        res.status(500).send('Dosya görüntülenemedi: ' + error.message);
+        console.error('Belge görüntüleme hatası:', error.message);
+        if (!res.headersSent) res.status(500).send('Dosya görüntülenemedi.');
     }
 });
 
@@ -456,7 +474,7 @@ app.get('/processes', authCheck, (req, res) => {
 });
 
 app.get('/germany-process', authCheck, (req, res) => {
-    res.render('germany_process', { user: req.user, page: 'germany_process', germanyStages: GERMANY_STAGES });
+    res.render('germany_process', { user: req.user, page: 'germany_process' });
 });
 
 app.get('/game', authCheck, (req, res) => res.render('game', { user: req.user, page: 'game' }));
@@ -495,7 +513,7 @@ const escapeHtml = (s = '') => String(s)
 const mailTemplate = (firstName, content) => `
 <div style="font-family:Arial,Helvetica,sans-serif;background:#f4f6fb;padding:24px;">
   <div style="max-width:600px;margin:0 auto;background:#ffffff;border-radius:12px;overflow:hidden;border:1px solid #e5e7eb;">
-    <div style="background:#0b1220;color:#ffffff;padding:18px 24px;font-weight:bold;letter-spacing:1px;">BERLINER</div>
+    <div style="background:#0b1220;color:#ffffff;padding:14px 24px;font-weight:bold;letter-spacing:1px;border-bottom:4px solid #D4111B;">${process.env.APP_URL ? `<img src="${escapeHtml(process.env.APP_URL.replace(/\/$/, ''))}/img/berliner-logo-96.png" alt="" width="40" height="40" style="vertical-align:middle;margin-right:10px;border-radius:50%;background:#fff">` : ''}BERLINER</div>
     <div style="padding:24px;color:#1f2937;font-size:15px;line-height:1.6;">
       <p style="margin-top:0;">Sayın ${escapeHtml(firstName)},</p>
       <p>${escapeHtml(content).replace(/\r?\n/g, '<br>')}</p>
@@ -592,8 +610,9 @@ app.get('/admin/candidate/:id', adminAuthCheck, async (req, res) => {
         const wo = await app.locals.loadCandidateWorkOrders(candidate._id);
         const pipeline = await app.locals.processService.candidatePipeline(candidate._id);
         const timeline = await app.locals.candidateTimeline(candidate._id);
+        const dossier = await app.locals.dossierFor(candidate);
         res.render('admin_candidate_detail', {
-            candidate, appointments, messages, companies, wo, pipeline, timeline,
+            candidate, appointments, messages, companies, wo, pipeline, timeline, dossier,
             stages: STAGES, germanyStages: GERMANY_STAGES,
             stateNames: Object.keys(STATE_DATA),
             user: { firstName: 'Admin' }
@@ -687,8 +706,6 @@ app.post('/admin/candidates/bulk', adminAuthCheck, async (req, res) => {
         } else if (action === 'stage' && STAGES.includes(value)) {
             const toKey = app.locals.processService.keyOfName(value);
             for (const id of ids) await app.locals.processService.move(id, toKey, { actor: { type: 'admin', id: 'admin', name: 'Yönetici' }, reason: 'Toplu aşama güncellemesi', force: true });
-        } else if (action === 'germanyStage' && GERMANY_STAGES.includes(value)) {
-            await Candidate.updateMany({ _id: { $in: ids } }, { $set: { germanyStage: value } });
         } else if (action === 'message' && value && value.trim()) {
             await Message.insertMany(ids.map(id => ({ candidateId: id, content: value.trim(), sender: 'Admin', isRead: false, date: new Date() })));
         } else if (action === 'delete') {
@@ -716,10 +733,10 @@ app.get('/admin/export.csv', adminAuthCheck, async (req, res) => {
         const query = ids.length ? { _id: { $in: ids } } : {};
         const list = await Candidate.find(query).select('-cvDetails -applicationForm').sort({ firstName: 1 }).lean();
         const cell = v => `"${String(v ?? '').replace(/"/g, '""')}"`;
-        const header = ['Ad', 'Soyad', 'Pasaport', 'E-posta', 'Telefon', 'Meslek', 'Lokasyon', 'Hedef Şehir', 'Şirket', 'Genel Aşama', 'Almanya Aşaması', 'Puan', 'Belge Sayısı', 'Bekleyen Belge', 'Başvuru Tarihi'];
+        const header = ['Ad', 'Soyad', 'Pasaport', 'E-posta', 'Telefon', 'Meslek', 'Lokasyon', 'Hedef Şehir', 'Şirket', 'Genel Aşama', 'Durum', 'Puan', 'Belge Sayısı', 'Bekleyen Belge', 'Başvuru Tarihi'];
         const rows = list.map(c => [
             c.firstName, c.lastName, c.passportNo, c.email, c.phone || c.phoneNumber, c.job, c.location, c.targetState,
-            c.company || 'Atanmadı', c.currentStage, c.germanyStage, c.score,
+            c.company || 'Atanmadı', c.currentStage, c.status === 'cancelled' ? 'İptal' : 'Aktif', c.score,
             (c.documents || []).length, (c.documents || []).filter(d => d.status === 'İnceleniyor').length,
             c.applicationDate ? new Date(c.applicationDate).toLocaleDateString('tr-TR') : ''
         ].map(cell).join(';'));
@@ -786,14 +803,6 @@ app.post('/admin/candidate/update', adminAuthCheck, async (req, res) => {
         if (!STAGES.includes(req.body.newStage)) return redirectBack(req, res, 'error', 'invalid_action');
         const r = await app.locals.processService.move(req.body.candidateId, app.locals.processService.keyOfName(req.body.newStage), { actor: { type: 'admin', id: 'admin', name: 'Yönetici' }, reason: (req.body.reason || '').trim() || 'Manuel aşama güncellemesi', force: true });
         if (!r.ok && r.code !== 'same') return redirectBack(req, res, 'error', 'invalid_action');
-        redirectBack(req, res, 'status', 'updated');
-    } catch (error) { redirectBack(req, res, 'error', 'update_failed'); }
-});
-
-app.post('/admin/candidate/update-germany', adminAuthCheck, async (req, res) => {
-    try {
-        if (!GERMANY_STAGES.includes(req.body.newGermanyStage)) return redirectBack(req, res, 'error', 'invalid_action');
-        await Candidate.findByIdAndUpdate(req.body.candidateId, { germanyStage: req.body.newGermanyStage });
         redirectBack(req, res, 'status', 'updated');
     } catch (error) { redirectBack(req, res, 'error', 'update_failed'); }
 });

@@ -1,0 +1,109 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+    <title>Kişisel Bilgilerim | BERLINER Aday Portalı</title>
+    <%- include('partials/cand_head') %>
+    <style>
+        .sec-h .lock { margin-left: auto; }
+        .chk-grid { display: flex; flex-wrap: wrap; gap: 8px; }
+        .chk { position: relative; }
+        .chk input { position: absolute; opacity: 0; }
+        .chk label { display: inline-flex; align-items: center; justify-content: center; min-width: 54px; padding: 8px 12px; border: 1px solid var(--line); border-radius: 10px; font-weight: 700; cursor: pointer; background: #fff; }
+        .chk input:checked + label { border-color: var(--brand); background: var(--brand-50); color: var(--brand); }
+        .chk input:disabled + label { cursor: default; opacity: .75; }
+        .chk input:focus-visible + label { outline: 2px solid var(--brand); }
+        .meter { height: 10px; border-radius: 99px; background: #EEF0F4; overflow: hidden; }
+        .meter span { display: block; height: 100%; background: var(--brand); border-radius: 99px; }
+        fieldset[disabled] .form-control, fieldset[disabled] .form-select { background: #F8F9FB; }
+    </style>
+</head>
+<body>
+<%
+    const d = user.dossier || {};
+    const v = d.verified || {};
+    const ymd = (x) => x ? `${new Date(x).getFullYear()}-${String(new Date(x).getMonth() + 1).padStart(2, '0')}-${String(new Date(x).getDate()).padStart(2, '0')}` : '';
+    const locked = (k) => !!(v[k] && v[k].at);
+    const lockBadge = (k) => locked(k) ? `<span class="pill t-ok lock"><i class="fas fa-lock"></i>Doğrulandı · kilitli</span>` : `<span class="pill t-gray lock">${comp.sections[k].filled}/${comp.sections[k].total}</span>`;
+    const others = (d.otherLanguages || []).concat([{ lang: '', level: '' }, { lang: '', level: '' }]).slice(0, Math.max(2, (d.otherLanguages || []).length + 1));
+%>
+<%- include('partials/cand_shell_start', { page: 'personal', title: 'Kişisel Bilgilerim', subtitle: 'Vize ve işveren dosyan için gerekli kişisel bilgilerin' }) %>
+
+<div class="c-card c-card-b mb-3">
+    <div class="d-flex align-items-center gap-3 flex-wrap">
+        <div class="flex-grow-1" style="min-width:220px">
+            <div class="d-flex justify-content-between mb-1"><b>Dosya doluluk oranı</b><b style="color:var(--brand)">%<%= comp.pct %></b></div>
+            <div class="meter"><span style="width:<%= comp.pct %>%"></span></div>
+        </div>
+        <a href="/is-gecmisi" class="btn btn-soft btn-sm"><i class="fas fa-briefcase me-1"></i>İş geçmişim</a>
+        <a href="/cv" class="btn btn-brand btn-sm"><i class="fas fa-file-lines me-1"></i>CV'm</a>
+    </div>
+    <% if (comp.missing.length) { %><div class="small muted mt-2"><i class="fas fa-circle-info me-1"></i>Eksik: <%= comp.missing.map(x => x.label).join(', ') %></div><% } %>
+</div>
+
+<div class="row g-3">
+    <div class="col-lg-6">
+        <form class="c-card mb-3" id="identity" method="POST" action="/kisisel-bilgiler/identity">
+            <div class="c-card-h sec-h"><div class="c-ic t-brand"><i class="fas fa-id-card"></i></div><div><h2>Kimlik bilgileri</h2><p class="sub">Yalnızca sen ve yetkili danışmanın görebilir</p></div><%- lockBadge('identity') %></div>
+            <fieldset class="c-card-b" <%= locked('identity') ? 'disabled' : '' %>><div class="row g-3">
+                <div class="col-sm-6"><label class="form-label">Pasaport numarası</label><input name="passportNo" class="form-control text-uppercase font-monospace" value="<%= user.passportNo || '' %>" maxlength="15" autocomplete="off"><div class="form-text">Giriş yaparken bu numarayı kullanırsın.</div></div>
+                <div class="col-sm-6"><label class="form-label">T.C. kimlik numarası</label><input name="tcNo" class="form-control font-monospace" value="<%= d.tcNo || '' %>" inputmode="numeric" maxlength="11" pattern="\d{11}" autocomplete="off"></div>
+                <div class="col-sm-6"><label class="form-label">Doğum tarihi</label><input type="date" name="birthDate" class="form-control" value="<%= ymd(d.birthDate) %>"></div>
+                <div class="col-sm-6"><label class="form-label">Doğum yeri</label><input name="birthPlace" class="form-control" value="<%= d.birthPlace || '' %>" maxlength="120"></div>
+                <div class="col-sm-6"><label class="form-label">Medeni durum</label><select name="maritalStatus" class="form-select"><option value="">Seçin…</option><% MARITAL.forEach(x => { %><option <%= d.maritalStatus === x ? 'selected' : '' %>><%= x %></option><% }) %></select></div>
+                <div class="col-sm-6"><label class="form-label">Çocuk sayısı</label><input type="number" name="children" min="0" max="30" class="form-control" value="<%= d.children ?? '' %>"></div>
+                <div class="col-12"><label class="form-label">Uyruk</label><input name="nationality" class="form-control" value="<%= d.nationality || 'Türkiye Cumhuriyeti' %>" maxlength="60"></div>
+            </div></fieldset>
+            <% if (!locked('identity')) { %><div class="px-4 pb-3 text-end"><button class="btn btn-brand"><i class="fas fa-check me-1"></i>Kaydet</button></div><% } %>
+        </form>
+
+        <form class="c-card mb-3" id="contact" method="POST" action="/kisisel-bilgiler/contact">
+            <div class="c-card-h sec-h"><div class="c-ic t-info"><i class="fas fa-address-book"></i></div><div><h2>İletişim ve adres</h2></div><%- lockBadge('contact') %></div>
+            <fieldset class="c-card-b" <%= locked('contact') ? 'disabled' : '' %>><div class="row g-3">
+                <div class="col-sm-6"><label class="form-label">E-posta adresi</label><input type="email" name="email" class="form-control" value="<%= user.email || '' %>" maxlength="160"></div>
+                <div class="col-sm-6"><label class="form-label">Telefon numarası</label><input type="tel" name="phone" class="form-control" value="<%= user.phone || user.phoneNumber || '' %>" maxlength="30" placeholder="+90 5xx xxx xx xx"></div>
+                <div class="col-12"><label class="form-label">Açık adres</label><textarea name="address" rows="2" class="form-control" maxlength="400"><%= d.address || '' %></textarea></div>
+            </div></fieldset>
+            <% if (!locked('contact')) { %><div class="px-4 pb-3 text-end"><button class="btn btn-brand"><i class="fas fa-check me-1"></i>Kaydet</button></div><% } %>
+        </form>
+
+        <form class="c-card mb-3" id="emergency" method="POST" action="/kisisel-bilgiler/emergency">
+            <div class="c-card-h sec-h"><div class="c-ic t-bad"><i class="fas fa-phone-volume"></i></div><div><h2>Acil durumda aranacak kişi</h2></div><%- lockBadge('emergency') %></div>
+            <fieldset class="c-card-b" <%= locked('emergency') ? 'disabled' : '' %>><div class="row g-3">
+                <div class="col-sm-6"><label class="form-label">Ad soyad</label><input name="emergencyName" class="form-control" value="<%= d.emergencyName || '' %>" maxlength="120"></div>
+                <div class="col-sm-6"><label class="form-label">Yakınlık</label><input name="emergencyRelation" class="form-control" value="<%= d.emergencyRelation || '' %>" maxlength="60" placeholder="Örn: Eşi, Annesi"></div>
+                <div class="col-12"><label class="form-label">Telefon</label><input type="tel" name="emergencyPhone" class="form-control" value="<%= d.emergencyPhone || '' %>" maxlength="30"></div>
+            </div></fieldset>
+            <% if (!locked('emergency')) { %><div class="px-4 pb-3 text-end"><button class="btn btn-brand"><i class="fas fa-check me-1"></i>Kaydet</button></div><% } %>
+        </form>
+    </div>
+    <div class="col-lg-6">
+        <form class="c-card mb-3" id="license" method="POST" action="/kisisel-bilgiler/license">
+            <div class="c-card-h sec-h"><div class="c-ic t-warn"><i class="fas fa-id-badge"></i></div><div><h2>Ehliyet</h2></div><%- lockBadge('license') %></div>
+            <fieldset class="c-card-b" <%= locked('license') ? 'disabled' : '' %>>
+                <label class="form-label">Ehliyet sınıfları</label>
+                <div class="chk-grid mb-3"><% LICENSE_CLASSES.forEach(k => { %><div class="chk"><input type="checkbox" id="lc<%= k %>" name="licenseClasses" value="<%= k %>" <%= (d.licenseClasses || []).includes(k) ? 'checked' : '' %>><label for="lc<%= k %>"><%= k %></label></div><% }) %></div>
+                <label class="form-label">Ehliyet geçerlilik tarihi</label><input type="date" name="licenseExpiry" class="form-control" value="<%= ymd(d.licenseExpiry) %>">
+            </fieldset>
+            <% if (!locked('license')) { %><div class="px-4 pb-3 text-end"><button class="btn btn-brand"><i class="fas fa-check me-1"></i>Kaydet</button></div><% } %>
+        </form>
+
+        <form class="c-card mb-3" id="languages" method="POST" action="/kisisel-bilgiler/languages">
+            <div class="c-card-h sec-h"><div class="c-ic t-ok"><i class="fas fa-language"></i></div><div><h2>Dil bilgisi</h2><p class="sub">Yalnızca gerçek seviyeni seç; CV'ne bu bilgi yazılır</p></div><%- lockBadge('languages') %></div>
+            <fieldset class="c-card-b" <%= locked('languages') ? 'disabled' : '' %>><div class="row g-3">
+                <div class="col-sm-6"><label class="form-label">Almanca seviyesi</label><select name="germanLevel" class="form-select"><option value="">Bilmiyorum / yok</option><% DOSSIER_LEVELS.forEach(x => { %><option <%= d.germanLevel === x ? 'selected' : '' %>><%= x %></option><% }) %></select></div>
+                <div class="col-sm-6"><label class="form-label">İngilizce seviyesi</label><select name="englishLevel" class="form-select"><option value="">Bilmiyorum / yok</option><% DOSSIER_LEVELS.forEach(x => { %><option <%= d.englishLevel === x ? 'selected' : '' %>><%= x %></option><% }) %></select></div>
+                <div class="col-12"><label class="form-label mb-1">Diğer bildiğin diller</label><div class="form-text mt-0 mb-2">Örn: Türkçe – Anadil, Arapça – B1</div>
+                    <% others.forEach(o => { %><div class="d-flex gap-2 mb-2"><input name="otherLang" class="form-control" value="<%= o.lang %>" maxlength="40" placeholder="Dil"><select name="otherLevel" class="form-select" style="max-width:150px"><option value="">Seviye</option><% DOSSIER_LEVELS.forEach(x => { %><option <%= o.level === x ? 'selected' : '' %>><%= x %></option><% }) %></select></div><% }) %>
+                </div>
+            </div></fieldset>
+            <% if (!locked('languages')) { %><div class="px-4 pb-3 text-end"><button class="btn btn-brand"><i class="fas fa-check me-1"></i>Kaydet</button></div><% } %>
+        </form>
+        <div class="c-card c-card-b small muted"><i class="fas fa-shield-halved me-1" style="color:var(--brand)"></i>Pasaport ve kimlik numaran yalnızca sana ve yetkili danışmanına gösterilir. Yönetici bir bölümü doğruladığında o bölüm kilitlenir; değişiklik için danışmanınla iletişime geçebilirsin.</div>
+    </div>
+</div>
+
+<%- include('partials/cand_shell_end', { page: 'personal' }) %>
+<%- include('partials/dossier_msgs') %>
+<script>cNotify(DOSSIER_MSG);</script>
+</body>
+</html>

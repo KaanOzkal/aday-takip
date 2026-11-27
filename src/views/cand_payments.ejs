@@ -1,0 +1,56 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+    <title>Ödemelerim | BERLINER Aday Portalı</title>
+    <%- include('partials/cand_head') %>
+    <style>
+        .pay { display: flex; flex-direction: column; height: 100%; }
+        .pay .amt { font-size: 30px; font-weight: 800; letter-spacing: -.5px; color: var(--ink); }
+        .rc { display: flex; align-items: center; gap: 10px; padding: 9px 0; border-bottom: 1px dashed var(--line); font-size: 13px; }
+        .rc:last-child { border-bottom: 0; }
+    </style>
+</head>
+<body>
+<% const fmt = (d) => d ? new Date(d).toLocaleString('tr-TR', { day: '2-digit', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit' }) : ''; %>
+<%- include('partials/cand_shell_start', { page: 'payments', title: 'Ödemelerim', subtitle: 'Sürücü Kayıt ve KOD95 ödemelerin ve dekontların' }) %>
+
+<% if (!pays.length) { %>
+<div class="c-card"><div class="empty"><div class="c-ic t-gray"><i class="fas fa-receipt"></i></div><div class="fw-650 text-dark">Bekleyen bir ödemen yok</div><div class="small">Danışmanın dosyana bir ödeme eklediğinde burada görünür ve dekontunu buradan yüklersin.</div></div></div>
+<% } %>
+<div class="row g-3">
+<% pays.forEach(p => { const r = p.record; const [lbl, tone] = paymentStatus(r.status); const canUpload = ['awaiting_receipt', 'rejected'].includes(r.status); %>
+    <div class="col-lg-6">
+        <div class="c-card pay" id="pay-<%= p.type %>">
+            <div class="c-card-h"><div class="c-ic t-brand"><i class="fas <%= p.type === 'kod95' ? 'fa-truck' : 'fa-id-card' %>"></i></div><div><h2><%= p.label %></h2><p class="sub">Ödeme tutarı</p></div><span class="pill <%= tone %> ms-auto"><%= lbl %></span></div>
+            <div class="c-card-b flex-grow-1">
+                <div class="amt mb-2"><%= r.amount %> €</div>
+                <% if (r.status === 'rejected') { %><div class="p-3 mb-3" style="background:var(--bad-50);border-radius:12px;font-size:13.5px"><b>Dekont reddedildi:</b> <%= r.rejectReason %><div class="small muted mt-1">Lütfen doğru dekontu yeniden yükle.</div></div><% } %>
+                <% if (r.status === 'under_review') { %><div class="p-3 mb-3" style="background:var(--info-50);border-radius:12px;font-size:13.5px"><i class="fas fa-hourglass-half me-1"></i>Dekontun danışmanın tarafından inceleniyor.</div><% } %>
+                <% if (r.status === 'approved') { %><div class="p-3 mb-3" style="background:var(--ok-50);border-radius:12px;font-size:13.5px"><i class="fas fa-circle-check me-1" style="color:var(--ok)"></i>Ödemen onaylandı · <%= fmt(r.approvedAt) %></div><% } %>
+                <% if (canUpload) { %>
+                <form method="POST" action="/odemelerim/<%= p.type %>/dekont" enctype="multipart/form-data" class="d-flex gap-2 flex-wrap">
+                    <input type="file" name="file" class="form-control" accept=".pdf,.jpg,.jpeg,.png,application/pdf,image/jpeg,image/png" required style="flex:1;min-width:200px">
+                    <button class="btn btn-brand"><i class="fas fa-upload me-1"></i>Dekont yükle</button>
+                </form>
+                <div class="form-text">PDF, JPG veya PNG · en fazla 5 MB</div>
+                <% } %>
+                <% if (r.receipts.length) { %>
+                <div class="small fw-bold mt-3 mb-1">Yüklenen dekontlar</div>
+                <% r.receipts.slice().reverse().forEach(x => { %>
+                <div class="rc"><i class="fas <%= /pdf/.test(x.mimeType || '') ? 'fa-file-pdf' : 'fa-file-image' %>" style="color:var(--brand)"></i>
+                    <div class="flex-grow-1" style="min-width:0"><div class="fw-650 text-truncate"><%= x.name %></div><div class="muted"><%= fmt(x.uploadedAt) %><%= x.review === 'rejected' && x.reviewNote ? ' · ' + x.reviewNote : '' %></div></div>
+                    <span class="pill <%= x.review === 'approved' ? 't-ok' : x.review === 'rejected' ? 't-bad' : 't-info' %>" style="font-size:11px"><%= x.review === 'approved' ? 'Onaylandı' : x.review === 'rejected' ? 'Reddedildi' : 'İnceleniyor' %></span>
+                    <a href="/odeme-dekont/<%= r._id %>/<%= x._id %>" target="_blank" class="btn btn-soft btn-sm" title="Görüntüle"><i class="fas fa-eye"></i></a></div>
+                <% }) %>
+                <% } %>
+            </div>
+        </div>
+    </div>
+<% }) %>
+</div>
+
+<%- include('partials/cand_shell_end', { page: 'payments' }) %>
+<%- include('partials/dossier_msgs') %>
+<script>cNotify(DOSSIER_MSG);</script>
+</body>
+</html>

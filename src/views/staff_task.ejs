@@ -18,6 +18,10 @@
         .stp.done .b { background: var(--brand); border-color: var(--brand); color: #fff; }
         .stp.cur .b { border-color: var(--brand); color: var(--brand); box-shadow: 0 0 0 5px rgba(212,17,27,.14); }
         .stp.cur { color: var(--ink); }
+        .cl-i { display: flex; align-items: center; gap: 10px; width: 100%; text-align: left; border: 1px solid var(--line); background: #fff; border-radius: 10px; padding: 10px 12px; margin-bottom: 6px; font-size: 14px; color: var(--ink); }
+        .cl-i i { font-size: 17px; color: var(--muted); }
+        .cl-i.done { background: var(--ok-50); border-color: #A6F4C5; } .cl-i.done i { color: var(--ok); } .cl-i.done span { text-decoration: line-through; color: var(--muted); }
+        .cl-i:disabled { opacity: .8; cursor: default; }
         .doc { display: flex; align-items: center; gap: 10px; padding: 9px 0; border-bottom: 1px dashed var(--line); }
         .doc:last-child { border-bottom: 0; }
         .action-bar { position: sticky; bottom: 0; z-index: 5; }
@@ -25,7 +29,7 @@
     </style>
 </head>
 <body>
-<%- include('partials/staff_shell_start') %>
+<%- include('partials/staff_shell_start', { pageTitle: 'Görev Detayı' }) %>
 <%
     const due = dueLabel(wo);
     const st = wo.status;
@@ -53,9 +57,11 @@
         <div class="c-card mb-3">
             <div class="c-card-b">
                 <div class="d-flex gap-2 flex-wrap mb-2">
-                    <span class="pill <%= woStatusTone(st) %>"><span class="d"></span><%= st %></span>
+                    <span class="pill <%= woStatusTone(st) %>"><span class="d"></span><%= woStatusLabel(st) %></span>
                     <span class="pill <%= woPriorityTone(wo.priority) %>"><i class="fas <%= woPriorityIcon(wo.priority) %>"></i><%= wo.priority %> öncelik</span>
                     <span class="pill t-gray"><%= wo.category %></span>
+                    <% if (!wo.candidateId) { %><span class="pill t-gray"><i class="fas fa-briefcase"></i>Genel görev</span><% } %>
+                    <% if (wo.groupSize > 1) { %><span class="pill t-info" title="Bu görev başka personellere de verildi; herkes kendi görevini bağımsız tamamlar"><i class="fas fa-users"></i>Ortak görev · <%= wo.groupSize %> kişi</span><% } %>
                     <% if (due) { %><span class="pill <%= due.tone %>"><i class="far fa-clock"></i><%= due.text %></span><% } %>
                     <% if (approved) { %><span class="pill t-ok"><i class="fas fa-check-double"></i>Yönetici onayladı</span><% } %>
                 </div>
@@ -73,6 +79,20 @@
                 <% if (wo.resultNote) { %><div class="p-3 mt-3" style="background:var(--ok-50);border:1px solid #A6F4C5;border-radius:12px"><div class="small fw-bold mb-1" style="color:#027A48"><i class="fas fa-flag-checkered me-1"></i>Sonuç notunuz</div><div class="pre small"><%= wo.resultNote %></div></div><% } %>
             </div>
         </div>
+
+        <% if ((wo.checklist || []).length) { const cd = wo.checklist.filter(c => c.done).length; %>
+        <div class="c-card mb-3" id="checklist">
+            <div class="c-card-h"><h2><i class="fas fa-list-check me-1" style="color:var(--brand)"></i>Kontrol listesi</h2><span class="small muted ms-auto js-cl-count"><%= cd %>/<%= wo.checklist.length %></span></div>
+            <div class="c-card-b">
+                <div class="bar mb-3"><span class="js-cl-bar" style="width:<%= Math.round(cd / wo.checklist.length * 100) %>%"></span></div>
+                <% wo.checklist.forEach(c => { %>
+                <form method="POST" action="/personel/gorev/<%= wo._id %>/checklist/<%= c._id %>" class="js-cl m-0" data-no-busy>
+                    <button class="cl-i <%= c.done ? 'done' : '' %>" <%= canComplete ? '' : 'disabled' %>><i class="<%= c.done ? 'fas fa-square-check' : 'far fa-square' %>"></i><span><%= c.text %></span></button>
+                </form>
+                <% }) %>
+            </div>
+        </div>
+        <% } %>
 
         <% if (canComplete) { %>
         <div class="c-card mb-3" id="complete">
@@ -195,6 +215,16 @@
 </div>
 <%- include('partials/staff_shell_end') %>
 <script>
+document.querySelectorAll('.js-cl').forEach(f => f.addEventListener('submit', async e => {
+    e.preventDefault();
+    const b = f.querySelector('button'); b.disabled = true;
+    const r = await fetch(f.action, { method: 'POST', headers: { Accept: 'application/json' } }).then(x => x.ok ? x.json() : null).catch(() => null);
+    b.disabled = false;
+    if (!r) return sToast.fire({ icon: 'error', title: 'Madde güncellenemedi' });
+    b.classList.toggle('done', r.done); b.querySelector('i').className = r.done ? 'fas fa-square-check' : 'far fa-square';
+    document.querySelector('.js-cl-count').textContent = r.progress.done + '/' + r.progress.total;
+    document.querySelector('.js-cl-bar').style.width = Math.round(r.progress.done / r.progress.total * 100) + '%';
+}));
 sNotify({
     ok: { started: 'Göreve başladınız. Yöneticiniz bilgilendirildi.', completed: 'Görev tamamlandı ve yöneticiye gönderildi. Teşekkürler!', comment_added: 'Notunuz yöneticiye iletildi.', file_added: 'Dosya eklendi.', contact_added: 'İletişim kaydı eklendi.' },
     err: { invalid_state: 'Bu işlem görevin mevcut durumunda yapılamaz.', result_required: 'Lütfen en az birkaç kelimelik bir sonuç notu yazın.', no_file: 'Lütfen bir dosya seçin.', bad_type: 'Bu dosya türü desteklenmiyor (PDF, görsel, Word, Excel).', too_large: 'Dosya 5 MB\'dan büyük olamaz.', upload_failed: 'Dosya yüklenemedi. Lütfen tekrar deneyin.', missing_fields: 'Lütfen bir not yazın.' }

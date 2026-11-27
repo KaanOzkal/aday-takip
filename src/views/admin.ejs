@@ -113,7 +113,7 @@
                             <div class="today-h"><i class="fas fa-triangle-exclamation" style="color:var(--bad)"></i> Geciken görevler <span class="pill t-bad ms-auto"><%= T.overdue.length %></span></div>
                             <% if (!T.overdue.length) { %><div class="muted small px-3 pb-3">Geciken görev yok.</div><% } %>
                             <% T.overdue.slice(0, 5).forEach(o => { %>
-                            <a class="today-row" href="/admin/is-emirleri/<%= o._id %>"><span class="mono small muted"><%= o.code %></span><span class="flex-grow-1 text-truncate-1"><%= o.title %> · <%= o.candidateName %></span><span class="small" style="color:var(--bad)"><%= fmtDT(o.dueDate) %></span></a>
+                            <a class="today-row" href="/admin/is-emirleri/<%= o._id %>"><span class="mono small muted"><%= o.code %></span><span class="flex-grow-1 text-truncate-1"><%= o.title %> · <%= o.candidateName || 'Genel görev' %></span><span class="small" style="color:var(--bad)"><%= fmtDT(o.dueDate) %></span></a>
                             <% }) %>
                             <% if (T.overdue.length > 5) { %><a class="today-more" href="/admin/is-emirleri?overdue=1">Tümü (<%= T.overdue.length %>) →</a><% } %>
                         </div>
@@ -424,7 +424,6 @@
                         <option value="">Toplu işlem seçin…</option>
                         <option value="company">Şirkete ata</option>
                         <option value="stage">Genel aşamayı değiştir</option>
-                        <option value="germanyStage">Almanya aşamasını değiştir</option>
                         <option value="message">Panel mesajı gönder</option>
                         <option value="export">Seçilenleri dışa aktar</option>
                         <option value="delete">Seçilenleri sil</option>
@@ -435,9 +434,6 @@
                     </select>
                     <select id="bulkStage" class="form-select d-none">
                         <% stages.forEach(s => { %><option value="<%= s %>"><%= s %></option><% }) %>
-                    </select>
-                    <select id="bulkGStage" class="form-select d-none">
-                        <% germanyStages.forEach(s => { %><option value="<%= s %>"><%= s %></option><% }) %>
                     </select>
                     <button type="submit" class="btn btn-brand btn-sm" data-no-busy="1">Uygula</button>
                     <button type="button" class="btn btn-sm ms-auto" style="color:#CBD5E1" id="bulkClear">Seçimi temizle</button>
@@ -825,7 +821,7 @@
     checkAll.addEventListener('change', () => { rows.filter(r => r.style.display !== 'none').forEach(r => r.querySelector('.row-check').checked = checkAll.checked); syncChecks(); });
     document.getElementById('bulkClear').addEventListener('click', () => { rows.forEach(r => r.querySelector('.row-check').checked = false); syncChecks(); });
     const bulkAction = document.getElementById('bulkAction');
-    const sub = { company: 'bulkCompany', stage: 'bulkStage', germanyStage: 'bulkGStage' };
+    const sub = { company: 'bulkCompany', stage: 'bulkStage' };
     bulkAction.addEventListener('change', () => Object.entries(sub).forEach(([k, id]) => document.getElementById(id).classList.toggle('d-none', bulkAction.value !== k)));
     bulkBar.addEventListener('submit', async e => {
         e.preventDefault();

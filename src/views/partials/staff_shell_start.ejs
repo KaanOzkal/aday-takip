@@ -2,26 +2,53 @@
     const _sp = (typeof page !== 'undefined') ? page : '';
     const _su = (typeof staffUnread !== 'undefined' && staffUnread) ? staffUnread : 0;
     const _sini = (staff.fullName || '?').split(/\s+/).filter(Boolean).slice(0, 2).map(x => x[0]).join('').toLocaleUpperCase('tr-TR');
+    const _titles = { panel: ['Gösterge Paneli', 'Görevleriniz ve ekip durumu'], notifications: ['Bildirimler', 'Tüm bildirim geçmişiniz'], account: ['Hesabım', 'Şifre ve hesap ayarları'] };
+    const _t = (typeof pageTitle !== 'undefined' && pageTitle) ? [pageTitle, ''] : (_titles[_sp] || ['BERLINER', '']);
 %>
+<div class="s-app">
+<aside class="s-side" id="sSide">
+    <a href="/personel/panel" class="s-brand"><img src="/img/berliner-logo-96.png" alt="BERLINER"><span><b>BERLINER</b><small>Personel Paneli</small></span></a>
+    <div class="lbl">Çalışma Alanı</div>
+    <ul class="s-menu">
+        <li><a href="/personel/panel" class="<%= _sp === 'panel' && !(typeof pageTitle !== 'undefined' && pageTitle) ? 'active' : '' %>"><i class="fas fa-gauge-high"></i>Gösterge Paneli</a></li>
+        <li><a href="/personel/panel?f=open#tasks" class="<%= _sp === 'panel' && (typeof pageTitle !== 'undefined' && pageTitle) ? 'active' : '' %>"><i class="fas fa-list-check"></i>Görevlerim</a></li>
+        <li><a href="/personel/panel#team"><i class="fas fa-people-group"></i>Ekip Dağılımı</a></li>
+        <li><a href="/personel/panel#announcements"><i class="fas fa-bullhorn"></i>Duyurular</a></li>
+    </ul>
+    <div class="lbl">Hesap</div>
+    <ul class="s-menu">
+        <li><a href="/personel/bildirimler" class="<%= _sp === 'notifications' ? 'active' : '' %>"><i class="fas fa-bell"></i>Bildirimler <span class="s-badge js-s-unread" <%= _su ? '' : 'hidden' %>><%= _su %></span></a></li>
+        <li><a href="/personel/hesap" class="<%= _sp === 'account' ? 'active' : '' %>"><i class="fas fa-user-gear"></i>Hesabım</a></li>
+    </ul>
+    <div class="s-me">
+        <span class="av"><%= _sini %></span>
+        <div style="min-width:0;line-height:1.25"><div class="fw-semibold text-white text-truncate" style="font-size:13px"><%= staff.fullName %></div><small class="text-truncate d-block" style="color:#8C8291;font-size:11.5px"><%= staff.title || '@' + staff.username %></small></div>
+        <a href="/personel/cikis" class="out" title="Çıkış yap"><i class="fas fa-arrow-right-from-bracket"></i></a>
+    </div>
+</aside>
+<div class="s-back" id="sBack"></div>
+<div class="s-main">
 <header class="s-top">
-    <div class="in">
-        <a href="/personel/panel" class="s-brand"><span class="mk">B</span><span class="d-none d-sm-inline">BERLINER</span><span class="tag">Personel</span></a>
-        <nav class="s-nav">
-            <a href="/personel/panel" class="<%= _sp === 'panel' ? 'active' : '' %>"><i class="fas fa-list-check"></i>Görevlerim</a>
-            <a href="/personel/bildirimler" class="<%= _sp === 'notifications' ? 'active' : '' %>"><i class="fas fa-bell"></i>Bildirimler <span class="s-badge js-s-unread" <%= _su ? '' : 'hidden' %>><%= _su %></span></a>
-            <a href="/personel/hesap" class="<%= _sp === 'account' ? 'active' : '' %>"><i class="fas fa-user-gear"></i>Hesabım</a>
-        </nav>
-        <div class="ms-auto d-flex align-items-center gap-2">
-            <a href="/personel/bildirimler" class="s-bell" title="Bildirimler"><i class="far fa-bell"></i><span class="s-badge js-s-unread" <%= _su ? '' : 'hidden' %>><%= _su %></span></a>
-            <div class="dropdown">
-                <a href="#" class="s-user" data-bs-toggle="dropdown"><span class="av"><%= _sini %></span><span class="nm fw-semibold" style="font-size:13.5px"><%= staff.fullName %></span><i class="fas fa-chevron-down nm" style="font-size:11px;opacity:.6"></i></a>
-                <ul class="dropdown-menu dropdown-menu-end shadow-sm" style="border-radius:14px;border-color:var(--line);min-width:220px">
-                    <li class="px-3 py-2"><div class="fw-semibold text-dark"><%= staff.fullName %></div><div class="muted small">@<%= staff.username %><%= staff.title ? ' · ' + staff.title : '' %></div></li>
-                    <li><hr class="dropdown-divider"></li>
-                    <li><a class="dropdown-item py-2" href="/personel/hesap"><i class="fas fa-key me-2 muted"></i>Şifre değiştir</a></li>
-                    <li><a class="dropdown-item py-2 text-danger" href="/personel/cikis"><i class="fas fa-arrow-right-from-bracket me-2"></i>Çıkış yap</a></li>
-                </ul>
+    <button class="s-bell s-toggle" id="sToggle" aria-label="Menü"><i class="fas fa-bars"></i></button>
+    <div class="ttl text-truncate"><%= _t[0] %><% if (_t[1]) { %><small class="d-none d-sm-block"><%= _t[1] %></small><% } %></div>
+    <div class="ms-auto d-flex align-items-center gap-2">
+        <div class="dropdown">
+            <button class="s-bell" id="nBell" data-bs-toggle="dropdown" data-bs-auto-close="outside" aria-expanded="false" title="Bildirimler"><i class="far fa-bell"></i><span class="s-badge js-s-unread" <%= _su ? '' : 'hidden' %>><%= _su %></span></button>
+            <div class="dropdown-menu dropdown-menu-end np" id="nPop">
+                <div class="np-h"><b>Bildirimler</b><span class="pill t-brand js-np-count" style="font-size:11px"><%= _su %> okunmamış</span>
+                    <button class="btn btn-link btn-sm ms-auto p-0 text-decoration-none js-np-all" style="font-size:12.5px;color:var(--brand)">Tümünü okundu yap</button></div>
+                <div class="np-list" id="nList"><div class="p-4 text-center muted small"><span class="spinner-border spinner-border-sm me-2"></span>Yükleniyor…</div></div>
+                <div class="np-f"><a href="/personel/bildirimler" class="btn btn-soft btn-sm w-100">Tüm bildirimleri gör</a></div>
             </div>
+        </div>
+        <div class="dropdown">
+            <a href="#" class="s-user" data-bs-toggle="dropdown"><span class="av"><%= _sini %></span><span class="nm fw-semibold" style="font-size:13.5px"><%= staff.fullName %></span><i class="fas fa-chevron-down nm" style="font-size:11px;opacity:.6"></i></a>
+            <ul class="dropdown-menu dropdown-menu-end shadow-sm" style="border-radius:14px;border-color:var(--line);min-width:220px">
+                <li class="px-3 py-2"><div class="fw-semibold text-dark"><%= staff.fullName %></div><div class="muted small">@<%= staff.username %><%= staff.title ? ' · ' + staff.title : '' %></div></li>
+                <li><hr class="dropdown-divider"></li>
+                <li><a class="dropdown-item py-2" href="/personel/hesap"><i class="fas fa-key me-2 muted"></i>Şifre değiştir</a></li>
+                <li><a class="dropdown-item py-2 text-danger" href="/personel/cikis"><i class="fas fa-arrow-right-from-bracket me-2"></i>Çıkış yap</a></li>
+            </ul>
         </div>
     </div>
 </header>

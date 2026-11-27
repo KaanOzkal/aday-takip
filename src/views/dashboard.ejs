@@ -55,7 +55,8 @@
         { t: 'Hedef şehrini seç', s: "Almanya'da çalışmak istediğin şehir", done: !!hasTarget, href: '/profile' },
         { t: 'Pasaportunu yükle', s: 'Belgelerim sayfasından', done: docs.some(d => d.name === 'Pasaport'), href: '/documents' },
         { t: 'Başvuru formunu doldur', s: 'Motivasyon ve kişisel bilgiler', done: !!(af.birthPlace || af.workHistory || af.germanyDesire), href: '/application-form' },
-        { t: 'CV\'ni oluştur', s: 'Akıllı CV oluşturucu ile', done: !!(cv.summary || (cv.experience1 && cv.experience1.title)), href: '/cv-builder' }
+        { t: 'Kişisel bilgilerini doldur', s: 'Kimlik, ehliyet, dil ve acil durum bilgileri', done: !!(user.dossier && user.dossier.birthDate && user.dossier.tcNo && (user.dossier.licenseClasses || []).length), href: '/kisisel-bilgiler' },
+        { t: 'İş geçmişini ekle', s: 'CV\'n bu bilgilerden oluşturulur', done: !!(user.dossier && (user.dossier.work || []).length), href: '/is-gecmisi' }
     ];
     const doneCount = todos.filter(t => t.done).length;
     const pendingDocs = docs.filter(d => d.status === 'İnceleniyor').length;

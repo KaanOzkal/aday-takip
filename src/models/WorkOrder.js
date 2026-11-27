@@ -21,9 +21,17 @@ const historySchema = new mongoose.Schema({
 
 const workOrderSchema = new mongoose.Schema({
     code: { type: String, index: true },
-    candidateId: { type: mongoose.Schema.Types.ObjectId, ref: 'Candidate', required: true, index: true },
-    candidateName: String, // aday silinse bile geçmişte görünsün
-    category: { type: String, enum: CATEGORIES, default: 'Diğer' },
+    candidateId: { type: mongoose.Schema.Types.ObjectId, ref: 'Candidate', index: true }, // boş = adaydan bağımsız genel görev
+    candidateName: { type: String, default: '' }, // aday silinse bile geçmişte görünsün
+    category: { type: String, trim: true, maxlength: 60, default: 'Diğer' }, // yönetici tarafından yönetilen kategori listesi (TaskCategory)
+    // Birden fazla personele verilen iş emri: her personel için ayrı kayıt, ortak groupId (durumlar birbirinden bağımsız)
+    groupId: { type: mongoose.Schema.Types.ObjectId, index: true },
+    groupSize: { type: Number, default: 1 },
+    checklist: [new mongoose.Schema({ text: { type: String, maxlength: 200 }, done: { type: Boolean, default: false }, doneAt: Date })],
+    recurringId: { type: mongoose.Schema.Types.ObjectId, index: true },
+    createdByType: { type: String, default: 'admin' },
+    createdByName: { type: String, default: '' },
+    reminderNotifiedAt: Date,
     title: { type: String, required: true, trim: true, maxlength: 160 },
     description: { type: String, maxlength: 6000, default: '' },
     assignedTo: { type: mongoose.Schema.Types.ObjectId, ref: 'Staff', required: true, index: true },

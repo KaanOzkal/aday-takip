@@ -59,6 +59,29 @@
                         </div>
                     </div>
 
+                    <% if (group.length > 1) { const gd = group.filter(g => g.status === 'Tamamlandı').length; %>
+                    <div class="card-x mb-3" id="group">
+                        <div class="card-h"><div><h3><i class="fas fa-users me-1"></i>Ortak görev · <%= group.length %> personel</h3><p class="sub">Her personel görevini kendi hesabından bağımsız tamamlar.</p></div><span class="pill <%= gd === group.length ? 't-ok' : 't-warn' %> ms-auto"><%= gd %>/<%= group.length %> tamamlandı</span></div>
+                        <div class="table-responsive"><table class="table table-x mb-0">
+                            <thead><tr><th>Personel</th><th>Durum</th><th class="d-none d-sm-table-cell">Başlama</th><th>Tamamlanma</th><th></th></tr></thead>
+                            <tbody><% group.forEach(g => { %><tr class="<%= String(g._id) === String(wo._id) ? 'selected' : '' %>">
+                                <td class="fw-650"><%= g.assignedTo ? g.assignedTo.fullName : '—' %><div class="muted small font-monospace"><%= g.code %></div></td>
+                                <td><span class="pill <%= woStatusTone(g.status) %>"><span class="dot"></span><%= woStatusLabel(g.status) %></span><% if ((g.checklist || []).length) { %> <span class="muted small"><%= g.checklist.filter(c => c.done).length %>/<%= g.checklist.length %></span><% } %><% if (woIsOverdue(g)) { %> <span class="pill t-bad">gecikti</span><% } %></td>
+                                <td class="d-none d-sm-table-cell small"><%= fmtDT(g.startedAt) %></td><td class="small"><%= fmtDT(g.completedAt) %></td>
+                                <td class="text-end"><% if (String(g._id) !== String(wo._id)) { %><a href="/admin/is-emirleri/<%= g._id %>" class="btn btn-soft btn-icon btn-sm"><i class="fas fa-chevron-right"></i></a><% } else { %><span class="muted small">bu kayıt</span><% } %></td>
+                            </tr><% }) %></tbody>
+                        </table></div>
+                    </div>
+                    <% } %>
+                    <% if ((wo.checklist || []).length) { const cd = wo.checklist.filter(c => c.done).length; %>
+                    <div class="card-x mb-3" id="checklist">
+                        <div class="card-h"><h3><i class="fas fa-list-check me-1"></i>Kontrol listesi</h3><span class="muted small ms-auto"><%= cd %>/<%= wo.checklist.length %></span></div>
+                        <div class="card-b">
+                            <div class="bar mb-3"><span style="width:<%= Math.round(cd / wo.checklist.length * 100) %>%"></span></div>
+                            <% wo.checklist.forEach(c => { %><div class="d-flex align-items-center gap-2 py-1 small"><i class="<%= c.done ? 'fas fa-square-check' : 'far fa-square' %>" style="color:<%= c.done ? 'var(--ok)' : 'var(--muted)' %>"></i><span class="<%= c.done ? 'text-decoration-line-through muted' : '' %>"><%= c.text %></span><% if (c.doneAt) { %><span class="muted ms-auto"><%= fmtDT(c.doneAt) %></span><% } %></div><% }) %>
+                        </div>
+                    </div>
+                    <% } %>
                     <div class="card-x mb-3" id="comments">
                         <div class="card-h"><h3>Açıklamalar &amp; Notlar</h3><span class="muted small ms-auto"><%= (wo.comments || []).length %></span></div>
                         <div class="card-b d-flex flex-column gap-2">
@@ -100,7 +123,8 @@
                         <div class="card-b">
                             <dl class="kv mb-0">
                                 <dt>Personel</dt><dd><% if (wo.assignedTo) { %><a href="/admin/personel/<%= wo.assignedTo._id %>" class="text-decoration-none"><%= wo.assignedTo.fullName %></a><% if (wo.assignedTo.deletedAt || wo.assignedTo.status !== 'active') { %> <span class="pill t-gray" style="font-size:11px">pasif</span><% } %><% } %></dd>
-                                <dt>Aday</dt><dd><a href="/admin/candidate/<%= wo.candidateId %>#workorders" class="text-decoration-none"><%= wo.candidateName %></a></dd>
+                                <dt>Aday</dt><dd><% if (wo.candidateId) { %><a href="/admin/candidate/<%= wo.candidateId %>#workorders" class="text-decoration-none"><%= wo.candidateName %></a><% } else { %><span class="pill t-gray"><i class="fas fa-briefcase"></i>Genel görev</span><% } %></dd>
+                                <dt>Oluşturan</dt><dd><%= wo.createdByName || 'Yönetici' %><%= wo.recurringId ? ' · tekrarlayan görev' : '' %></dd>
                                 <% if (wo.stageKey && stageByKey[wo.stageKey]) { %><dt>Süreç aşaması</dt><dd><%= stageByKey[wo.stageKey].name %><%= wo.source === 'automation' ? ' · otomatik' : wo.source === 'ai' ? ' · AI önerisi' : '' %></dd><% } %>
                                 <dt>Başlangıç</dt><dd><%= fmtDT(wo.startDate, false) %></dd>
                                 <dt>Son teslim</dt><dd><%= fmtDT(wo.dueDate) %></dd>
@@ -164,7 +188,9 @@
                 <div class="col-md-4"><label class="form-label">Öncelik</label><select name="priority" class="form-select"><% PRIORITIES.forEach(p => { %><option <%= wo.priority === p ? 'selected' : '' %>><%= p %></option><% }) %></select></div>
                 <div class="col-md-4"><label class="form-label">Başlangıç</label><input type="date" name="startDate" class="form-control" value="<%= toDate(wo.startDate) %>"></div>
                 <div class="col-md-4"><label class="form-label">Son teslim</label><input type="date" name="dueDate" class="form-control" value="<%= toDate(wo.dueDate) %>"></div>
+                <div class="col-12"><label class="form-label">Kontrol listesi <span class="muted small fw-normal">(her satır bir madde)</span></label><textarea name="checklist" class="form-control" rows="3" maxlength="6000"><%= (wo.checklist || []).map(c => c.text).join('\n') %></textarea></div>
                 <div class="col-12"><label class="form-label">Admin notu</label><textarea name="adminNote" class="form-control" rows="2" maxlength="4000"><%= wo.adminNote %></textarea></div>
+                <% if (group.length > 1) { %><div class="col-12 small muted"><i class="fas fa-circle-info me-1"></i>Bu değişiklik yalnızca bu personelin kaydına uygulanır; ortak görevin diğer kayıtları ayrı düzenlenir.</div><% } %>
             </div></div>
             <div class="modal-footer"><span class="muted small me-auto">Değişiklikler personele bildirilir.</span><button type="button" class="btn btn-soft" data-bs-dismiss="modal">Vazgeç</button><button class="btn btn-brand">Kaydet</button></div>
         </form>
