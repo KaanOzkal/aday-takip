@@ -167,7 +167,7 @@ app.use(async (req, res, next) => {
 // --- SABİT VERİLER ---
 // BERLINER resmi 9 aşamalı süreç (tanımlar: src/process/stages.js)
 const { STAGE_NAMES: STAGES, STAGE_DEFS } = require('./process/stages');
-const FINAL_STAGE = STAGES[STAGES.length - 1];
+const { finalName } = require('./process/stages');
 
 // Almanya alt aşamaları artık kullanılmıyor (arayüzden kaldırıldı). Adaylardaki eski germanyStage verisi silinmez.
 const GERMANY_STAGES = [
@@ -235,6 +235,7 @@ const fileStore = require('./lib/storage')({ uploadToGoogleDrive, google });
 app.locals.storage = fileStore;
 require('./dossier')(app, { adminAuthCheck, authCheck, Candidate, upload, storage: fileStore });
 require('./cv')(app, { adminAuthCheck, authCheck, Candidate, upload });
+require('./dossier/c360')(app, { adminAuthCheck, Candidate, upload });
 
 // ============================================
 //  ROTALAR
@@ -466,11 +467,11 @@ app.post('/appointments/:id/cancel', authCheck, async (req, res) => {
     } catch (error) { res.redirect('/appointments?error=failed'); }
 });
 
-const PROCESS_DETAILS = STAGE_DEFS.map(d => ({ name: d.name, time: d.time, icon: d.icon, desc: d.desc }));
+const PROCESS_DETAILS = () => STAGE_DEFS.map(d => ({ name: d.name, time: d.time, icon: d.icon, desc: d.desc }));
 
 app.get('/processes', authCheck, (req, res) => {
     const currentIndex = STAGES.indexOf(req.user.currentStage);
-    res.render('processes', { user: req.user, page: 'processes', processDetails: PROCESS_DETAILS, currentIndex, progress: stageProgress(req.user.currentStage) });
+    res.render('processes', { user: req.user, page: 'processes', processDetails: PROCESS_DETAILS(), currentIndex, progress: stageProgress(req.user.currentStage) });
 });
 
 app.get('/germany-process', authCheck, (req, res) => {
@@ -574,7 +575,7 @@ app.get('/admin', adminAuthCheck, async (req, res) => {
             active: activeCands.length,
             cancelled: candidates.length - activeCands.length,
             review: candidates.filter(c => c.stageReviewNeeded).length,
-            inGermany: activeCands.filter(c => c.currentStage === FINAL_STAGE).length,
+            inGermany: activeCands.filter(c => c.currentStage === finalName()).length,
             unassigned: companyCounts[0].count,
             noEmail: candidates.filter(c => !c.email || !c.email.trim()).length,
             unreadMessages: unreadFromCandidates
@@ -611,8 +612,9 @@ app.get('/admin/candidate/:id', adminAuthCheck, async (req, res) => {
         const pipeline = await app.locals.processService.candidatePipeline(candidate._id);
         const timeline = await app.locals.candidateTimeline(candidate._id);
         const dossier = await app.locals.dossierFor(candidate);
+        const c360 = await app.locals.c360For(candidate, dossier, pipeline);
         res.render('admin_candidate_detail', {
-            candidate, appointments, messages, companies, wo, pipeline, timeline, dossier,
+            candidate, appointments, messages, companies, wo, pipeline, timeline, dossier, c360,
             stages: STAGES, germanyStages: GERMANY_STAGES,
             stateNames: Object.keys(STATE_DATA),
             user: { firstName: 'Admin' }
@@ -663,7 +665,14 @@ app.post('/admin/candidate/:id/edit', adminAuthCheck, async (req, res) => {
         if (typeof b.passportNo === 'string' && b.passportNo.trim()) update.passportNo = b.passportNo.trim().toUpperCase();
         if (b.score !== undefined && b.score !== '') update.score = Math.max(0, Math.min(100, Number(b.score) || 0));
         if (typeof b.company === 'string') update.company = b.company;
+        if (update.firstName === '' || update.lastName === '') return redirectBack(req, res, 'error', 'missing_fields');
+        if (update.passportNo && await Candidate.exists({ passportNo: update.passportNo, _id: { $ne: req.params.id } })) return redirectBack(req, res, 'error', 'passport_exists');
+        const before = await Candidate.findById(req.params.id).lean();
+        if (!before) return redirectBack(req, res, 'error', 'not_found');
         await Candidate.findByIdAndUpdate(req.params.id, update);
+        const LBL = { firstName: 'Ad', lastName: 'Soyad', email: 'E-posta', phone: 'Telefon', job: 'Meslek', location: 'Lokasyon', targetState: 'Hedef şehir', applicationNo: 'Başvuru no', passportNo: 'Pasaport no', score: 'Puan', company: 'Şirket' };
+        const changed = Object.keys(update).filter(k => String(before[k] ?? '') !== String(update[k] ?? '')).map(k => LBL[k] || k);
+        if (changed.length && app.locals.services) await app.locals.services.audit(req, 'candidate.edit', 'Candidate', before._id, `${before.firstName} ${before.lastName}: ${changed.join(', ')} güncellendi`);
         redirectBack(req, res, 'status', 'candidate_updated');
     } catch (error) { redirectBack(req, res, 'error', 'update_failed'); }
 });
@@ -790,7 +799,10 @@ app.post('/admin/company/delete', adminAuthCheck, async (req, res) => {
 app.post('/admin/candidate/company', adminAuthCheck, async (req, res) => {
     try {
         const { candidateId, newCompany } = req.body;
+        const before = await Candidate.findById(candidateId).select('firstName lastName company').lean();
+        if (!before) return redirectBack(req, res, 'error', 'not_found');
         await Candidate.findByIdAndUpdate(candidateId, { company: newCompany || 'Atanmadı' });
+        if ((before.company || 'Atanmadı') !== (newCompany || 'Atanmadı') && app.locals.services) await app.locals.services.audit(req, 'candidate.company', 'Candidate', before._id, `${before.firstName} ${before.lastName}: şirket “${before.company || 'Atanmadı'}” → “${newCompany || 'Atanmadı'}”`);
         redirectBack(req, res, 'status', 'company_updated');
     } catch (error) {
         redirectBack(req, res, 'error', 'company_failed');
@@ -821,14 +833,21 @@ app.post('/admin/document/status', adminAuthCheck, async (req, res) => {
     try {
         const allowed = ['İnceleniyor', 'Onaylandı', 'Reddedildi'];
         if (!allowed.includes(req.body.status)) return redirectBack(req, res, 'error', 'invalid_action');
-        await Candidate.updateOne({ _id: req.body.candidateId, 'documents._id': req.body.docId }, { $set: { 'documents.$.status': req.body.status } });
+        const dc = await Candidate.findOne({ _id: req.body.candidateId }).select('firstName lastName documents');
+        const dd = dc && dc.documents.id(req.body.docId);
+        if (!dd) return redirectBack(req, res, 'error', 'not_found');
+        const prevSt = dd.status; dd.status = req.body.status; await dc.save();
+        if (prevSt !== req.body.status && app.locals.services) await app.locals.services.audit(req, 'document.status_change', 'Candidate', dc._id, `${dc.firstName} ${dc.lastName}: ${dd.name || 'Belge'} ${prevSt || '—'} → ${req.body.status}`);
         redirectBack(req, res, 'status', 'document_updated');
     } catch (error) { redirectBack(req, res, 'error', 'update_failed'); }
 });
 
 app.post('/admin/document/delete', adminAuthCheck, async (req, res) => {
     try {
+        const xc = await Candidate.findById(req.body.candidateId).select('firstName lastName documents');
+        const xd = xc && xc.documents.id(req.body.docId);
         await Candidate.findByIdAndUpdate(req.body.candidateId, { $pull: { documents: { _id: req.body.docId } } });
+        if (xd && app.locals.services) await app.locals.services.audit(req, 'document.remove', 'Candidate', xc._id, `${xc.firstName} ${xc.lastName}: ${xd.name || 'Belge'} kaydı kaldırıldı`);
         redirectBack(req, res, 'status', 'document_deleted');
     } catch (error) { redirectBack(req, res, 'error', 'delete_failed'); }
 });
@@ -853,14 +872,16 @@ app.post('/admin/candidate/add-note', adminAuthCheck, async (req, res) => {
     try {
         const { candidateId, noteContent } = req.body;
         if (!noteContent || !noteContent.trim()) return redirectBack(req, res, 'error', 'missing_fields');
-        await Candidate.findByIdAndUpdate(candidateId, { $push: { notes: { content: noteContent.trim(), date: new Date(), author: 'Admin' } } });
+        const nc = await Candidate.findByIdAndUpdate(candidateId, { $push: { notes: { content: noteContent.trim().slice(0, 4000), date: new Date(), author: 'Yönetici', authorType: 'admin', authorName: 'Yönetici' } } }).select('firstName lastName');
+        if (nc && app.locals.services) await app.locals.services.audit(req, 'candidate.note', 'Candidate', nc._id, `${nc.firstName} ${nc.lastName}: yönetici notu eklendi`);
         redirectBack(req, res, 'status', 'note_added');
     } catch (error) { redirectBack(req, res, 'error', 'note_failed'); }
 });
 
 app.post('/admin/candidate/:id/note/:noteId/delete', adminAuthCheck, async (req, res) => {
     try {
-        await Candidate.findByIdAndUpdate(req.params.id, { $pull: { notes: { _id: req.params.noteId } } });
+        const nd = await Candidate.findByIdAndUpdate(req.params.id, { $pull: { notes: { _id: req.params.noteId } } }).select('firstName lastName');
+        if (nd && app.locals.services) await app.locals.services.audit(req, 'candidate.note_delete', 'Candidate', nd._id, `${nd.firstName} ${nd.lastName}: not silindi`);
         redirectBack(req, res, 'status', 'note_deleted');
     } catch (error) { redirectBack(req, res, 'error', 'delete_failed'); }
 });

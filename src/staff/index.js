@@ -823,7 +823,8 @@ module.exports = function mountStaffSystem(app, deps) {
         res.locals.staffUnread = await unreadFor('staff', req.staff._id);
         // İletişim geçmişi: yalnızca bu görevin adayı için ve görev iptal edilmemişse gösterilir
         const contacts = candidate && app.locals.staffCandidateContacts ? await app.locals.staffCandidateContacts(wo.candidateId) : [];
-        res.render('staff_task', { wo: wo.toObject(), candidate, contacts, overdue: isOverdue(wo), page: 'panel', sensitive });
+        const cnotes = candidate && app.locals.staffCandidateNotes ? await app.locals.staffCandidateNotes(wo.candidateId) : [];
+        res.render('staff_task', { wo: wo.toObject(), candidate, contacts, cnotes, overdue: isOverdue(wo), page: 'panel', sensitive });
     });
 
     const staffBack = (req) => `/personel/gorev/${req.params.id}`;

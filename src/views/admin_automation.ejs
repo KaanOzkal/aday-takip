@@ -6,6 +6,16 @@
     <style>
         .stg { border: 1px solid var(--line); border-radius: 14px; background: #fff; margin-bottom: 12px; scroll-margin-top: 80px; }
         .stg-h { display: flex; align-items: center; gap: 12px; padding: 14px 18px; flex-wrap: wrap; }
+        .stf-dd .dropdown-menu { width: 280px; max-height: 320px; overflow: auto; padding: 8px; }
+        .stf-dd .dropdown-menu label { display: flex; align-items: center; gap: 8px; padding: 6px 8px; border-radius: 8px; cursor: pointer; font-size: 13.5px; margin: 0; }
+        .stf-dd .dropdown-menu label:hover { background: var(--brand-50); }
+        .stf-dd .btn-stf { width: 240px; text-align: left; display: flex; align-items: center; justify-content: space-between; gap: 6px; background: #fff; border: 1px solid var(--line); }
+        .stf-dd .btn-stf span { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+        .stg-ico { color: var(--brand); width: 18px; text-align: center; }
+        .stg-desc { max-width: 420px; }
+        .ico-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(44px, 1fr)); gap: 6px; }
+        .ico-grid button { height: 40px; border: 1px solid var(--line); border-radius: 10px; background: #fff; color: #344054; }
+        .ico-grid button.on { border-color: var(--brand); background: var(--brand-50); color: var(--brand); }
         .stg-n { width: 36px; height: 36px; border-radius: 10px; background: var(--brand-50); color: var(--brand); display: grid; place-items: center; font-weight: 800; }
         .stg-b { border-top: 1px solid var(--line); padding: 16px 18px; background: #FCFCFD; border-radius: 0 0 14px 14px; }
         .tpl { display: flex; align-items: center; gap: 10px; padding: 9px 0; border-bottom: 1px dashed var(--line); }
@@ -23,7 +33,7 @@
     const logTone = { success: 't-ok', partial: 't-warn', failed: 't-bad', skipped: 't-gray' };
     const logLbl = { success: 'Başarılı', partial: 'Kısmi', failed: 'Başarısız', skipped: 'Atlandı' };
     const trigLbl = { stage_change: 'Aşama geçişi', manual: 'Elle çalıştırma', retry: 'Yeniden deneme', candidate_created: 'Yeni aday' };
-    const noStaff = stageDefs.filter(d => cfgs[d.key] && cfgs[d.key].automationEnabled && !cfgs[d.key].defaultStaffId && (cfgs[d.key].templates || []).some(t => t.active && !t.staffId));
+    const noStaff = stageDefs.filter(d => cfgs[d.key] && cfgs[d.key].automationEnabled && !(cfgs[d.key].defaultStaffIds || []).filter(x => x && !x.deletedAt && x.status === 'active').length && !(cfgs[d.key].defaultStaffId && !cfgs[d.key].defaultStaffIds) && (cfgs[d.key].templates || []).some(t => t.active && !t.staffId));
 %>
 <div class="app">
     <%- include('partials/admin_sidebar', { active: 'automation', onMain: false }) %>
@@ -42,28 +52,46 @@
             <% if (tab === 'rules') { %>
                 <div class="card-x p-3 mb-3 d-flex gap-3 align-items-start" style="background:#FFF8F8;border-color:#FCE0E1">
                     <i class="fas fa-circle-info mt-1" style="color:var(--brand)"></i>
-                    <div class="small">Aday bir aşamaya <b>ileri</b> geçtiğinde, o aşamanın aktif şablonları iş emri olarak oluşturulur ve şablonda seçili personele — yoksa aşamanın <b>varsayılan sorumlusuna</b> — atanır. Aynı aday ve aşama için bir şablon yalnızca <b>bir kez</b> görev üretir (mükerrer koruma). Mevcut adaylar sisteme aktarılırken otomasyon çalıştırılmadı.</div>
+                    <div class="small">Aday bir aşamaya <b>ileri</b> geçtiğinde, o aşamanın aktif şablonları iş emri olarak oluşturulur ve şablonda seçili personele — yoksa aşamanın <b>varsayılan sorumlularına</b> — atanır. Birden fazla varsayılan sorumlu seçilirse her biri görevin kendi kopyasını alır (ortak görev). Aşama adını, açıklamasını, ikonunu ve süresini <i class="fas fa-pen"></i> ile düzenleyebilirsiniz; aşama sayısı ve sırası sabittir. Aynı aday ve aşama için bir şablon yalnızca <b>bir kez</b> görev üretir (mükerrer koruma). Mevcut adaylar sisteme aktarılırken otomasyon çalıştırılmadı.</div>
                 </div>
                 <% if (noStaff.length) { %>
                 <div class="alert border-0 d-flex gap-2 mb-3" style="background:var(--warn-50);color:#93370D;border-radius:12px"><i class="fas fa-triangle-exclamation mt-1"></i>
                     <div><b><%= noStaff.length %> aşamada varsayılan sorumlu personel yok:</b> <%= noStaff.map(d => d.name).join(', ') %>. Bu aşamalarda personel seçilmemiş şablonlar görev oluşturamaz.</div></div>
                 <% } %>
-                <% stageDefs.forEach((d, i) => { const cfg = cfgs[d.key] || { templates: [] }; const def = cfg.defaultStaffId; %>
+                <% stageDefs.forEach((d, i) => { const cfg = cfgs[d.key] || { templates: [] };
+                    const defs = ((cfg.defaultStaffIds && cfg.defaultStaffIds.length) ? cfg.defaultStaffIds : (cfg.defaultStaffId ? [cfg.defaultStaffId] : [])).filter(x => x && x._id);
+                    const defIds = defs.map(x => String(x._id));
+                    const inactiveDefs = defs.filter(x => !staffList.some(s => String(s._id) === String(x._id)));
+                    const activeDefs = defs.filter(x => staffList.some(s => String(s._id) === String(x._id)));
+                    const custom = cfg.display && (cfg.display.name || cfg.display.desc || cfg.display.icon || cfg.display.time); %>
                 <div class="stg" id="stage-<%= d.key %>">
                     <form class="stg-h" action="/admin/otomasyon/<%= d.key %>/settings" method="POST">
                         <div class="stg-n"><%= i + 1 %></div>
-                        <div style="min-width:180px"><div class="fw-bold text-dark"><%= d.name %></div><div class="small muted"><%= (cfg.templates || []).filter(t => t.active).length %> aktif şablon</div></div>
+                        <div style="min-width:200px" class="stg-desc">
+                            <div class="fw-bold text-dark d-flex align-items-center gap-2"><i class="fas <%= d.icon %> stg-ico"></i><span class="js-stg-name"><%= d.name %></span>
+                                <button type="button" class="btn btn-soft btn-sm py-0 px-2 js-stage-edit" title="Aşama bilgilerini düzenle" aria-label="Aşamayı düzenle"
+                                    data-key="<%= d.key %>" data-no="<%= i + 1 %>" data-s="<%= JSON.stringify({ name: d.name, desc: d.desc, icon: d.icon, time: d.time, custom: !!custom }) %>"><i class="fas fa-pen"></i></button>
+                                <% if (custom) { %><span class="pill t-info" style="font-size:10.5px">Özelleştirildi</span><% } %>
+                            </div>
+                            <div class="small muted"><%= (cfg.templates || []).filter(t => t.active).length %> aktif şablon · <i class="far fa-clock"></i> <%= d.time %></div>
+                        </div>
                         <div class="form-check form-switch m-0 ms-md-3" title="Otomasyon">
                             <input class="form-check-input" type="checkbox" name="automationEnabled" id="en-<%= d.key %>" <%= cfg.automationEnabled ? 'checked' : '' %> style="width:2.4em;height:1.3em">
                             <label class="form-check-label small fw-semibold ms-1" for="en-<%= d.key %>">Otomasyon</label>
                         </div>
                         <div class="d-flex align-items-center gap-2 ms-md-auto flex-wrap">
                             <label class="small muted mb-0">Varsayılan sorumlu</label>
-                            <select name="defaultStaffId" class="form-select form-select-sm" style="width:200px">
-                                <option value="">— Seçilmedi —</option>
-                                <% if (def && !staffList.some(s => String(s._id) === String(def._id))) { %><option value="" selected><%= def.fullName %> (pasif — değiştirin)</option><% } %>
-                                <% staffList.forEach(s => { %><option value="<%= s._id %>" <%= def && String(def._id) === String(s._id) ? 'selected' : '' %>><%= s.fullName %><%= s.title ? ' · ' + s.title : '' %></option><% }) %>
-                            </select>
+                            <div class="dropdown stf-dd">
+                                <button type="button" class="btn btn-sm btn-stf" data-bs-toggle="dropdown" data-bs-auto-close="outside" aria-expanded="false">
+                                    <span class="js-stf-label"><%= activeDefs.length ? activeDefs.map(x => x.fullName).join(', ') : '— Seçilmedi —' %></span><i class="fas fa-chevron-down small muted"></i>
+                                </button>
+                                <div class="dropdown-menu shadow-sm">
+                                    <div class="small muted px-2 pb-1">Birden fazla seçerseniz otomasyon görevi <b>her birine ortak görev</b> olarak atanır.</div>
+                                    <% inactiveDefs.forEach(x => { %><div class="small px-2 py-1" style="color:var(--bad)"><i class="fas fa-user-slash me-1"></i><%= x.fullName %> (pasif — kaydedince çıkarılır)</div><% }) %>
+                                    <% if (!staffList.length) { %><div class="small muted px-2 py-2">Aktif personel yok.</div><% } %>
+                                    <% staffList.forEach(s => { %><label><input type="checkbox" class="form-check-input m-0 js-stf" name="defaultStaffIds" value="<%= s._id %>" data-n="<%= s.fullName %>" <%= defIds.includes(String(s._id)) ? 'checked' : '' %>><span><%= s.fullName %><% if (s.title) { %><span class="muted small"> · <%= s.title %></span><% } %></span></label><% }) %>
+                                </div>
+                            </div>
                             <label class="small muted mb-0">Bekleme uyarısı</label>
                             <div class="input-group input-group-sm" style="width:110px"><input type="number" name="staleDays" min="1" max="365" value="<%= cfg.staleDays || 14 %>" class="form-control"><span class="input-group-text">gün</span></div>
                             <button class="btn btn-brand btn-sm">Kaydet</button>
@@ -75,7 +103,7 @@
                             <i class="fas <%= t.active ? 'fa-circle-check' : 'fa-circle-pause' %>" style="color:<%= t.active ? 'var(--ok)' : '#98A2B3' %>"></i>
                             <div class="flex-grow-1" style="min-width:0">
                                 <div class="fw-650 text-dark text-truncate-1"><%= t.title %></div>
-                                <div class="small muted"><%= t.category %> · <%= t.priority %> · <%= t.dueDays ? t.dueDays + ' gün içinde' : 'teslim tarihi yok' %> · <%= t.staffId ? t.staffId.fullName : 'varsayılan sorumlu' %></div>
+                                <div class="small muted"><%= t.category %> · <%= t.priority %> · <%= t.dueDays ? t.dueDays + ' gün içinde' : 'teslim tarihi yok' %> · <%= t.staffId ? t.staffId.fullName : (activeDefs.length > 1 ? 'varsayılan sorumlular (ortak görev)' : 'varsayılan sorumlu') %></div>
                             </div>
                             <button type="button" class="btn btn-soft btn-sm js-edit" data-key="<%= d.key %>" data-id="<%= t._id %>" data-t='<%- JSON.stringify({ title: t.title, description: t.description || "", category: t.category, priority: t.priority, dueDays: t.dueDays, active: t.active, staffId: t.staffId ? String(t.staffId._id) : "" }).replace(/'/g, "&#39;").replace(/</g, "\\u003c") %>'><i class="fas fa-pen"></i></button>
                             <form action="/admin/otomasyon/<%= d.key %>/template/<%= t._id %>" method="POST" class="m-0" data-confirm="“<%= t.title %>” şablonu silinecek. Daha önce oluşturulmuş görevler etkilenmez." data-danger>
@@ -154,10 +182,30 @@
                 <div class="col-6"><label class="form-label">Kategori</label><select name="category" class="form-select"><% CATEGORIES.forEach(c => { %><option><%= c %></option><% }) %></select></div>
                 <div class="col-6"><label class="form-label">Öncelik</label><select name="priority" class="form-select"><% PRIORITIES.forEach(p => { %><option><%= p %></option><% }) %></select></div>
                 <div class="col-6"><label class="form-label">Teslim süresi (gün)</label><input type="number" name="dueDays" min="0" max="365" class="form-control" value="3"><div class="form-text">0 = teslim tarihi yok</div></div>
-                <div class="col-6"><label class="form-label">Atanacak personel</label><select name="staffId" class="form-select"><option value="">Aşamanın varsayılan sorumlusu</option><% staffList.forEach(s => { %><option value="<%= s._id %>"><%= s.fullName %></option><% }) %></select></div>
+                <div class="col-6"><label class="form-label">Atanacak personel</label><select name="staffId" class="form-select"><option value="">Aşamanın varsayılan sorumluları</option><% staffList.forEach(s => { %><option value="<%= s._id %>"><%= s.fullName %></option><% }) %></select></div>
                 <div class="col-12" id="activeWrap"><div class="form-check form-switch"><input class="form-check-input" type="checkbox" name="active" id="tplActive" checked><label class="form-check-label" for="tplActive">Aktif</label></div></div>
             </div></div>
             <div class="modal-footer"><button type="button" class="btn btn-soft" data-bs-dismiss="modal">Vazgeç</button><button class="btn btn-brand">Kaydet</button></div>
+        </form>
+    </div>
+</div>
+<div class="modal fade" id="stageModal" tabindex="-1">
+    <div class="modal-dialog modal-dialog-centered">
+        <form class="modal-content" method="POST" id="stageForm">
+            <div class="modal-header"><h5 class="modal-title" id="stageTitle">Aşamayı Düzenle</h5><button type="button" class="btn-close" data-bs-dismiss="modal"></button></div>
+            <div class="modal-body"><div class="row g-2">
+                <div class="col-12"><label class="form-label" for="stName">Aşama adı *</label><input id="stName" name="name" class="form-control" required maxlength="60">
+                    <div class="form-text">Ad değişince bu aşamadaki tüm adaylar otomatik olarak yeni ada taşınır; eski ad, eski kayıtların eşleşmesi için saklanır.</div></div>
+                <div class="col-12"><label class="form-label" for="stDesc">Açıklama <span class="muted small">(adayın Süreçlerim ekranında görünür)</span></label><textarea id="stDesc" name="desc" class="form-control" rows="2" maxlength="400"></textarea></div>
+                <div class="col-6"><label class="form-label" for="stTime">Tahmini süre</label><input id="stTime" name="time" class="form-control" maxlength="30" placeholder="örn. 3-7 Gün"></div>
+                <div class="col-6 d-flex align-items-end"><div class="small muted">Seçili ikon: <i class="fas fa-2x ms-1 align-middle" id="stIcoPrev" style="color:var(--brand)"></i></div></div>
+                <div class="col-12"><label class="form-label">İkon</label><input type="hidden" name="icon" id="stIcon">
+                    <div class="ico-grid" id="icoGrid"><% ["fa-file-signature", "fa-folder-open", "fa-language", "fa-right-to-bracket", "fa-file-contract", "fa-circle-check", "fa-calendar-check", "fa-plane-departure", "fa-flag-checkered", "fa-passport", "fa-id-card", "fa-file-lines", "fa-stamp", "fa-handshake", "fa-briefcase", "fa-building", "fa-house", "fa-user-check", "fa-user-tie", "fa-graduation-cap", "fa-stethoscope", "fa-car", "fa-truck", "fa-bus", "fa-hourglass-half", "fa-clipboard-check", "fa-envelope-open-text", "fa-euro-sign", "fa-star", "fa-location-dot"].forEach(ic => { %><button type="button" data-ic="<%= ic %>" title="<%= ic.slice(3) %>"><i class="fas <%= ic %>"></i></button><% }) %></div></div>
+            </div></div>
+            <div class="modal-footer justify-content-between">
+                <button type="submit" name="reset" value="1" class="btn btn-soft btn-sm" id="stReset" formnovalidate><i class="fas fa-rotate-left me-1"></i>Varsayılana döndür</button>
+                <div class="d-flex gap-2"><button type="button" class="btn btn-soft" data-bs-dismiss="modal">Vazgeç</button><button class="btn btn-brand">Kaydet</button></div>
+            </div>
         </form>
     </div>
 </div>
@@ -176,6 +224,28 @@
         f.elements['active'].checked = !!t.active; document.getElementById('activeWrap').style.display = '';
         document.getElementById('tplTitle').textContent = 'Şablonu Düzenle'; modal.show();
     }));
+    // Aşama düzenleme
+    const sModal = new bootstrap.Modal(document.getElementById('stageModal')), sf = document.getElementById('stageForm');
+    const setIco = (ic) => { sf.elements['icon'].value = ic; document.getElementById('stIcoPrev').className = 'fas fa-2x ms-1 align-middle ' + ic; document.querySelectorAll('#icoGrid button').forEach(b => b.classList.toggle('on', b.dataset.ic === ic)); };
+    document.querySelectorAll('#icoGrid button').forEach(b => b.addEventListener('click', () => setIco(b.dataset.ic)));
+    document.querySelectorAll('.js-stage-edit').forEach(b => b.addEventListener('click', () => {
+        const t = JSON.parse(b.dataset.s); sf.action = '/admin/otomasyon/' + b.dataset.key + '/stage';
+        sf.elements['name'].value = t.name; sf.elements['desc'].value = t.desc || ''; sf.elements['time'].value = t.time || '';
+        if (!document.querySelector('#icoGrid button[data-ic="' + t.icon + '"]')) { const nb = document.createElement('button'); nb.type = 'button'; nb.dataset.ic = t.icon; nb.innerHTML = '<i class="fas ' + t.icon + '"></i>'; nb.addEventListener('click', () => setIco(t.icon)); document.getElementById('icoGrid').appendChild(nb); }
+        setIco(t.icon); document.getElementById('stReset').style.visibility = t.custom ? '' : 'hidden';
+        document.getElementById('stageTitle').textContent = b.dataset.no + '. Aşamayı Düzenle'; sModal.show();
+    }));
+    document.getElementById('stReset').addEventListener('click', async (e) => {
+        e.preventDefault(); sModal.hide();
+        const r = await Swal.fire({ icon: 'warning', title: 'Varsayılana döndürülsün mü?', text: 'Bu aşamanın adı, açıklaması, ikonu ve süresi varsayılan değerlere dönecek; adaylar varsayılan ada taşınacak.', showCancelButton: true, confirmButtonText: 'Evet, döndür', cancelButtonText: 'Vazgeç', confirmButtonColor: '#D4111B' });
+        if (!r.isConfirmed) return;
+        const h = document.createElement('input'); h.type = 'hidden'; h.name = 'reset'; h.value = '1'; sf.appendChild(h); sf.elements['name'].required = false; sf.submit();
+    });
+    // Çoklu sorumlu seçimi: etiket güncelle
+    document.querySelectorAll('.stf-dd').forEach(dd => {
+        const upd = () => { const n = [...dd.querySelectorAll('.js-stf:checked')].map(x => x.dataset.n); dd.querySelector('.js-stf-label').textContent = n.length ? n.join(', ') : '— Seçilmedi —'; };
+        dd.querySelectorAll('.js-stf').forEach(x => x.addEventListener('change', upd));
+    });
     if (location.hash) { const el = document.querySelector(location.hash); if (el) { el.style.boxShadow = '0 0 0 3px rgba(212,17,27,.25)'; setTimeout(() => el.style.boxShadow = '', 2500); } }
 })();
 </script>

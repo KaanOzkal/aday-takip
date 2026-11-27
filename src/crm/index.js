@@ -19,7 +19,7 @@ const isId = (v) => typeof v === 'string' && mongoose.Types.ObjectId.isValid(v);
 const str = (v, max = 500) => (typeof v === 'string' ? v.trim().slice(0, max) : '');
 const fullName = (c) => `${c.firstName || ''} ${c.lastName || ''}`.trim();
 const OPEN = ['Yeni', 'Devam Ediyor', 'Revizyon'];
-const FINAL = STAGE_NAMES[STAGE_NAMES.length - 1];
+const { finalName, nameOf } = require('../process/stages');
 const startOfDay = (d = new Date()) => { const x = new Date(d); x.setHours(0, 0, 0, 0); return x; };
 const startOfMonth = (d = new Date()) => new Date(d.getFullYear(), d.getMonth(), 1);
 const monthKey = (d) => `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`;
@@ -62,9 +62,9 @@ module.exports = function mountCRM(app, deps) {
         const active = cands.filter(c => c.status !== 'cancelled');
         const cancelled = cands.filter(c => c.status === 'cancelled');
         const arrivals = await arrivalMap();
-        const arrivedAll = active.filter(c => c.currentStage === FINAL);
+        const arrivedAll = active.filter(c => c.currentStage === finalName());
         const arrivedThisMonth = arrivedAll.filter(c => arrivals[String(c._id)] && arrivals[String(c._id)] >= som);
-        const inProcess = active.filter(c => c.currentStage !== FINAL);
+        const inProcess = active.filter(c => c.currentStage !== finalName());
         const overdue = orders.filter(o => o.dueDate && new Date(o.dueDate) < now);
         const dueToday = orders.filter(o => o.dueDate && new Date(o.dueDate) >= now && new Date(o.dueDate) < tomorrow);
         const issueStates = await CandidateStage.find({ status: 'Sorun Var' }).select('candidateId').lean();
@@ -184,15 +184,15 @@ module.exports = function mountCRM(app, deps) {
     async function companyStats() {
         const [companies, cands] = await Promise.all([Company.find().sort({ name: 1 }).lean(), Candidate.find().select('company status currentStage applicationDate').lean()]);
         const arrivals = await arrivalMap();
-        const approvalStages = ['Ön Onay Sözleşmesi', 'Ön Onay'];
+        const approvalStages = [nameOf('on_onay_sozlesmesi'), nameOf('on_onay')];
         return companies.map(co => {
             const mine = cands.filter(c => c.company === co.name);
             const act = mine.filter(c => c.status !== 'cancelled');
-            const arrived = act.filter(c => c.currentStage === FINAL);
+            const arrived = act.filter(c => c.currentStage === finalName());
             const durs = arrived.map(c => arrivals[String(c._id)] && c.applicationDate ? (arrivals[String(c._id)] - new Date(c.applicationDate)) / DAY : null).filter(x => x !== null && x >= 0);
             return {
                 ...co, active: act.length, cancelled: mine.length - act.length, arrived: arrived.length,
-                waitingApproval: act.filter(c => approvalStages.includes(c.currentStage)).length, inProcess: act.filter(c => c.currentStage !== FINAL).length,
+                waitingApproval: act.filter(c => approvalStages.includes(c.currentStage)).length, inProcess: act.filter(c => c.currentStage !== finalName()).length,
                 openPositions: (co.positions || []).filter(p => p.active).reduce((a, p) => a + (p.openings || 0), 0),
                 successRate: mine.length ? Math.round(arrived.length / mine.length * 100) : null,
                 avgDays: durs.length ? durs.reduce((a, b) => a + b, 0) / durs.length : null
@@ -293,7 +293,7 @@ module.exports = function mountCRM(app, deps) {
         if (f.stage) cq.currentStage = f.stage;
         if (f.status === 'active') cq.status = { $ne: 'cancelled' };
         if (f.status === 'cancelled') cq.status = 'cancelled';
-        if (f.status === 'arrived') { cq.status = { $ne: 'cancelled' }; cq.currentStage = FINAL; }
+        if (f.status === 'arrived') { cq.status = { $ne: 'cancelled' }; cq.currentStage = finalName(); }
         let cands = await Candidate.find(cq).select('firstName lastName company status currentStage applicationDate cancelledAt stageEnteredAt').lean();
         let staffCandIds = null;
         if (f.staff) { // personel filtresi: personelin görev aldığı adaylar
@@ -304,14 +304,14 @@ module.exports = function mountCRM(app, deps) {
         const arrivals = await arrivalMap(ids);
         const inRange = (d) => d && new Date(d) >= f.from && new Date(d) <= f.to;
         const newCands = cands.filter(c => inRange(c.applicationDate));
-        const arrivedInRange = cands.filter(c => c.status !== 'cancelled' && c.currentStage === FINAL && inRange(arrivals[String(c._id)]));
+        const arrivedInRange = cands.filter(c => c.status !== 'cancelled' && c.currentStage === finalName() && inRange(arrivals[String(c._id)]));
         const cancelledInRange = cands.filter(c => c.status === 'cancelled' && inRange(c.cancelledAt));
         const bk = buckets(f.from, f.to, f.period);
         const series = bk.map(k => ({ label: k, applications: newCands.filter(c => bucketKey(c.applicationDate, f.period) === k).length, arrivals: arrivedInRange.filter(c => bucketKey(arrivals[String(c._id)], f.period) === k).length, cancellations: cancelledInRange.filter(c => bucketKey(c.cancelledAt, f.period) === k).length }));
         const companyNames = [...new Set(cands.map(c => c.company || 'Atanmadı'))].sort((a, b) => a.localeCompare(b, 'tr'));
         const byCompany = companyNames.map(n => {
             const l = cands.filter(c => (c.company || 'Atanmadı') === n);
-            return { name: n, active: l.filter(c => c.status !== 'cancelled').length, cancelled: l.filter(c => c.status === 'cancelled').length, arrived: l.filter(c => c.status !== 'cancelled' && c.currentStage === FINAL).length, newInRange: l.filter(c => inRange(c.applicationDate)).length };
+            return { name: n, active: l.filter(c => c.status !== 'cancelled').length, cancelled: l.filter(c => c.status === 'cancelled').length, arrived: l.filter(c => c.status !== 'cancelled' && c.currentStage === finalName()).length, newInRange: l.filter(c => inRange(c.applicationDate)).length };
         }).sort((a, b) => b.active - a.active);
         // Personel performansı (tarih aralığında oluşturulan görevler)
         const woQ = { createdAt: { $gte: f.from, $lte: f.to } }; if (f.staff) woQ.assignedTo = f.staff;
@@ -328,7 +328,7 @@ module.exports = function mountCRM(app, deps) {
             return { name: d.name, count: done.length, avg: done.length ? done.reduce((a, b) => a + b, 0) / done.length : null, max: done.length ? Math.max(...done) : null, current: cands.filter(c => c.status !== 'cancelled' && c.currentStage === d.name).length };
         });
         const compl = arrivedInRange.map(c => c.applicationDate && arrivals[String(c._id)] ? (arrivals[String(c._id)] - new Date(c.applicationDate)) / DAY : null).filter(x => x !== null && x >= 0);
-        const cohortArrived = newCands.filter(c => c.status !== 'cancelled' && c.currentStage === FINAL).length;
+        const cohortArrived = newCands.filter(c => c.status !== 'cancelled' && c.currentStage === finalName()).length;
         const cohortCancelled = newCands.filter(c => c.status === 'cancelled').length;
         return {
             f, series, byCompany, staffPerf, stageWait,

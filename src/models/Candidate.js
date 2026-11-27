@@ -25,6 +25,9 @@ const appointmentSchema = new mongoose.Schema({
 const noteSchema = new mongoose.Schema({
     content: String,
     author: { type: String, default: 'Admin' },
+    authorType: { type: String, enum: ['admin', 'staff'], default: 'admin' },
+    authorName: { type: String, default: '' },
+    workOrderId: { type: mongoose.Schema.Types.ObjectId, ref: 'WorkOrder' },
     date: { type: Date, default: Date.now }
 });
 
@@ -107,7 +110,7 @@ const candidateSchema = new mongoose.Schema({
     applicationNo: String,
     score: { type: Number, default: 90 },
     
-    currentStage: { type: String, default: 'Hizmet Sözleşmesi' }, 
+    currentStage: { type: String, default: () => require('../process/stages').STAGE_NAMES[0] }, 
     stageEnteredAt: { type: Date },
     legacyStage: { type: String },              // 9 aşamaya geçişten önceki aşama adı (geri dönüş / denetim için)
     stageReviewNeeded: { type: Boolean, default: false }, // eski aşama otomatik eşleşmediyse yönetici onayı bekler

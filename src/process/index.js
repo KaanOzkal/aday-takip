@@ -18,8 +18,23 @@ const withParam = (url, k, v) => { const u = new URL(url, 'http://x'); u.searchP
 const fullName = (c) => `${c.firstName || ''} ${c.lastName || ''}`.trim();
 const norm = (x) => String(x || '').toLocaleLowerCase('tr-TR').replace(/ç/g, 'c').replace(/ğ/g, 'g').replace(/ı/g, 'i').replace(/i̇/g, 'i').replace(/ö/g, 'o').replace(/ş/g, 's').replace(/ü/g, 'u').replace(/['’`.]/g, '').replace(/\s+/g, ' ').trim();
 // Eski / yazım farklı aşama adlarını yeni aşamaya eşleştirme tablosu (yalnızca kesin eşleşmeler)
+const { DEFAULTS, applyOverrides, formerNames } = require('./stages');
 const STAGE_ALIAS = {};
-for (const d of STAGE_DEFS) { STAGE_ALIAS[norm(d.name)] = d.name; if (d.legacy) STAGE_ALIAS[norm(d.legacy)] = d.name; }
+function rebuildAlias() {
+    for (const k of Object.keys(STAGE_ALIAS)) delete STAGE_ALIAS[k];
+    for (const d of STAGE_DEFS) {
+        for (const n of [d.legacy, DEFAULTS[d.key].name, ...(formerNames[d.key] || [])]) if (n) STAGE_ALIAS[norm(n)] = d.name;
+    }
+    for (const d of STAGE_DEFS) STAGE_ALIAS[norm(d.name)] = d.name; // güncel adlar her zaman önceliklidir
+}
+rebuildAlias();
+// Bir aşama yapılandırmasının tüm varsayılan sorumluları (eski tek alanla uyumlu)
+const defaultStaffOf = (cfg) => {
+    if (!cfg) return [];
+    const list = (cfg.defaultStaffIds || []).filter(Boolean);
+    if (list.length) return list;
+    return cfg.defaultStaffId ? [cfg.defaultStaffId] : [];
+};
 const ACTIVE = { status: { $ne: 'cancelled' } };
 
 module.exports = function mountProcess(app, deps) {
@@ -59,7 +74,7 @@ module.exports = function mountProcess(app, deps) {
         }
     }
     async function configMap() {
-        const list = await StageConfig.find().populate('defaultStaffId', 'fullName status deletedAt').populate('templates.staffId', 'fullName status deletedAt').lean();
+        const list = await StageConfig.find().populate('defaultStaffId', 'fullName status deletedAt').populate('defaultStaffIds', 'fullName status deletedAt').populate('templates.staffId', 'fullName status deletedAt').lean();
         return Object.fromEntries(list.map(c => [c.stageKey, c]));
     }
 
@@ -103,23 +118,38 @@ module.exports = function mountProcess(app, deps) {
             const templates = (cfg.templates || []).filter(t => t.active);
             if (!templates.length) { log.status = 'skipped'; log.message = 'Aktif görev şablonu yok.'; return await AutomationLog.create(log); }
             let dup = 0;
+            const defaults = defaultStaffOf(cfg);
             for (const t of templates) {
-                const automationKey = `${candidate._id}:${stageKey}:${t._id}`;
-                if (await WorkOrder.exists({ automationKey })) { dup++; continue; }
-                const staffId = t.staffId || cfg.defaultStaffId;
-                if (!staffId) { log.failures.push(`"${t.title}": sorumlu personel tanımlı değil.`); continue; }
-                const staff = await Staff.findById(staffId);
-                if (!staff || staff.deletedAt || staff.status !== 'active') { log.failures.push(`"${t.title}": atanan personel aktif değil.`); continue; }
-                try {
-                    const wo = await svc().createWorkOrder({
-                        candidate, staff, actor: { type: 'system', name: 'Otomasyon' }, category: t.category, title: t.title, description: t.description,
-                        priority: t.priority, startDate: new Date(), dueDate: t.dueDays ? new Date(Date.now() + t.dueDays * DAY) : null,
-                        stageKey, templateId: t._id, automationKey, source: 'automation', historyNote: `${def.name} aşaması otomasyonu · ${staff.fullName}`
-                    });
-                    log.created.push({ workOrderId: wo._id, title: wo.title, staffName: staff.fullName });
-                } catch (e) {
-                    if (e.code === 11000) { dup++; continue; } // eşzamanlı çalışmada mükerrer engellendi
-                    log.failures.push(`"${t.title}": ${e.message}`);
+                const baseKey = `${candidate._id}:${stageKey}:${t._id}`;
+                // Eski sürümde tek kişiye oluşturulmuş görev varsa mükerrer sayılır
+                if (await WorkOrder.exists({ automationKey: baseKey })) { dup++; continue; }
+                // Şablona özel personel seçildiyse yalnız o kişi; değilse aşamanın TÜM varsayılan sorumluları (ortak görev)
+                const ids = t.staffId ? [t.staffId] : defaults;
+                if (!ids.length) { log.failures.push(`"${t.title}": sorumlu personel tanımlı değil.`); continue; }
+                const multi = !t.staffId && ids.length > 1;
+                const staffAll = await Staff.find({ _id: { $in: ids } });
+                const active = ids.map(id => staffAll.find(x => String(x._id) === String(id))).filter(x => x && !x.deletedAt && x.status === 'active');
+                const inactive = ids.length - active.length;
+                if (!active.length) { log.failures.push(`"${t.title}": atanan personel aktif değil.`); continue; }
+                if (inactive) log.failures.push(`"${t.title}": ${inactive} varsayılan sorumlu aktif olmadığı için atlanmıştı.`);
+                // Ortak görev: aynı şablonun bu aday için daha önce oluşturulmuş grubu varsa groupId'yi koru
+                const prev = multi ? await WorkOrder.findOne({ automationKey: new RegExp('^' + baseKey + ':') }).select('groupId').lean() : null;
+                const groupId = multi ? ((prev && prev.groupId) || new mongoose.Types.ObjectId()) : undefined;
+                for (const staff of active) {
+                    const automationKey = multi ? `${baseKey}:${staff._id}` : baseKey;
+                    if (multi && await WorkOrder.exists({ automationKey })) { dup++; continue; }
+                    try {
+                        const wo = await svc().createWorkOrder({
+                            candidate, staff, actor: { type: 'system', name: 'Otomasyon' }, category: t.category, title: t.title, description: t.description,
+                            priority: t.priority, startDate: new Date(), dueDate: t.dueDays ? new Date(Date.now() + t.dueDays * DAY) : null,
+                            groupId, groupSize: multi ? active.length : 1,
+                            stageKey, templateId: t._id, automationKey, source: 'automation', historyNote: `${def.name} aşaması otomasyonu · ${staff.fullName}${multi ? ` (${active.length} kişilik ortak görev)` : ''}`
+                        });
+                        log.created.push({ workOrderId: wo._id, title: wo.title, staffName: staff.fullName });
+                    } catch (e) {
+                        if (e.code === 11000) { dup++; continue; } // eşzamanlı çalışmada mükerrer engellendi
+                        log.failures.push(`"${t.title}": ${e.message}`);
+                    }
                 }
             }
             log.status = log.failures.length ? (log.created.length ? 'partial' : 'failed') : (log.created.length ? 'success' : 'skipped');
@@ -401,7 +431,7 @@ module.exports = function mountProcess(app, deps) {
         return { stale, failedAutomations: failed };
     }
 
-    app.locals.processService = { cancelCandidate, reactivateCandidate, resolveReview, norm, STAGE_ALIAS, move, runAutomation, ensureStates, onCandidateCreated, candidatePipeline, staleCandidates, stageSummary, listCandidates, staffWorkload, overdueTasks, reportData, dashboardInfo, event, STAGE_DEFS, byKey, byName, keyOfName };
+    app.locals.processService = { defaultStaffOf, rebuildAlias, cancelCandidate, reactivateCandidate, resolveReview, norm, STAGE_ALIAS, move, runAutomation, ensureStates, onCandidateCreated, candidatePipeline, staleCandidates, stageSummary, listCandidates, staffWorkload, overdueTasks, reportData, dashboardInfo, event, STAGE_DEFS, byKey, byName, keyOfName };
 
     // ==================================================================
     //  ADMIN ROTALARI
@@ -501,17 +531,66 @@ module.exports = function mountProcess(app, deps) {
         const key = req.params.key; const back = `/admin/otomasyon#stage-${key}`;
         if (!byKey[key]) return res.redirect(withParam('/admin/otomasyon', 'error', 'invalid_action'));
         const cfg = await StageConfig.findOne({ stageKey: key });
-        const before = { e: cfg.automationEnabled, s: String(cfg.defaultStaffId || ''), d: cfg.staleDays };
+        const before = { e: cfg.automationEnabled, n: defaultStaffOf(cfg).length, d: cfg.staleDays };
         cfg.automationEnabled = req.body.automationEnabled === 'on';
-        if (isId(req.body.defaultStaffId)) {
-            const s = await Staff.findById(req.body.defaultStaffId);
-            if (!s || s.deletedAt || s.status !== 'active') return res.redirect(withParam(back, 'error', 'staff_inactive'));
-            cfg.defaultStaffId = s._id;
-        } else cfg.defaultStaffId = undefined;
+        const raw = [].concat(req.body.defaultStaffIds || req.body.defaultStaffId || []).filter(isId);
+        const ids = [...new Set(raw.map(String))].slice(0, 20);
+        const found = ids.length ? await Staff.find({ _id: { $in: ids } }).select('fullName status deletedAt').lean() : [];
+        if (found.length !== ids.length || found.some(s => s.deletedAt || s.status !== 'active')) return res.redirect(withParam(back, 'error', 'staff_inactive'));
+        const ordered = ids.map(id => found.find(s => String(s._id) === id));
+        cfg.defaultStaffIds = ordered.map(s => s._id);
+        cfg.defaultStaffId = ordered.length ? ordered[0]._id : undefined;
         const sd = parseInt(req.body.staleDays, 10); if (sd >= 1 && sd <= 365) cfg.staleDays = sd;
         await cfg.save();
-        await svc().audit(req, 'automation.settings', 'StageConfig', cfg._id, `${byKey[key].name}: otomasyon ${cfg.automationEnabled ? 'açık' : 'kapalı'}, varsayılan sorumlu ${cfg.defaultStaffId ? 'atandı' : 'yok'}, bekleme sınırı ${cfg.staleDays} gün (önce: ${before.e ? 'açık' : 'kapalı'}, ${before.d} gün)`);
+        await svc().audit(req, 'automation.settings', 'StageConfig', cfg._id, `${byKey[key].name}: otomasyon ${cfg.automationEnabled ? 'açık' : 'kapalı'}, varsayılan sorumlu: ${ordered.length ? ordered.map(s => s.fullName).join(', ') : 'yok'}, bekleme sınırı ${cfg.staleDays} gün (önce: ${before.e ? 'açık' : 'kapalı'}, ${before.n} sorumlu, ${before.d} gün)`);
         res.redirect(withParam(back, 'status', 'auto_saved'));
+    });
+
+    // Aşama başlığı / açıklama / ikon / süre düzenleme. Aşama sayısı ve sırası sabittir.
+    const ICON_RE = /^fa-[a-z0-9-]{1,36}$/;
+    app.post('/admin/otomasyon/:key/stage', adminAuthCheck, async (req, res) => {
+        const key = req.params.key; const back = `/admin/otomasyon#stage-${key}`;
+        if (!byKey[key]) return res.redirect(withParam('/admin/otomasyon', 'error', 'invalid_action'));
+        const cfg = await StageConfig.findOne({ stageKey: key });
+        if (!cfg) return res.redirect(withParam('/admin/otomasyon', 'error', 'invalid_action'));
+        const reset = req.body.reset === '1';
+        const name = reset ? '' : str(req.body.name, 60).replace(/\s+/g, ' ');
+        const desc = reset ? '' : str(req.body.desc, 400);
+        const time = reset ? '' : str(req.body.time, 30);
+        const icon = reset ? '' : str(req.body.icon, 40);
+        if (!reset && !name) return res.redirect(withParam(back, 'error', 'stage_name_required'));
+        if (icon && !ICON_RE.test(icon)) return res.redirect(withParam(back, 'error', 'stage_icon_invalid'));
+        const newName = name || DEFAULTS[key].name;
+        // Başka bir aşamanın (güncel) adıyla çakışmasın
+        if (STAGE_DEFS.some(d => d.key !== key && norm(d.name) === norm(newName))) return res.redirect(withParam(back, 'error', 'stage_name_taken'));
+        const oldName = byKey[key].name;
+        const prevDisplay = { name: byKey[key].name, desc: byKey[key].desc, icon: byKey[key].icon, time: byKey[key].time };
+        const d = cfg.display || {};
+        const prevNames = new Set(d.previousNames || []);
+        if (oldName !== newName) prevNames.add(oldName);
+        prevNames.delete(newName);
+        cfg.display = {
+            name: newName === DEFAULTS[key].name ? '' : newName,
+            desc: desc && desc !== DEFAULTS[key].desc ? desc : '',
+            icon: icon && icon !== DEFAULTS[key].icon ? icon : '',
+            time: time && time !== DEFAULTS[key].time ? time : '',
+            previousNames: [...prevNames].slice(-20)
+        };
+        await cfg.save();
+        applyOverrides([cfg.toObject()]);
+        rebuildAlias();
+        let moved = 0;
+        if (oldName !== newName) {
+            const r = await Candidate.updateMany({ currentStage: oldName }, { $set: { currentStage: newName } });
+            moved = r.modifiedCount || 0;
+        }
+        const changes = [];
+        if (oldName !== newName) changes.push(`ad: "${oldName}" → "${newName}" (${moved} aday güncellendi)`);
+        if (prevDisplay.desc !== byKey[key].desc) changes.push('açıklama');
+        if (prevDisplay.icon !== byKey[key].icon) changes.push(`ikon: ${byKey[key].icon}`);
+        if (prevDisplay.time !== byKey[key].time) changes.push(`süre: ${byKey[key].time}`);
+        await svc().audit(req, 'automation.stage_edit', 'StageConfig', cfg._id, `${byKey[key].index + 1}. aşama ${reset ? 'varsayılana döndürüldü' : 'düzenlendi'}: ${changes.join(', ') || 'değişiklik yok'}`);
+        res.redirect(withParam(back, 'status', 'stage_saved'));
     });
 
     function readTemplate(b) {
@@ -665,6 +744,10 @@ module.exports = function mountProcess(app, deps) {
         try {
             // 0) Yeni alanlar için varsayılanlar (mevcut veriye dokunmadan)
             await Candidate.updateMany({ status: { $exists: false } }, { $set: { status: 'active' } });
+            // 0b) Yöneticinin düzenlediği aşama adlarını yükle (eşleştirmeden ÖNCE; aksi halde yeniden adlandırılmış adaylar onaya düşer)
+            applyOverrides(await StageConfig.find().select('stageKey display').lean());
+            rebuildAlias();
+            for (const c of await StageConfig.find({ defaultStaffId: { $ne: null } })) { if (!(c.defaultStaffIds || []).length) { c.defaultStaffIds = [c.defaultStaffId]; await c.save(); } }
             // 1) Eski aşama adlarını kesin eşleşmelerle yeni 9 aşamaya taşı; eşleşmeyenleri ASLA otomatik taşıma
             let renamed = 0, review = 0;
             const odd = await Candidate.find({ $or: [{ currentStage: { $nin: STAGE_NAMES } }, { currentStage: null }] }).select('currentStage legacyStage stageReviewNeeded').lean();

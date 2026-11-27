@@ -14,7 +14,16 @@ const templateSchema = new mongoose.Schema({
 const stageConfigSchema = new mongoose.Schema({
     stageKey: { type: String, required: true, unique: true },
     automationEnabled: { type: Boolean, default: true },
-    defaultStaffId: { type: mongoose.Schema.Types.ObjectId, ref: 'Staff' },
+    defaultStaffId: { type: mongoose.Schema.Types.ObjectId, ref: 'Staff' },   // ilk varsayılan sorumlu (geriye dönük uyumluluk)
+    defaultStaffIds: [{ type: mongoose.Schema.Types.ObjectId, ref: 'Staff' }], // tüm varsayılan sorumlular (her birine ortak görev)
+    // Yöneticinin düzenlediği görünen bilgiler (boş = varsayılan). Aşama sayısı ve sırası sabittir.
+    display: {
+        name: { type: String, maxlength: 60, default: '' },
+        desc: { type: String, maxlength: 400, default: '' },
+        icon: { type: String, maxlength: 40, default: '' },
+        time: { type: String, maxlength: 30, default: '' },
+        previousNames: [{ type: String, maxlength: 60 }]
+    },
     staleDays: { type: Number, default: 14, min: 1, max: 365 },
     templates: [templateSchema]
 }, { timestamps: true });

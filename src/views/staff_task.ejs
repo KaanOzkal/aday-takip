@@ -124,6 +124,17 @@
         </div>
 
         <% if (candidate) { const CT = locals.contactTypes || {}; %>
+        <div class="c-card mb-3" id="cnotes">
+            <div class="c-card-h"><h2>Aday Notları</h2><span class="small muted ms-auto"><%= (locals.cnotes || []).length %></span></div>
+            <div class="c-card-b">
+                <form action="/personel/gorev/<%= wo._id %>/note" method="POST" class="d-flex gap-2 mb-3">
+                    <textarea name="content" class="form-control form-control-sm" rows="2" required minlength="2" maxlength="4000" placeholder="Aday dosyasına not ekleyin (yönetici görür)"></textarea>
+                    <button class="btn btn-soft btn-sm text-nowrap"><i class="fas fa-plus me-1"></i>Not ekle</button>
+                </form>
+                <% if (!(locals.cnotes || []).length) { %><div class="small muted">Bu aday için personel notu yok.</div><% } %>
+                <% (locals.cnotes || []).forEach(n => { %><div class="cm mb-2"><div class="d-flex justify-content-between small mb-1"><b><%= n.authorName || 'Personel' %></b><span class="muted"><%= fmtDT(n.date) %></span></div><div class="pre small"><%= n.content %></div></div><% }) %>
+            </div>
+        </div>
         <div class="c-card mb-3" id="contacts">
             <div class="c-card-h"><h2>Aday İletişim Kayıtları</h2><span class="small muted ms-auto"><%= (contacts || []).length %></span></div>
             <div class="c-card-b">
@@ -226,7 +237,7 @@ document.querySelectorAll('.js-cl').forEach(f => f.addEventListener('submit', as
     document.querySelector('.js-cl-bar').style.width = Math.round(r.progress.done / r.progress.total * 100) + '%';
 }));
 sNotify({
-    ok: { started: 'Göreve başladınız. Yöneticiniz bilgilendirildi.', completed: 'Görev tamamlandı ve yöneticiye gönderildi. Teşekkürler!', comment_added: 'Notunuz yöneticiye iletildi.', file_added: 'Dosya eklendi.', contact_added: 'İletişim kaydı eklendi.' },
+    ok: { started: 'Göreve başladınız. Yöneticiniz bilgilendirildi.', completed: 'Görev tamamlandı ve yöneticiye gönderildi. Teşekkürler!', comment_added: 'Notunuz yöneticiye iletildi.', file_added: 'Dosya eklendi.', contact_added: 'İletişim kaydı eklendi.', note_added: 'Not aday dosyasına eklendi.' },
     err: { invalid_state: 'Bu işlem görevin mevcut durumunda yapılamaz.', result_required: 'Lütfen en az birkaç kelimelik bir sonuç notu yazın.', no_file: 'Lütfen bir dosya seçin.', bad_type: 'Bu dosya türü desteklenmiyor (PDF, görsel, Word, Excel).', too_large: 'Dosya 5 MB\'dan büyük olamaz.', upload_failed: 'Dosya yüklenemedi. Lütfen tekrar deneyin.', missing_fields: 'Lütfen bir not yazın.' }
 });
 document.addEventListener('staff:notification', e => { if (e.detail.link && e.detail.type !== 'assigned') setTimeout(() => location.reload(), 2500); });

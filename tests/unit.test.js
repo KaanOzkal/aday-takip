@@ -108,3 +108,27 @@ test('CV modeli: kural tabanlı Almanca, uydurma yok, kronolojik', () => {
     const tr = buildCv(c, 'tr');
     assert.strictEqual(tr.l.doc, 'Özgeçmiş');
 });
+
+test('requiredDocs: kategori ve durumdan zorunlu belge durumu', () => {
+    const { requiredDocs } = require('../src/dossier/c360');
+    const r = requiredDocs({ documents: [
+        { name: 'Pasaport ön yüz', status: 'Onaylandı' },
+        { name: 'Sağlık raporu', status: 'İnceleniyor' },
+        { name: 'SGK hizmet dökümü', status: 'Reddedildi' },
+        { name: 'x', category: 'CV', status: 'Onaylandı' }
+    ] });
+    const by = Object.fromEntries(r.map(x => [x.key, x.state]));
+    assert.equal(by.passport, 'approved'); assert.equal(by.health, 'pending'); assert.equal(by.work, 'rejected');
+    assert.equal(by.cv, 'approved'); assert.equal(by.id, 'missing'); assert.equal(r.filter(x => x.done).length, 3);
+});
+
+test('applyOverrides: aşama adı yerinde değişir, varsayılana döner', () => {
+    const st = require('../src/process/stages');
+    const ref = st.STAGE_NAMES;
+    st.applyOverrides([{ stageKey: 'evrak_teslimi', display: { name: 'Evrak Toplama', time: '5-10 Gün' } }]);
+    assert.equal(ref[1], 'Evrak Toplama'); assert.equal(st.byKey.evrak_teslimi.name, 'Evrak Toplama');
+    assert.equal(st.keyOfName('Evrak Toplama'), 'evrak_teslimi'); assert.equal(st.byName['Evrak Teslimi'], undefined);
+    assert.ok(st.formerNames.evrak_teslimi.includes('Evrak Teslimi'));
+    st.applyOverrides([{ stageKey: 'evrak_teslimi', display: {} }]);
+    assert.equal(ref[1], 'Evrak Teslimi'); assert.equal(st.byKey.evrak_teslimi.time, '3-7 Gün');
+});

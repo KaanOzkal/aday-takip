@@ -16,7 +16,7 @@ const fullName = (c) => `${c.firstName || ''} ${c.lastName || ''}`.trim();
 const LEVELS = ['A1', 'A2', 'B1', 'B2', 'C1', 'C2', 'Anadil'];
 const LICENSE_CLASSES = ['B', 'BE', 'C1', 'C1E', 'C', 'CE', 'D1', 'D1E', 'D', 'DE'];
 const MARITAL = ['Evli', 'Bekar', 'Boşanmış'];
-const DOC_CATEGORIES = ['Pasaport', 'Kimlik', 'Ehliyet', 'CV', 'Eğitim', 'Sertifika', 'Resmi Kayıtlar', 'Diğer'];
+const DOC_CATEGORIES = ['Pasaport', 'Kimlik', 'Ehliyet', 'CV', 'İş Deneyimi', 'Sağlık', 'Eğitim', 'Sertifika', 'Resmi Kayıtlar', 'Diğer'];
 const RECEIPT_MIMES = ['application/pdf', 'image/jpeg', 'image/png'];
 const DOC_MIMES = ['application/pdf', 'image/jpeg', 'image/png', 'image/webp', 'image/heic', 'image/heif',
     'application/msword', 'application/vnd.openxmlformats-officedocument.wordprocessingml.document'];
@@ -29,9 +29,11 @@ function categoryOf(d) {
     if (/kimlik|nüfus cüzdan/.test(n)) return 'Kimlik';
     if (/ehliyet|sürücü/.test(n)) return 'Ehliyet';
     if (/^cv$|özgeçmiş|lebenslauf/.test(n)) return 'CV';
+    if (/sağlık raporu|sağlık|saglik|medical|ärztlich/.test(n)) return 'Sağlık';
+    if (/iş deneyim|is deneyim|hizmet döküm|hizmet dokum|sgk|çalışma belgesi|referans|arbeitszeugnis/.test(n)) return 'İş Deneyimi';
     if (/diploma|mezuniyet|transkript/.test(n)) return 'Eğitim';
     if (/sertifika|src|kod ?95|psikoteknik|takograf/.test(n)) return 'Sertifika';
-    if (/adli sicil|nüfus kayıt|ikametgah|sgk|sağlık/.test(n)) return 'Resmi Kayıtlar';
+    if (/adli sicil|nüfus kayıt|ikametgah/.test(n)) return 'Resmi Kayıtlar';
     return 'Diğer';
 }
 

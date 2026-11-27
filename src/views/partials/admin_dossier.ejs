@@ -12,9 +12,11 @@
     const verBtn = (k) => { const s = comp.sections[k]; const ok = !!s.verified; return `<form method="POST" action="${act}/verify/${k}" class="m-0 ms-auto"><button class="btn btn-sm ${ok ? 'btn-ok' : 'btn-soft'}" ${!ok && s.filled < s.total ? 'disabled title="Önce eksik bilgileri tamamlayın"' : ''}><i class="fas ${ok ? 'fa-lock' : 'fa-check'} me-1"></i>${ok ? 'Doğrulandı' : 'Doğrula'}</button></form>`; };
     const secHead = (k, icon, title) => { const s = comp.sections[k]; return `<div class="card-h"><div class="avatar t-brand" style="border-radius:10px;width:34px;height:34px"><i class="fas ${icon}"></i></div><div><h3>${title}</h3><p class="sub">${s.filled}/${s.total} alan${s.verified ? ' · doğrulandı ' + new Date(s.verified.at).toLocaleDateString('tr-TR') : ''}</p></div>${verBtn(k)}</div>`; };
     const kv = (label, val, mono) => `<dt>${label}</dt><dd class="${mono ? 'font-monospace' : ''}">${val ? String(val).replace(/</g, '&lt;') : '<span class="text-danger small">eksik</span>'}</dd>`;
+    const parts = locals.part ? String(locals.part).split(',') : ['summary', 'personal', 'license', 'work', 'payments', 'modal'];
+    const has = (k) => parts.includes(k);
     const editBtn = (id) => `<button type="button" class="btn btn-soft btn-sm mt-2" data-bs-toggle="collapse" data-bs-target="#${id}"><i class="fas fa-pen me-1"></i>Düzenle</button>`;
 %>
-<div class="card-x mb-3">
+<% if (has('summary')) { %><div class="card-x mb-3">
     <div class="card-b d-flex align-items-center gap-3 flex-wrap">
         <div class="flex-grow-1" style="min-width:240px">
             <div class="d-flex justify-content-between mb-1"><b>Bilgi doluluğu</b><b style="color:var(--brand)">%<%= comp.pct %></b></div>
@@ -24,8 +26,9 @@
         <a href="<%= act %>/cv" class="btn btn-brand"><i class="fas fa-file-lines me-1"></i>Profesyonel CV</a>
     </div>
     <% if (comp.missing.length) { %><div class="px-3 pb-3"><div class="small fw-bold mb-1" style="color:#93370D"><i class="fas fa-triangle-exclamation me-1"></i>Eksik bilgiler</div><div class="d-flex flex-wrap gap-1"><% comp.missing.forEach(x => { %><span class="pill t-warn" style="font-size:11.5px"><%= x.label %></span><% }) %></div></div><% } %>
-</div>
+</div><% } %>
 
+<% if (has('personal')) { %>
 <div class="row g-3 mb-3">
     <div class="col-lg-6">
         <div class="card-x h-100"><%- secHead('identity', 'fa-id-card', 'Kimlik bilgileri') %>
@@ -60,6 +63,9 @@
                 <div class="col-sm-4"><input name="emergencyPhone" class="form-control form-control-sm" value="<%= D.emergencyPhone || '' %>" placeholder="Telefon"></div>
                 <div class="col-12"><button class="btn btn-brand btn-sm">Kaydet</button></div></div></form></div></div>
     </div>
+</div><% } %>
+<% if (has('license')) { %>
+<div class="row g-3 mb-3">
     <div class="col-lg-6">
         <div class="card-x h-100"><%- secHead('license', 'fa-id-badge', 'Ehliyet') %>
             <div class="card-b"><dl class="kv mb-0"><%- kv('Sınıflar', (D.licenseClasses || []).join(', ')) %><%- kv('Geçerlilik', D.licenseExpiry && dTR(D.licenseExpiry)) %></dl>
@@ -78,8 +84,9 @@
                 <% (D.otherLanguages || []).concat([{ lang: '', level: '' }]).forEach(o => { %><div class="col-7"><input name="otherLang" class="form-control form-control-sm" value="<%= o.lang %>" placeholder="Diğer dil"></div><div class="col-5"><select name="otherLevel" class="form-select form-select-sm"><option value="">Seviye</option><% DOSSIER_LEVELS.forEach(x => { %><option <%= o.level === x ? 'selected' : '' %>><%= x %></option><% }) %></select></div><% }) %>
                 <div class="col-12"><button class="btn btn-brand btn-sm">Kaydet</button></div></div></form></div></div>
     </div>
-</div>
+</div><% } %>
 
+<% if (has('work')) { %>
 <div class="card-x mb-3" id="dossier-work">
     <div class="card-h"><div class="avatar t-brand" style="border-radius:10px;width:34px;height:34px"><i class="fas fa-briefcase"></i></div><div><h3>İş geçmişi</h3><p class="sub">Kronolojik · en yeni en üstte · <%= work.length %> kayıt</p></div>
         <button class="btn btn-soft btn-sm ms-auto js-dadd" data-kind="work"><i class="fas fa-plus me-1"></i>Ekle</button><%- verBtn('work').replace('ms-auto', '') %></div>
@@ -111,8 +118,9 @@
             <form method="POST" action="<%= act %>/dossier/certificates" data-confirm="Sertifika silinecek." data-danger><input type="hidden" name="_action" value="delete"><input type="hidden" name="id" value="<%= x._id %>"><button class="btn btn-bad-soft btn-icon btn-sm" data-no-busy="1"><i class="fas fa-trash"></i></button></form></div><% }) %>
         <% if (!(D.certificates || []).length) { %><div class="empty py-3">Sertifika yok.</div><% } %>
     </div></div>
-</div>
+</div><% } %>
 
+<% if (has('payments')) { %>
 <!-- ÖDEMELER -->
 <div class="row g-3" id="payments">
 <% dossier.payments.forEach(p => { const r = p.record; const on = r && r.active; const [lbl, tone] = r ? paymentStatus(r.status) : ['İşaretlenmedi', 't-gray']; const latest = r && r.receipts.length ? r.receipts[r.receipts.length - 1] : null; %>
@@ -153,8 +161,9 @@
         </div>
     </div>
 <% }) %>
-</div>
+</div><% } %>
 
+<% if (has('modal')) { %>
 <!-- Kayıt düzenleme penceresi (iş / eğitim / sertifika) -->
 <div class="modal fade" id="dEntryModal" tabindex="-1"><div class="modal-dialog modal-lg modal-dialog-centered modal-dialog-scrollable"><form class="modal-content" method="POST" id="dEntryForm">
     <input type="hidden" name="id">
@@ -200,3 +209,4 @@
     document.querySelectorAll('.js-dedit').forEach(b => b.addEventListener('click', () => open(b.dataset.kind, JSON.parse(b.dataset.e))));
 })();
 </script>
+<% } %>

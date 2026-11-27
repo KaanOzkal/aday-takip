@@ -79,7 +79,7 @@
                         <div class="card-h"><h3>Atanmış aktif adaylar</h3><span class="muted small ms-auto"><%= active.length %></span></div>
                         <% if (!active.length) { %><div class="empty py-3">Bu şirkete atanmış aktif aday yok.</div><% } %>
                         <% active.forEach(c => { %>
-                        <a class="list-row text-decoration-none" style="color:inherit" href="/admin/candidate/<%= c._id %>"><span class="flex-grow-1 text-truncate-1 fw-650"><%= c.firstName %> <%= c.lastName %> <span class="muted small fw-normal"><%= c.job ? '· ' + c.job : '' %></span></span><span class="pill <%= c.currentStage === stages[stages.length - 1] ? 't-ok' : ['Ön Onay Sözleşmesi', 'Ön Onay'].includes(c.currentStage) ? 't-warn' : 't-brand' %>"><%= c.currentStage %></span></a>
+                        <a class="list-row text-decoration-none" style="color:inherit" href="/admin/candidate/<%= c._id %>"><span class="flex-grow-1 text-truncate-1 fw-650"><%= c.firstName %> <%= c.lastName %> <span class="muted small fw-normal"><%= c.job ? '· ' + c.job : '' %></span></span><span class="pill <%= c.currentStage === stages[stages.length - 1] ? 't-ok' : [stages[4], stages[5]].includes(c.currentStage) ? 't-warn' : 't-brand' %>"><%= c.currentStage %></span></a>
                         <% }) %>
                     </div>
                     <% if (cancelled.length) { %>

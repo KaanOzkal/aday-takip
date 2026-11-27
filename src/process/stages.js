@@ -87,10 +87,38 @@ const STAGE_DEFS = [
 ];
 
 const STAGE_KEYS = STAGE_DEFS.map(s => s.key);
-const STAGE_NAMES = STAGE_DEFS.map(s => s.name);
-const byKey = Object.fromEntries(STAGE_DEFS.map((s, i) => [s.key, { ...s, index: i }]));
-const byName = Object.fromEntries(STAGE_DEFS.map((s, i) => [s.name, { ...s, index: i }]));
+// Varsayılan değerler (yönetici özelleştirmesini geri almak için)
+const DEFAULTS = Object.fromEntries(STAGE_DEFS.map(s => [s.key, { name: s.name, desc: s.desc, icon: s.icon, time: s.time }]));
+// Aşağıdaki nesneler YERİNDE güncellenir; böylece modülü içe aktaran her yer yeni adları görür.
+const STAGE_NAMES = [];
+const byKey = {};
+const byName = {};
+const formerNames = {}; // key -> önceki adlar (eski kayıtları eşleştirmek için)
+function rebuild() {
+    STAGE_NAMES.length = 0; STAGE_DEFS.forEach(s => STAGE_NAMES.push(s.name));
+    for (const k of Object.keys(byKey)) delete byKey[k];
+    for (const k of Object.keys(byName)) delete byName[k];
+    STAGE_DEFS.forEach((s, i) => { byKey[s.key] = { ...s, index: i }; byName[s.name] = { ...s, index: i }; });
+}
+rebuild();
 const keyOfName = (n) => (byName[n] ? byName[n].key : null);
+const finalName = () => STAGE_NAMES[STAGE_NAMES.length - 1];
+const nameOf = (key) => (byKey[key] ? byKey[key].name : key);
+// StageConfig kayıtlarındaki yönetici özelleştirmelerini uygula (ad, açıklama, ikon, süre)
+function applyOverrides(configs) {
+    for (const c of configs || []) {
+        const d = STAGE_DEFS.find(x => x.key === c.stageKey); if (!d) continue;
+        const o = c.display || {};
+        const name = (o.name || '').trim() || DEFAULTS[d.key].name;
+        if (name !== d.name) { (formerNames[d.key] = formerNames[d.key] || []).push(d.name); }
+        d.name = name;
+        d.desc = (o.desc || '').trim() || DEFAULTS[d.key].desc;
+        d.icon = (o.icon || '').trim() || DEFAULTS[d.key].icon;
+        d.time = (o.time || '').trim() || DEFAULTS[d.key].time;
+        for (const n of (o.previousNames || [])) { const f = (formerNames[d.key] = formerNames[d.key] || []); if (!f.includes(n)) f.push(n); }
+    }
+    rebuild();
+}
 const STAGE_STATUSES = ['Bekliyor', 'Devam Ediyor', 'Tamamlandı', 'Sorun Var'];
 
-module.exports = { STAGE_DEFS, STAGE_KEYS, STAGE_NAMES, STAGE_STATUSES, byKey, byName, keyOfName };
+module.exports = { STAGE_DEFS, STAGE_KEYS, STAGE_NAMES, STAGE_STATUSES, DEFAULTS, byKey, byName, keyOfName, finalName, nameOf, applyOverrides, formerNames };

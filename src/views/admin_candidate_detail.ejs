@@ -1,27 +1,102 @@
 <!DOCTYPE html>
 <html lang="tr">
 <head>
-    <title><%= candidate.firstName %> <%= candidate.lastName %> | BERLINER Yönetim</title>
+    <title><%= candidate.firstName %> <%= candidate.lastName %> | Aday Detayı | BERLINER Yönetim</title>
     <%- include('partials/admin_head') %>
     <style>
-        .hero { padding: 20px; display: flex; gap: 18px; align-items: center; flex-wrap: wrap; }
-        .hero .avatar { width: 64px; height: 64px; font-size: 22px; }
-        .hero h2 { font-size: 22px; font-weight: 800; margin: 0 0 6px; letter-spacing: -.3px; }
-        .meta { display: flex; flex-wrap: wrap; gap: 6px 16px; color: var(--muted); font-size: 13px; }
-        .meta i { opacity: .6; margin-right: 5px; }
-        .stepper { display: flex; gap: 0; overflow-x: auto; padding: 18px 20px 20px; border-top: 1px solid var(--line); }
-        .step { flex: 1; min-width: 92px; text-align: center; position: relative; }
-        .step::before { content: ''; position: absolute; top: 13px; left: -50%; width: 100%; height: 3px; background: #E4E7EC; z-index: 0; }
-        .step:first-child::before { display: none; }
-        .step.done::before, .step.current::before { background: var(--brand); }
-        .step .b { width: 28px; height: 28px; border-radius: 50%; margin: 0 auto 6px; display: grid; place-items: center; font-size: 12px; font-weight: 700; position: relative; z-index: 1; background: #fff; border: 2px solid #D0D5DD; color: #98A2B3; }
-        .step.done .b { background: var(--brand); border-color: var(--brand); color: #fff; }
-        .step.current .b { border-color: var(--brand); color: var(--brand); box-shadow: 0 0 0 4px rgba(212,17,27,.15); }
-        .step .t { font-size: 11.5px; color: var(--muted); font-weight: 500; line-height: 1.25; padding: 0 4px; }
-        .step.current .t { color: var(--ink); font-weight: 700; }
-        .step.issue .b { background: var(--bad); border-color: var(--bad); color: #fff; }
-        .step.skip .b { background: #98A2B3; border-color: #98A2B3; color: #fff; }
-        .step a { text-decoration: none; color: inherit; }
+        /* ---- Aday 360 düzeni ---- */
+        .c360 { display: grid; grid-template-columns: 320px minmax(0, 1fr); gap: 20px; align-items: start; }
+        .pcol { position: sticky; top: 84px; }
+        .pcard { background: #fff; border: 1px solid var(--line); border-radius: 18px; overflow: hidden; }
+        .pcard-top { padding: 22px 20px 16px; text-align: center; border-bottom: 1px solid var(--line); background: linear-gradient(180deg, #FFF6F6 0, #fff 70%); }
+        .ph { position: relative; width: 112px; height: 112px; margin: 0 auto 10px; }
+        .ph img, .ph .ini { width: 112px; height: 112px; border-radius: 50%; object-fit: cover; border: 4px solid #fff; box-shadow: 0 4px 14px rgba(16,24,40,.12); display: grid; place-items: center; font-size: 34px; font-weight: 800; }
+        .ph .cam { position: absolute; right: 2px; bottom: 6px; width: 32px; height: 32px; border-radius: 50%; background: #1F2937; color: #fff; border: 2px solid #fff; display: grid; place-items: center; font-size: 13px; cursor: pointer; }
+        .ph .cam:hover { background: var(--brand); }
+        .sbadge { display: inline-flex; align-items: center; gap: 6px; font-size: 12px; font-weight: 700; padding: 3px 10px; border-radius: 99px; }
+        .sbadge.ok { background: var(--ok-50); color: #027A48; } .sbadge.bad { background: var(--bad-50); color: #B42318; } .sbadge.info { background: var(--info-50); color: #026AA2; } .sbadge.warn { background: var(--warn-50); color: #B54708; }
+        .sbadge .dot { width: 7px; height: 7px; border-radius: 50%; background: currentColor; }
+        .pname { font-size: 19px; font-weight: 800; color: var(--ink); margin: 8px 0 2px; letter-spacing: -.2px; display: flex; align-items: center; justify-content: center; gap: 8px; flex-wrap: wrap; }
+        .pjob { color: var(--muted); font-size: 13.5px; font-weight: 600; }
+        .ringw { display: flex; align-items: center; gap: 14px; padding: 16px 20px; border-bottom: 1px solid var(--line); }
+        .ring { --p: 0; width: 74px; height: 74px; border-radius: 50%; flex-shrink: 0; display: grid; place-items: center; background: conic-gradient(var(--rc, var(--brand)) calc(var(--p) * 1%), #EEF0F4 0); }
+        .ring > span { width: 58px; height: 58px; border-radius: 50%; background: #fff; display: grid; place-items: center; font-weight: 800; font-size: 17px; color: var(--ink); }
+        .pinfo { padding: 14px 20px; border-bottom: 1px solid var(--line); }
+        .pi { display: flex; gap: 12px; padding: 7px 0; font-size: 13.5px; align-items: flex-start; }
+        .pi > i { width: 18px; text-align: center; color: var(--brand); margin-top: 3px; opacity: .85; }
+        .pi .l { color: var(--muted); font-size: 11.5px; font-weight: 600; line-height: 1.2; }
+        .pi .v { color: var(--ink); font-weight: 600; word-break: break-word; }
+        .pi .v.miss { color: #B54708; font-weight: 600; font-size: 12.5px; }
+        .lic { display: inline-grid; place-items: center; min-width: 38px; height: 30px; padding: 0 8px; border-radius: 8px; background: #1F2937; color: #fff; font-weight: 800; font-size: 13px; }
+        .lic.off { background: #F2F4F7; color: #98A2B3; }
+        .mask { font-family: ui-monospace, monospace; letter-spacing: .5px; }
+        .reveal { border: 0; background: none; color: var(--brand); font-size: 12px; padding: 0 0 0 6px; }
+        /* başlık */
+        .h360 { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; margin-bottom: 18px; }
+        .h360 h2 { font-size: 22px; font-weight: 800; margin: 0; letter-spacing: -.3px; color: var(--ink); }
+        .h360 .sub { color: var(--muted); font-size: 13.5px; }
+        /* sekmeler */
+        .tabs-x { position: relative; display: flex; gap: 2px; border-bottom: 1px solid var(--line); margin-bottom: 18px; overflow-x: auto; scrollbar-width: thin; background: #fff; border-radius: 14px 14px 0 0; padding: 0 6px; }
+        .tabs-x a, .tabs-x .dd > button { padding: 12px 10px; color: var(--muted); font-weight: 600; text-decoration: none; border: 0; background: none; border-bottom: 2px solid transparent; margin-bottom: -1px; white-space: nowrap; font-size: 13.5px; }
+        .tabs-x a:hover, .tabs-x .dd > button:hover { color: var(--ink); }
+        .tabs-x a.active, .tabs-x .dd > button.active { color: var(--brand); border-bottom-color: var(--brand); }
+        .tabs-x .n { background: #F2F4F7; color: #475467; border-radius: 99px; font-size: 11px; padding: 1px 7px; margin-left: 4px; }
+        .tabs-x .n.warn { background: var(--warn-50); color: var(--warn); }
+        .tabs-x .n.bad { background: var(--bad-50); color: var(--bad); }
+        .tabs-x .dropdown-item.active { background: var(--brand-50); color: var(--brand); }
+        .pane { display: none; } .pane.active { display: block; }
+        /* genel bakış kartları */
+        .ov-card { background: #fff; border: 1px solid var(--line); border-radius: 16px; height: 100%; display: flex; flex-direction: column; }
+        .ov-h { display: flex; align-items: center; gap: 10px; padding: 16px 18px 10px; }
+        .ov-h h3 { font-size: 15.5px; font-weight: 800; margin: 0; color: var(--ink); }
+        .ov-h .cnt { margin-left: auto; font-size: 12.5px; font-weight: 700; white-space: nowrap; }
+        .ov-h h3 { white-space: nowrap; }
+        .ov-b { padding: 4px 18px 16px; flex: 1; }
+        .ov-f { padding: 12px 18px; border-top: 1px solid var(--line); font-size: 13px; }
+        .ov-f a { font-weight: 700; text-decoration: none; }
+        .row-i { display: flex; align-items: center; gap: 10px; padding: 9px 0; border-bottom: 1px dashed var(--line); font-size: 13.5px; }
+        .row-i:last-child { border-bottom: 0; }
+        .ck { width: 22px; height: 22px; border-radius: 50%; display: grid; place-items: center; font-size: 11px; flex-shrink: 0; }
+        .ck.ok { background: var(--ok); color: #fff; } .ck.wait { background: var(--info-50); color: var(--info); } .ck.miss { background: var(--warn-50); color: var(--warn); } .ck.bad { background: var(--bad-50); color: var(--bad); }
+        .stp { display: flex; overflow-x: auto; padding: 8px 4px 4px; }
+        .stp .s { flex: 1; min-width: 84px; text-align: center; position: relative; }
+        .stp .s::before { content: ''; position: absolute; top: 15px; left: -50%; width: 100%; height: 3px; background: #E4E7EC; }
+        .stp .s:first-child::before { display: none; }
+        .stp .s.done::before, .stp .s.cur::before { background: var(--brand); }
+        .stp .b { width: 32px; height: 32px; border-radius: 50%; margin: 0 auto 6px; display: grid; place-items: center; font-size: 13px; position: relative; z-index: 1; background: #fff; border: 2px solid #D0D5DD; color: #98A2B3; }
+        .stp .s.done .b { background: var(--brand); border-color: var(--brand); color: #fff; }
+        .stp .s.cur .b { border-color: var(--brand); color: var(--brand); box-shadow: 0 0 0 5px rgba(212,17,27,.14); }
+        .stp .s.issue .b { background: var(--bad); border-color: var(--bad); color: #fff; }
+        .stp .s.skip .b { background: #98A2B3; border-color: #98A2B3; color: #fff; }
+        .stp .t { font-size: 11.5px; color: #475467; font-weight: 600; line-height: 1.25; padding: 0 4px; }
+        .stp .s.cur .t { color: var(--ink); font-weight: 800; }
+        .stp .d { font-size: 11px; color: var(--muted); margin-top: 2px; }
+        .nextbox { background: #FFF1F2; border: 1px solid #FCD5D8; border-radius: 14px; padding: 14px 16px; display: flex; gap: 12px; align-items: center; height: 100%; }
+        .nextbox .ic { width: 42px; height: 42px; border-radius: 12px; background: #fff; color: var(--brand); display: grid; place-items: center; font-size: 18px; flex-shrink: 0; }
+        .mini { display: flex; gap: 8px; flex-wrap: wrap; }
+        .mini { align-content: stretch; }
+        .mini .m { flex: 1; min-width: 88px; display: flex; flex-direction: column; justify-content: center; border: 1px solid var(--line); border-radius: 12px; padding: 8px 12px; }
+        .mini .m b { font-size: 18px; color: var(--ink); display: block; line-height: 1.1; }
+        .mini .m span { font-size: 11.5px; color: var(--muted); font-weight: 600; }
+        .verified { display: flex; gap: 10px; align-items: center; background: var(--ok-50); color: #027A48; border-radius: 12px; padding: 10px 12px; font-size: 13px; }
+        .unverified { display: flex; gap: 10px; align-items: center; background: var(--warn-50); color: #93370D; border-radius: 12px; padding: 10px 12px; font-size: 13px; }
+        .hist { position: relative; padding-left: 4px; }
+        .hi { display: flex; gap: 12px; padding: 0 0 14px; position: relative; }
+        .hi::before { content: ''; position: absolute; left: 15px; top: 32px; bottom: 0; width: 2px; background: #EEF0F4; }
+        .hi:last-child::before { display: none; }
+        .hi .ic { width: 32px; height: 32px; border-radius: 10px; display: grid; place-items: center; flex-shrink: 0; font-size: 13px; background: var(--brand-50); color: var(--brand); }
+        .hi[data-kind="payment"] .ic { background: var(--ok-50); color: var(--ok); } .hi[data-kind="document"] .ic { background: var(--info-50); color: var(--info); }
+        .hi[data-kind="task"] .ic { background: #F4F3FF; color: #5925DC; } .hi[data-kind="note"] .ic, .hi[data-kind="contact"] .ic { background: var(--warn-50); color: var(--warn); }
+        .hi[data-kind="audit"] .ic { background: #F2F4F7; color: #475467; }
+        .hi .tt { font-weight: 700; font-size: 13.5px; color: var(--ink); }
+        .hi .tx { font-size: 13px; color: #344054; word-break: break-word; }
+        .hi .mt { font-size: 11.5px; color: var(--muted); }
+        .chipf { border: 1px solid var(--line); background: #fff; border-radius: 99px; padding: 4px 12px; font-size: 12.5px; font-weight: 600; color: #475467; }
+        .chipf.on { background: var(--brand); border-color: var(--brand); color: #fff; }
+        .reqd { border: 1px solid var(--line); border-radius: 14px; padding: 12px; display: flex; gap: 10px; align-items: center; background: #fff; height: 100%; }
+        .reqd.missing { border-style: dashed; border-color: #FEC84B; background: #FFFCF5; }
+        .reqd.rejected { border-color: #FECDCA; background: #FFFBFA; }
+        /* eski bileşenler */
         .pl-row { border: 1px solid var(--line); border-radius: 14px; margin-bottom: 10px; background: #fff; overflow: hidden; }
         .pl-row.cur { border-color: #F49A9E; box-shadow: 0 0 0 3px rgba(212,17,27,.08); }
         .pl-row.issue { border-color: #FECDCA; }
@@ -33,13 +108,6 @@
         .ev { display: flex; gap: 10px; padding: 8px 0; border-bottom: 1px dashed var(--line); font-size: 13px; }
         .ev:last-child { border-bottom: 0; }
         .ev .dt { color: var(--muted); font-size: 12px; white-space: nowrap; min-width: 118px; }
-        .tabs-x { display: flex; gap: 4px; border-bottom: 1px solid var(--line); margin-bottom: 18px; overflow-x: auto; }
-        .tabs-x a { padding: 10px 14px; color: var(--muted); font-weight: 600; text-decoration: none; border-bottom: 2px solid transparent; margin-bottom: -1px; white-space: nowrap; }
-        .tabs-x a:hover { color: var(--ink); }
-        .tabs-x a.active { color: var(--brand); border-bottom-color: var(--brand); }
-        .tabs-x .n { background: #F2F4F7; color: #475467; border-radius: 99px; font-size: 11px; padding: 1px 7px; margin-left: 4px; }
-        .tabs-x .n.warn { background: var(--warn-50); color: var(--warn); }
-        .pane { display: none; } .pane.active { display: block; }
         .kv { display: grid; grid-template-columns: 150px 1fr; gap: 10px 16px; }
         .kv dt { color: var(--muted); font-weight: 500; font-size: 13px; } .kv dd { margin: 0; font-weight: 600; word-break: break-word; }
         .toggle-card { display: flex; align-items: center; gap: 12px; padding: 12px 14px; border: 1px solid var(--line); border-radius: 12px; cursor: pointer; transition: all .15s; background: #fff; }
@@ -48,24 +116,35 @@
         .toggle-card .form-check-input { margin: 0; width: 2.4em; height: 1.3em; cursor: pointer; }
         .toggle-card .form-check-input:checked { background-color: var(--ok); border-color: var(--ok); }
         .note { background: #FFFCF5; border: 1px solid #FEDF89; border-radius: 12px; padding: 12px 14px; }
+        .note.staff { background: #F5FAFF; border-color: #B2DDFF; }
         .msg { border: 1px solid var(--line); border-radius: 12px; padding: 12px 14px; background: #fff; }
         .msg.admin { background: #FFF8F8; border-color: #FCE0E1; }
         .qa { border-bottom: 1px dashed var(--line); padding: 12px 0; } .qa:last-child { border-bottom: 0; }
         .qa .q { color: var(--muted); font-size: 12.5px; font-weight: 600; margin-bottom: 4px; }
         .qa .a { white-space: pre-wrap; }
-        @media (max-width: 575.98px) { .kv { grid-template-columns: 1fr; gap: 2px; } .kv dd { margin-bottom: 10px; } }
+        #pvModal .modal-body { background: #F2F4F7; min-height: 60vh; display: grid; place-items: center; padding: 0; }
+        #pvModal iframe { width: 100%; height: 75vh; border: 0; background: #fff; }
+        #pvModal img { max-width: 100%; max-height: 75vh; }
+        @media (max-width: 1199.98px) { .c360 { grid-template-columns: 290px minmax(0, 1fr); } }
+        @media (max-width: 991.98px) { .c360 { grid-template-columns: 1fr; } .pcol { position: static; } }
+        @media (max-width: 575.98px) { .kv { grid-template-columns: 1fr; gap: 2px; } .kv dd { margin-bottom: 10px; } .h360 .acts { width: 100%; } .h360 .acts .btn { flex: 1; } .ov-h, .ov-b, .ov-f { padding-left: 14px; padding-right: 14px; } }
     </style>
 </head>
 <body>
 <%
     const c = candidate;
+    const X = c360;
+    const D = c.dossier || {};
     const PALETTE = [['#FEF1F1','#D4111B'],['#ECFDF3','#039855'],['#FFFAEB','#B54708'],['#FDF2FA','#C11574'],['#F0F9FF','#026AA2'],['#F4F3FF','#5925DC'],['#FEF3F2','#B42318']];
     const fullName = `${c.firstName || ''} ${c.lastName || ''}`.trim();
     const avatarStyle = (n) => { let h = 0; for (const ch of String(n || '')) h = (h * 31 + ch.charCodeAt(0)) >>> 0; const p = PALETTE[h % PALETTE.length]; return `background:${p[0]};color:${p[1]}`; };
     const initials = (((c.firstName || '?').charAt(0)) + ((c.lastName || '').charAt(0))).toLocaleUpperCase('tr-TR');
-    const fmtDate = (d, withTime) => { if (!d) return '—'; const x = new Date(d); if (isNaN(x)) return String(d); return withTime ? x.toLocaleString('tr-TR', { day: '2-digit', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit' }) : x.toLocaleDateString('tr-TR', { day: '2-digit', month: 'short', year: 'numeric' }); };
+    const fmtDate = (d, withTime) => { if (!d) return '—'; const x = new Date(d); if (isNaN(x)) return String(d); return withTime ? x.toLocaleString('tr-TR', { timeZone: 'Europe/Istanbul', day: '2-digit', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit' }) : x.toLocaleDateString('tr-TR', { timeZone: 'Europe/Istanbul', day: '2-digit', month: 'short', year: 'numeric' }); };
+    const dShort = (d) => d ? new Date(d).toLocaleDateString('tr-TR', { timeZone: 'Europe/Istanbul', day: '2-digit', month: '2-digit', year: 'numeric' }) : '';
     const statusTone = (s) => s === 'Onaylandı' ? 't-ok' : s === 'Reddedildi' ? 't-bad' : 't-warn';
     const docUrl = (d) => (d.fileId || d.blobId) ? `/documents/view/${d._id}` : (d.driveLink || (d.filename ? `/uploads/${encodeURIComponent(d.filename)}` : '#'));
+    const docKind = (d) => { const m = String(d.mimeType || ''), n = String(d.filename || d.name || '').toLowerCase(); if (/pdf/.test(m) || /\.pdf$/.test(n)) return 'pdf'; if (/^image\//.test(m) || /\.(jpe?g|png|webp|gif)$/.test(n)) return 'img'; return 'other'; };
+    const canPreview = (d) => (d.fileId || d.blobId || d.filename) && docKind(d) !== 'other';
     const cur = stages.indexOf(c.currentStage);
     const docs = (c.documents || []).slice().sort((a, b) => new Date(b.date || 0) - new Date(a.date || 0));
     const notes = (c.notes || []).slice().sort((a, b) => new Date(b.date || 0) - new Date(a.date || 0));
@@ -89,6 +168,33 @@
     const formFilled = Object.values(formLabels).some(g => Object.keys(g).some(k => af[k] && String(af[k]).trim()));
     const pl = (typeof pipeline !== 'undefined' && pipeline) ? pipeline : null;
     const ret = (tab) => `/admin/candidate/${c._id}#${tab}`;
+    const _dz = (typeof dossier !== 'undefined' && dossier) ? dossier : null;
+    const _tl = (typeof timeline !== 'undefined' && timeline) ? timeline : { items: [], counts: {} };
+    const _wo = (typeof wo !== 'undefined' && wo) ? wo : { orders: [], staff: [], CATEGORIES: [], PRIORITIES: [] };
+    const _woOpen = _wo.orders.filter(o => ['Yeni','Devam Ediyor','Revizyon'].includes(o.status)).length;
+    const _woDone = _wo.orders.filter(o => o.status === 'Tamamlandı').length;
+    // durum rozeti
+    const isFinal = cur === stages.length - 1;
+    const badge = c.status === 'cancelled' ? ['bad', 'İptal Edildi'] : c.stageReviewNeeded ? ['warn', 'Aşama Onayı Bekliyor'] : isFinal ? ['info', "Almanya'da"] : ['ok', 'Aktif Aday'];
+    // ehliyet
+    const lic = D.licenseClasses || [];
+    const topLic = ['CE', 'C', 'C1E', 'C1', 'DE', 'D', 'D1E', 'D1', 'BE', 'B'].find(k => lic.includes(k));
+    const licExpired = D.licenseExpiry && new Date(D.licenseExpiry) < new Date();
+    const licSoon = D.licenseExpiry && !licExpired && new Date(D.licenseExpiry) < new Date(Date.now() + 90 * 864e5);
+    const nat = (D.nationality || 'Türkiye Cumhuriyeti');
+    const isTR = /türk/i.test(nat);
+    const maskTail = (v, keep = 3) => v ? '•'.repeat(Math.max(0, String(v).length - keep)) + String(v).slice(-keep) : '';
+    const sortWork = (D.work || []).slice().sort((a, b) => (b.current ? Infinity : new Date(b.end || b.start || 0)) - (a.current ? Infinity : new Date(a.end || a.start || 0)));
+    const myTR = (x) => x ? new Date(x).toLocaleDateString('tr-TR', { month: '2-digit', year: 'numeric' }) : '';
+    const langs = [D.germanLevel ? 'Almanca ' + D.germanLevel : '', D.englishLevel ? 'İngilizce ' + D.englishLevel : ''].concat((D.otherLanguages || []).map(o => o.lang + (o.level ? ' ' + o.level : ''))).filter(Boolean);
+    const V = D.verified || {};
+    const verKeys = ['identity', 'contact', 'emergency', 'languages'];
+    const verAll = verKeys.every(k => V[k] && V[k].at);
+    const lastVer = verKeys.map(k => V[k] && V[k].at).filter(Boolean).sort((a, b) => new Date(b) - new Date(a))[0];
+    const payLabel = { awaiting_receipt: 'Dekont bekleniyor', under_review: 'İnceleniyor', approved: 'Onaylandı', rejected: 'Dekont reddedildi' };
+    const payTone = { awaiting_receipt: 'miss', under_review: 'wait', approved: 'ok', rejected: 'bad' };
+    const payIcon = { awaiting_receipt: 'fa-hourglass-half', under_review: 'fa-magnifying-glass', approved: 'fa-check', rejected: 'fa-xmark' };
+    const ringColor = X.pct >= 90 ? 'var(--ok)' : X.pct >= 60 ? 'var(--warn)' : 'var(--brand)';
 %>
 <div class="app">
     <%- include('partials/admin_sidebar', { active: 'candidates', onMain: false }) %>
@@ -96,95 +202,353 @@
     <div class="main">
         <header class="topbar">
             <button class="btn btn-soft btn-icon menu-toggle" aria-label="Menü"><i class="fas fa-bars"></i></button>
-            <a href="/admin#candidates" class="btn btn-soft btn-icon" title="Aday listesine dön"><i class="fas fa-arrow-left"></i></a>
             <div>
                 <div class="crumb"><a href="/admin#candidates" class="text-decoration-none muted">Adaylar</a> / Aday Detayı</div>
-                <h1><%= fullName %></h1>
-            </div>
-            <div class="ms-auto d-flex gap-2">
-                <a href="#messages" class="btn btn-soft tab-link" data-tab="messages"><i class="far fa-paper-plane me-1"></i><span class="d-none d-sm-inline">Mesaj Gönder</span></a>
-                <div class="dropdown">
-                    <button class="btn btn-soft btn-icon" data-bs-toggle="dropdown" title="Diğer"><i class="fas fa-ellipsis-vertical"></i></button>
-                    <ul class="dropdown-menu dropdown-menu-end shadow-sm" style="border-radius:12px;border-color:var(--line)">
-                        <li><a class="dropdown-item" href="/admin/export.csv?ids=<%= c._id %>"><i class="fas fa-download me-2 muted"></i>CSV olarak indir</a></li>
-                        <li><hr class="dropdown-divider"></li>
-                        <li>
-                            <form action="/admin/candidate/<%= c._id %>/delete" method="POST" class="m-0" data-confirm="<%= fullName %> ve bu adaya ait tüm mesaj ve randevular kalıcı olarak silinecek." data-danger>
-                                <button class="dropdown-item text-danger" data-no-busy="1"><i class="fas fa-trash me-2"></i>Adayı sil</button>
-                            </form>
-                        </li>
-                    </ul>
-                </div>
+                <h1 class="text-truncate-1"><%= fullName %></h1>
             </div>
         </header>
 
         <main class="content">
-            <div class="card-x mb-3">
-                <div class="hero">
-                    <div class="avatar" style="<%= avatarStyle(fullName) %>"><%= initials %></div>
-                    <div class="flex-grow-1" style="min-width:240px">
-                        <h2><%= fullName %>
-                            <% if (c.status === 'cancelled') { %><span class="pill t-bad align-middle" style="font-size:12px"><i class="fas fa-ban me-1"></i>İptal</span><% } %>
-                            <% if (c.stageReviewNeeded) { %><span class="pill t-warn align-middle" style="font-size:12px"><i class="fas fa-code-merge me-1"></i>Aşama onayı bekliyor</span><% } %></h2>
-                        <div class="meta">
-                            <span><i class="fas fa-passport"></i><%= c.passportNo || 'Pasaport yok' %></span>
-                            <span><i class="fas fa-briefcase"></i><%= c.job || 'Meslek belirtilmedi' %></span>
-                            <span><i class="fas fa-location-dot"></i><%= c.location || '—' %></span>
-                            <span><i class="fas fa-envelope"></i><%= c.email || 'E-posta yok' %></span>
-                            <span><i class="fas fa-phone"></i><%= c.phone || c.phoneNumber || 'Telefon yok' %></span>
-                        </div>
-                    </div>
-                    <div class="d-flex flex-column gap-2 align-items-start">
-                        <form action="/admin/candidate/company" method="POST" class="m-0 d-flex align-items-center gap-2">
-                            <input type="hidden" name="returnTo" value="<%= ret('overview') %>"><input type="hidden" name="candidateId" value="<%= c._id %>">
-                            <span class="muted small fw-semibold" style="width:56px">Şirket</span>
-                            <select name="newCompany" class="form-select form-select-sm" style="min-width:180px" onchange="this.form.submit()">
-                                <option value="Atanmadı" <%= (!c.company || c.company === 'Atanmadı') ? 'selected' : '' %>>Atanmadı</option>
-                                <% companies.forEach(co => { %><option value="<%= co.name %>" <%= c.company === co.name ? 'selected' : '' %>><%= co.name %></option><% }) %>
-                            </select>
-                        </form>
-                        <div class="d-flex align-items-center gap-2"><span class="muted small fw-semibold" style="width:56px">Puan</span><span class="pill t-brand"><%= c.score ?? '—' %> / 100</span></div>
-                    </div>
+            <div class="h360">
+                <a href="/admin#candidates" class="btn btn-soft" id="backBtn"><i class="fas fa-arrow-left me-1"></i>Geri Dön</a>
+                <div class="me-auto">
+                    <h2>Aday Detayı</h2>
+                    <div class="sub">Adayın tüm bilgilerini tek ekranda görüntüleyin</div>
                 </div>
-                <div class="stepper">
-                    <% stages.forEach((s, i) => { const ps = pl ? pl.stages[i] : null; const stt = ps ? ps.state.status : null; const issue = stt === 'Sorun Var'; const skip = ps && ps.state.skipped; %>
-                        <div class="step <%= i < cur ? 'done' : i === cur ? 'current' : '' %> <%= issue ? 'issue' : '' %> <%= skip ? 'skip' : '' %>" title="<%= stt || '' %><%= skip ? ' (atlandı)' : '' %>">
-                            <a href="#pipeline" class="tab-link" data-tab="pipeline">
-                            <div class="b"><% if (issue) { %><i class="fas fa-exclamation"></i><% } else if (skip) { %><i class="fas fa-forward"></i><% } else if (i < cur) { %><i class="fas fa-check"></i><% } else { %><%= i + 1 %><% } %></div>
-                            <div class="t"><%= s %></div></a>
-                        </div>
-                    <% }) %>
+                <div class="acts d-flex gap-2 flex-wrap">
+                    <div class="dropdown">
+                        <button class="btn btn-soft dropdown-toggle" data-bs-toggle="dropdown" id="cvBtn"><i class="fas fa-file-arrow-down me-1"></i>CV İndir</button>
+                        <ul class="dropdown-menu dropdown-menu-end shadow-sm" style="border-radius:12px;border-color:var(--line)">
+                            <li><a class="dropdown-item" href="/admin/candidate/<%= c._id %>/cv.pdf?lang=tr"><i class="fas fa-file-pdf me-2" style="color:var(--brand)"></i>Türkçe CV (PDF)</a></li>
+                            <li><a class="dropdown-item" href="/admin/candidate/<%= c._id %>/cv.pdf?lang=de"><i class="fas fa-file-pdf me-2" style="color:var(--brand)"></i>Lebenslauf – Almanca (PDF)</a></li>
+                            <li><hr class="dropdown-divider"></li>
+                            <li><a class="dropdown-item" href="/admin/candidate/<%= c._id %>/cv"><i class="fas fa-pen-ruler me-2 muted"></i>CV stüdyosunda düzenle</a></li>
+                        </ul>
+                    </div>
+                    <a href="#messages" class="btn btn-soft tab-link" data-tab="messages"><i class="far fa-paper-plane me-1"></i>Mesaj Gönder</a>
+                    <a href="#edit" class="btn btn-brand tab-link" data-tab="edit"><i class="fas fa-pen me-1"></i>Düzenle</a>
+                    <div class="dropdown">
+                        <button class="btn btn-soft btn-icon" data-bs-toggle="dropdown" title="Diğer işlemler" aria-label="Diğer işlemler"><i class="fas fa-ellipsis-vertical"></i></button>
+                        <ul class="dropdown-menu dropdown-menu-end shadow-sm" style="border-radius:12px;border-color:var(--line)">
+                            <li><a class="dropdown-item" href="/admin/export.csv?ids=<%= c._id %>"><i class="fas fa-download me-2 muted"></i>CSV olarak indir</a></li>
+                            <li><a class="dropdown-item tab-link" href="#pipeline" data-tab="pipeline"><i class="fas fa-diagram-project me-2 muted"></i>Aşamayı değiştir</a></li>
+                            <li><hr class="dropdown-divider"></li>
+                            <li>
+                                <form action="/admin/candidate/<%= c._id %>/delete" method="POST" class="m-0" data-confirm="<%= fullName %> ve bu adaya ait tüm mesaj ve randevular kalıcı olarak silinecek." data-danger>
+                                    <button class="dropdown-item text-danger" data-no-busy="1"><i class="fas fa-trash me-2"></i>Adayı sil</button>
+                                </form>
+                            </li>
+                        </ul>
+                    </div>
                 </div>
             </div>
 
-            <nav class="tabs-x">
-                <a href="#overview" class="tab-link" data-tab="overview">Genel Bilgiler</a>
-                <% const _dz = (typeof dossier !== 'undefined' && dossier) ? dossier : null; %>
-                <% if (_dz) { const _pp = _dz.payments.filter(p => p.record && p.record.active && p.record.status === 'under_review').length; %><a href="#dossier" class="tab-link" data-tab="dossier">Dijital Dosya <span class="n <%= _pp ? 'warn' : '' %>"><%= _pp ? _pp + ' dekont' : '%' + _dz.completeness.pct %></span></a><% } %>
-                <a href="#pipeline" class="tab-link" data-tab="pipeline">Süreç Takibi <% if (pl && pl.stages.some(x => x.state.status === 'Sorun Var')) { %><span class="n" style="background:var(--bad-50);color:var(--bad)">sorun</span><% } else if (pl && pl.stages.some(x => x.stale)) { %><span class="n warn">bekliyor</span><% } %></a>
-                <a href="#process" class="tab-link" data-tab="process">Süreç &amp; Entegrasyon <span class="n"><%= intDone %>/8</span></a>
-                <a href="#documents" class="tab-link" data-tab="documents">Belgeler <span class="n <%= pendDocs ? 'warn' : '' %>"><%= pendDocs ? pendDocs + ' bekliyor' : docs.length %></span></a>
+            <div class="c360">
+            <!-- ================= SOL: PROFİL ================= -->
+            <aside class="pcol">
+                <div class="pcard">
+                    <div class="pcard-top">
+                        <div class="ph">
+                            <% if (X.photo) { %><img src="<%= X.photo %>" alt="<%= fullName %>"><% } else { %><div class="ini" style="<%= avatarStyle(fullName) %>"><%= initials %></div><% } %>
+                            <label class="cam" title="Profil fotoğrafı yükle" for="photoIn"><i class="fas fa-camera"></i></label>
+                        </div>
+                        <form id="photoForm" action="/admin/candidate/<%= c._id %>/photo" method="POST" enctype="multipart/form-data" class="d-none"><input type="file" id="photoIn" name="photo" accept="image/jpeg,image/png"></form>
+                        <span class="sbadge <%= badge[0] %>"><span class="dot"></span><%= badge[1] %></span>
+                        <div class="pname"><%= fullName %>
+                            <% if (isTR) { %><svg width="22" height="15" viewBox="0 0 30 20" aria-label="Türkiye" role="img" style="border-radius:3px;box-shadow:0 0 0 1px rgba(0,0,0,.08)"><rect width="30" height="20" fill="#E30A17"/><circle cx="11" cy="10" r="5" fill="#fff"/><circle cx="12.25" cy="10" r="4" fill="#E30A17"/><polygon fill="#fff" points="17.2,10 14.6,10.85 16.2,8.6 16.2,11.4 14.6,9.15"/></svg><% } else { %><span class="pill t-gray" style="font-size:11px"><%= nat %></span><% } %>
+                        </div>
+                        <div class="pjob"><%= c.job || 'Meslek belirtilmedi' %><%= topLic ? ' • ' + topLic : '' %></div>
+                    </div>
+                    <div class="ringw">
+                        <div class="ring" style="--p:<%= X.pct %>;--rc:<%= ringColor %>"><span>%<%= X.pct %></span></div>
+                        <div>
+                            <div class="fw-bold text-dark"><%= X.pct === 100 ? 'Dosya Tamamlandı' : 'Dosya Doluluğu' %></div>
+                            <% if (X.missingDocs || X.missingInfo) { %>
+                                <div class="small" style="color:#B54708"><i class="fas fa-triangle-exclamation me-1"></i>Eksik: <%= [X.missingDocs ? X.missingDocs + ' belge' : '', X.missingInfo ? X.missingInfo + ' bilgi' : ''].filter(Boolean).join(', ') %></div>
+                            <% } else { %><div class="small" style="color:var(--ok)"><i class="fas fa-circle-check me-1"></i>Eksik bilgi ve belge yok</div><% } %>
+                            <a href="#overview" class="small tab-link" data-tab="overview" data-scroll="missingBox">Eksikleri gör</a>
+                        </div>
+                    </div>
+                    <div class="pinfo">
+                        <div class="pi"><i class="fas fa-cake-candles"></i><div><div class="l">Doğum Tarihi</div><div class="v <%= D.birthDate ? '' : 'miss' %>"><%= D.birthDate ? dShort(D.birthDate) + (X.age != null ? ' (' + X.age + ' yaş)' : '') : 'Eksik' %></div></div></div>
+                        <div class="pi"><i class="fas fa-location-dot"></i><div><div class="l">Doğum Yeri</div><div class="v <%= D.birthPlace ? '' : 'miss' %>"><%= D.birthPlace || 'Eksik' %></div></div></div>
+                        <div class="pi"><i class="fas fa-house"></i><div><div class="l">Adres</div><div class="v <%= D.address ? '' : 'miss' %>"><%= D.address || 'Eksik' %></div></div></div>
+                        <% const ph = c.phone || c.phoneNumber; %>
+                        <div class="pi"><i class="fas fa-phone"></i><div><div class="l">Telefon</div><div class="v <%= ph ? '' : 'miss' %>"><% if (ph) { %><a href="tel:<%= ph.replace(/[^\d+]/g, '') %>" class="text-decoration-none" style="color:inherit"><%= ph %></a><% } else { %>Eksik<% } %></div></div></div>
+                        <div class="pi"><i class="fas fa-envelope"></i><div style="min-width:0"><div class="l">E-posta</div><div class="v <%= c.email ? '' : 'miss' %>"><% if (c.email) { %><a href="mailto:<%= c.email %>" class="text-decoration-none" style="color:inherit"><%= c.email %></a><% } else { %>Eksik<% } %></div></div></div>
+                        <div class="pi"><i class="fas fa-passport"></i><div><div class="l">Pasaport No</div><div class="v"><% if (c.passportNo) { %><span class="mask" data-full="<%= c.passportNo %>"><%= maskTail(c.passportNo) %></span><button type="button" class="reveal js-reveal" title="Göster">Göster</button><% } else { %><span class="v miss">Eksik</span><% } %></div></div></div>
+                        <div class="pi"><i class="fas fa-id-card"></i><div><div class="l">T.C. Kimlik No</div><div class="v"><% if (D.tcNo) { %><span class="mask" data-full="<%= D.tcNo %>"><%= maskTail(D.tcNo) %></span><button type="button" class="reveal js-reveal" title="Göster">Göster</button><% } else { %><span class="v miss">Eksik</span><% } %></div></div></div>
+                    </div>
+                    <div class="pinfo">
+                        <div class="l small fw-bold text-dark mb-2">Ehliyet Sınıfları</div>
+                        <div class="d-flex flex-wrap gap-1 mb-2">
+                            <% if (lic.length) { ['B', 'C', 'CE'].concat(lic.filter(k => !['B', 'C', 'CE'].includes(k))).forEach(k => { %><span class="lic <%= lic.includes(k) ? '' : 'off' %>" title="<%= lic.includes(k) ? 'Var' : 'Yok' %>"><%= k %></span><% }) } else { %><span class="small" style="color:#B54708">Ehliyet bilgisi girilmemiş</span><% } %>
+                        </div>
+                        <div class="small"><span class="muted">Geçerlilik:</span> <b style="<%= licExpired ? 'color:var(--bad)' : licSoon ? 'color:var(--warn)' : '' %>"><%= D.licenseExpiry ? dShort(D.licenseExpiry) : '—' %></b><%= licExpired ? ' · süresi dolmuş' : licSoon ? ' · 90 gün içinde doluyor' : '' %></div>
+                    </div>
+                    <div class="pinfo">
+                        <div class="pi py-1"><i class="fas fa-building"></i><div><div class="l">Şirket</div><div class="v"><%= c.company || 'Atanmadı' %></div></div></div>
+                        <div class="pi py-1"><i class="fas fa-diagram-project"></i><div><div class="l">Mevcut Aşama</div><div class="v"><%= cur >= 0 ? (cur + 1) + '. ' : '' %><%= c.currentStage %></div></div></div>
+                        <div class="pi py-1"><i class="far fa-calendar"></i><div><div class="l">Başvuru Tarihi</div><div class="v"><%= fmtDate(c.applicationDate) %></div></div></div>
+                    </div>
+                    <div class="p-3">
+                        <a href="/admin/candidate/<%= c._id %>/cv" class="btn btn-brand w-100"><i class="fas fa-id-card-clip me-1"></i>Profil Önizle</a>
+                    </div>
+                </div>
+            </aside>
+
+            <!-- ================= SAĞ: SEKMELER ================= -->
+            <section style="min-width:0">
+            <nav class="tabs-x" id="tabs360">
+                <a href="#overview" class="tab-link" data-tab="overview">Genel Bakış</a>
+                <a href="#personal" class="tab-link" data-tab="personal">Kişisel Bilgiler <% const _ps = X.comp.sections; const _pm = ['identity','contact','emergency'].reduce((n, k) => n + (_ps[k].total - _ps[k].filled), 0); %><% if (_pm) { %><span class="n warn"><%= _pm %> eksik</span><% } %></a>
+                <a href="#work" class="tab-link" data-tab="work">İş Geçmişi <span class="n"><%= (D.work || []).length %></span></a>
+                <a href="#license" class="tab-link" data-tab="license">Ehliyet &amp; Dil</a>
+                <a href="#documents" class="tab-link" data-tab="documents">Belgeler <span class="n <%= X.missingDocs ? 'warn' : pendDocs ? 'warn' : '' %>"><%= X.docsDone %>/<%= X.req.length %></span></a>
+                <% const _pp = X.payments.filter(p => p.record.status === 'under_review').length; %>
+                <a href="#payments" class="tab-link" data-tab="payments">Ödemeler <% if (_pp) { %><span class="n warn"><%= _pp %> dekont</span><% } else if (X.payments.length) { %><span class="n"><%= X.payDone %>/<%= X.payments.length %></span><% } %></a>
+                <a href="#history" class="tab-link" data-tab="history">Süreç Geçmişi</a>
                 <a href="#notes" class="tab-link" data-tab="notes">Notlar <span class="n"><%= notes.length %></span></a>
-                <% const _tl = (typeof timeline !== 'undefined' && timeline) ? timeline : { items: [], counts: {} }; %>
-                <a href="#contacts" class="tab-link" data-tab="contacts">İletişim Geçmişi <span class="n"><%= _tl.items.length %></span></a>
-                <a href="#messages" class="tab-link" data-tab="messages">Mesajlar <span class="n"><%= messages.length %></span></a>
-                <a href="#appointments" class="tab-link" data-tab="appointments">Randevular <span class="n"><%= appointments.length %></span></a>
-                <% const _wo = (typeof wo !== 'undefined' && wo) ? wo : { orders: [], staff: [], CATEGORIES: [], PRIORITIES: [] }; const _woOpen = _wo.orders.filter(o => ['Yeni','Devam Ediyor','Revizyon'].includes(o.status)).length; %>
                 <a href="#workorders" class="tab-link" data-tab="workorders">İş Emirleri <span class="n <%= _woOpen ? 'warn' : '' %>"><%= _woOpen ? _woOpen + ' açık' : _wo.orders.length %></span></a>
-                <a href="#form" class="tab-link" data-tab="form">Başvuru Formu <% if (formFilled) { %><span class="n" style="background:var(--ok-50);color:var(--ok)">dolu</span><% } %></a>
+                <div class="dropdown dd">
+                    <button type="button" data-bs-toggle="dropdown" data-bs-popper-config='{"strategy":"fixed"}' id="moreTabs">Diğer <i class="fas fa-chevron-down small ms-1"></i><% if (pl && pl.stages.some(x => x.state.status === 'Sorun Var')) { %><span class="n bad">sorun</span><% } %></button>
+                    <ul class="dropdown-menu dropdown-menu-end shadow-sm" style="border-radius:12px;border-color:var(--line)">
+                        <li><a class="dropdown-item tab-link" href="#pipeline" data-tab="pipeline"><i class="fas fa-diagram-project me-2 muted"></i>Süreç Takibi (aşamalar)</a></li>
+                        <li><a class="dropdown-item tab-link" href="#process" data-tab="process"><i class="fas fa-flag me-2 muted"></i>Entegrasyon <span class="muted small"><%= intDone %>/8</span></a></li>
+                        <li><a class="dropdown-item tab-link" href="#messages" data-tab="messages"><i class="far fa-comment-dots me-2 muted"></i>Mesajlar <span class="muted small"><%= messages.length %></span></a></li>
+                        <li><a class="dropdown-item tab-link" href="#contacts" data-tab="contacts"><i class="fas fa-phone me-2 muted"></i>İletişim Geçmişi <span class="muted small"><%= _tl.items.length %></span></a></li>
+                        <li><a class="dropdown-item tab-link" href="#appointments" data-tab="appointments"><i class="far fa-calendar me-2 muted"></i>Randevular <span class="muted small"><%= appointments.length %></span></a></li>
+                        <li><a class="dropdown-item tab-link" href="#form" data-tab="form"><i class="far fa-file-lines me-2 muted"></i>Başvuru Formu<%= formFilled ? ' · dolu' : '' %></a></li>
+                        <li><a class="dropdown-item tab-link" href="#edit" data-tab="edit"><i class="fas fa-pen me-2 muted"></i>Temel bilgileri düzenle</a></li>
+                    </ul>
+                </div>
             </nav>
 
-            <!-- GENEL -->
+            <!-- ================= GENEL BAKIŞ ================= -->
             <div class="pane" id="pane-overview">
+                <% if (X.pending.length) { %>
+                <div class="card-x mb-3" id="missingBox" style="border-color:#FEDF89;background:#FFFCF5">
+                    <div class="card-b d-flex gap-3 align-items-start">
+                        <div class="avatar t-warn flex-shrink-0" style="border-radius:10px;width:38px;height:38px"><i class="fas fa-triangle-exclamation"></i></div>
+                        <div class="flex-grow-1" style="min-width:220px">
+                            <div class="fw-bold" style="color:#93370D">Dosyada <%= X.pending.length %> eksik var</div>
+                            <div class="d-flex flex-wrap gap-1 mt-2">
+                                <% X.pending.slice(0, 18).forEach(p => { %><a href="#<%= p.kind === 'doc' ? 'documents' : p.kind === 'payment' ? 'payments' : 'personal' %>" class="tab-link pill <%= p.kind === 'doc' ? 't-bad' : p.kind === 'payment' ? 't-info' : 't-warn' %> text-decoration-none" data-tab="<%= p.kind === 'doc' ? 'documents' : p.kind === 'payment' ? 'payments' : 'personal' %>" style="font-size:11.5px"><i class="fas <%= p.kind === 'doc' ? 'fa-file' : p.kind === 'payment' ? 'fa-euro-sign' : 'fa-pen' %> me-1"></i><%= p.label %></a><% }) %>
+                                <% if (X.pending.length > 18) { %><span class="pill t-gray" style="font-size:11.5px">+<%= X.pending.length - 18 %></span><% } %>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <% } %>
+
+                <!-- Süreç durumu -->
+                <div class="ov-card mb-3">
+                    <div class="ov-h"><h3>Süreç Durumu</h3>
+                        <% if (c.status === 'cancelled') { %><span class="pill t-bad ms-2"><i class="fas fa-ban me-1"></i>İptal · <%= fmtDate(c.cancelledAt) %></span><% } %>
+                        <a href="#pipeline" class="tab-link ms-auto small fw-bold text-decoration-none" data-tab="pipeline">Aşamaları yönet <i class="fas fa-arrow-right ms-1"></i></a></div>
+                    <div class="ov-b">
+                                <div class="stp">
+                                    <% stages.forEach((s, i) => { const ps = pl && pl.stages ? pl.stages[i] : null; const stt = ps ? ps.state.status : null; const issue = stt === 'Sorun Var'; const skip = ps && ps.state.skipped; const dt = ps && (i < cur ? ps.state.completedAt : i === cur ? ps.state.startedAt : null); const ic = ps ? ps.icon : 'fa-circle'; %>
+                                    <div class="s <%= i < cur ? 'done' : i === cur ? 'cur' : '' %> <%= issue ? 'issue' : '' %> <%= skip ? 'skip' : '' %>" title="<%= stt || '' %><%= skip ? ' (atlandı)' : '' %>">
+                                        <div class="b"><% if (issue) { %><i class="fas fa-exclamation"></i><% } else if (skip) { %><i class="fas fa-forward"></i><% } else if (i < cur) { %><i class="fas fa-check"></i><% } else { %><i class="fas <%= ic %>"></i><% } %></div>
+                                        <div class="t"><%= s %></div>
+                                        <div class="d"><%= dt ? dShort(dt) : i === cur ? 'Devam ediyor' : '' %></div>
+                                    </div>
+                                    <% }) %>
+                                </div>
+                        <div class="row g-3 mt-1 align-items-stretch">
+                            <div class="col-xl-4">
+                                <% if (c.status === 'cancelled') { %>
+                                    <div class="nextbox" style="background:var(--bad-50);border-color:#FECDCA"><div class="ic" style="color:var(--bad)"><i class="fas fa-ban"></i></div><div><div class="small muted fw-semibold">Süreç durduruldu</div><div class="fw-bold text-dark small"><%= c.cancelReason || 'İptal nedeni girilmemiş' %></div></div></div>
+                                <% } else if (X.next) { %>
+                                    <div class="nextbox"><div class="ic"><i class="fas <%= X.next.icon %>"></i></div><div><div class="small fw-semibold" style="color:var(--brand)">Tahmini Sonraki Adım</div><div class="fw-bold text-dark"><%= X.next.name %></div><div class="small muted"><i class="far fa-clock me-1"></i>Tahmini süre: <%= X.next.time %></div></div></div>
+                                <% } else if (isFinal) { %>
+                                    <div class="nextbox" style="background:var(--ok-50);border-color:#A6F4C5"><div class="ic" style="color:var(--ok)"><i class="fas fa-flag-checkered"></i></div><div><div class="small fw-semibold" style="color:#027A48">Son aşama</div><div class="fw-bold text-dark">Aday Almanya'da</div></div></div>
+                                <% } else { %>
+                                    <div class="nextbox"><div class="ic"><i class="fas fa-code-merge"></i></div><div><div class="small fw-semibold" style="color:var(--brand)">Aşama onayı gerekiyor</div><div class="small muted">Süreç Takibi’nden aşamayı seçin.</div></div></div>
+                                <% } %>
+                            </div>
+                            <div class="col-xl-8">
+                        <% const curPs = pl && pl.stages ? pl.stages.find(x => x.isCurrent) : null; %>
+                        <div class="mini h-100">
+                            <div class="m"><b><%= Math.max(0, cur) %>/<%= stages.length %></b><span>Tamamlanan aşama</span></div>
+                            <div class="m"><b><%= curPs && curPs.days !== null ? curPs.days : '—' %></b><span>Gündür mevcut aşamada<%= curPs && curPs.stale ? ' · gecikmede' : '' %></span></div>
+                            <div class="m"><b><%= _woDone %></b><span>Tamamlanan iş emri</span></div>
+                            <div class="m"><b style="<%= _woOpen ? 'color:var(--warn)' : '' %>"><%= _woOpen %></b><span>Bekleyen iş emri</span></div>
+                            <div class="m"><b><%= intDone %>/8</b><span>Entegrasyon adımı</span></div>
+                        </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="row g-3 mb-3">
+                    <!-- Ödemeler -->
+                    <div class="col-lg-4">
+                        <div class="ov-card">
+                            <div class="ov-h"><h3>Ödeme Durumları</h3><span class="cnt" style="color:<%= X.payments.length && X.payDone === X.payments.length ? 'var(--ok)' : 'var(--muted)' %>"><%= X.payments.length ? X.payDone + '/' + X.payments.length + ' Tamamlandı' : 'Takip yok' %></span></div>
+                            <div class="ov-b">
+                                <% (_dz ? _dz.payments : []).forEach(p => { const r = p.record; const on = r && r.active; const lastR = on && r.receipts.length ? r.receipts[r.receipts.length - 1] : null; %>
+                                <div class="row-i">
+                                    <span class="ck <%= on ? payTone[r.status] : 'miss' %>"><i class="fas <%= on ? payIcon[r.status] : 'fa-minus' %>"></i></span>
+                                    <div class="flex-grow-1" style="min-width:0">
+                                        <div class="fw-bold text-dark"><%= p.label %> <span class="muted fw-semibold small">· <%= on ? r.amount : p.amount %> €</span></div>
+                                        <div class="small muted"><%= on ? payLabel[r.status] : 'Bu aday için işaretlenmedi' %></div>
+                                        <% if (lastR) { %><div class="small muted"><i class="fas fa-receipt me-1"></i>Dekont: <%= dShort(lastR.uploadedAt) %><% if (r.approvedAt) { %> · <i class="fas fa-check me-1" style="color:var(--ok)"></i>Onay: <%= dShort(r.approvedAt) %><% } %></div><% } %>
+                                    </div>
+                                </div>
+                                <% }) %>
+                            </div>
+                            <div class="ov-f"><a href="#payments" class="tab-link" data-tab="payments">Ödemeleri yönet <i class="fas fa-arrow-right ms-1"></i></a></div>
+                        </div>
+                    </div>
+                    <!-- Belgeler -->
+                    <div class="col-lg-4">
+                        <div class="ov-card">
+                            <div class="ov-h"><h3>Belgeler</h3><span class="cnt" style="color:<%= X.docsDone === X.req.length ? 'var(--ok)' : '#B54708' %>"><%= X.docsDone %>/<%= X.req.length %> Tamamlandı</span></div>
+                            <div class="ov-b">
+                                <% X.req.forEach(r => { %>
+                                <div class="row-i">
+                                    <span class="ck <%= r.state === 'approved' ? 'ok' : r.state === 'pending' ? 'wait' : r.state === 'rejected' ? 'bad' : 'miss' %>"><i class="fas <%= r.state === 'approved' ? 'fa-check' : r.state === 'pending' ? 'fa-hourglass-half' : r.state === 'rejected' ? 'fa-xmark' : 'fa-exclamation' %>"></i></span>
+                                    <span class="flex-grow-1 fw-semibold text-dark"><%= r.label %></span>
+                                    <span class="small <%= r.state === 'missing' || r.state === 'rejected' ? '' : 'muted' %>" style="<%= r.state === 'missing' ? 'color:#B54708' : r.state === 'rejected' ? 'color:var(--bad)' : '' %>"><%= r.state === 'approved' ? 'Onaylandı' : r.state === 'pending' ? 'İnceleniyor' : r.state === 'rejected' ? 'Reddedildi' : 'Eksik' %></span>
+                                </div>
+                                <% }) %>
+                            </div>
+                            <div class="ov-f"><a href="#documents" class="tab-link" data-tab="documents">Tüm Belgeleri Görüntüle <i class="fas fa-arrow-right ms-1"></i></a></div>
+                        </div>
+                    </div>
+                    <!-- Kişisel özet -->
+                    <div class="col-lg-4">
+                        <div class="ov-card">
+                            <div class="ov-h"><h3>Kişisel Bilgiler Özeti</h3></div>
+                            <div class="ov-b">
+                                <div class="row-i"><span class="muted" style="width:120px">Medeni Durum</span><b class="<%= D.maritalStatus ? 'text-dark' : '' %>" style="<%= D.maritalStatus ? '' : 'color:#B54708' %>"><%= D.maritalStatus || 'Eksik' %></b></div>
+                                <div class="row-i"><span class="muted" style="width:120px">Çocuk Sayısı</span><b class="text-dark"><%= D.children != null ? D.children : '—' %></b></div>
+                                <div class="row-i"><span class="muted" style="width:120px">Diller</span><b class="text-dark" style="<%= langs.length ? '' : 'color:#B54708!important' %>"><%= langs.length ? langs.join(', ') : 'Eksik' %></b></div>
+                                <div class="row-i"><span class="muted" style="width:120px">Acil Durum</span><b class="text-dark" style="<%= D.emergencyName ? '' : 'color:#B54708!important' %>"><%= D.emergencyName ? D.emergencyName + (D.emergencyRelation ? ' (' + D.emergencyRelation + ')' : '') : 'Eksik' %><% if (D.emergencyPhone) { %><div class="small muted fw-normal"><%= D.emergencyPhone %></div><% } %></b></div>
+                            </div>
+                            <div class="ov-f">
+                                <% if (verAll) { %><div class="verified"><i class="fas fa-shield-halved"></i><div><b>Bilgiler Doğrulandı</b><div class="small">Son kontrol: <%= fmtDate(lastVer) %></div></div></div>
+                                <% } else { const nv = verKeys.filter(k => !(V[k] && V[k].at)).length; %><div class="unverified"><i class="fas fa-shield"></i><div><b><%= nv %> bölüm doğrulanmadı</b><div class="small"><a href="#personal" class="tab-link" data-tab="personal">Kişisel Bilgiler</a> sekmesinden doğrulayın.</div></div></div><% } %>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
                 <div class="row g-3">
-                    <div class="col-lg-8">
-                        <form class="card-x" action="/admin/candidate/<%= c._id %>/edit" method="POST">
+                    <!-- İş geçmişi -->
+                    <div class="col-lg-4">
+                        <div class="ov-card">
+                            <div class="ov-h"><h3>İş Geçmişi</h3><span class="cnt muted"><%= sortWork.length %> Kayıt</span></div>
+                            <div class="ov-b">
+                                <% if (!sortWork.length) { %><div class="small" style="color:#B54708"><i class="fas fa-triangle-exclamation me-1"></i>İş deneyimi eklenmemiş.</div><% } %>
+                                <% sortWork.slice(0, 3).forEach(w => { %>
+                                <div class="row-i align-items-start">
+                                    <div class="avatar t-gray" style="width:34px;height:34px;border-radius:10px;font-size:13px"><i class="fas fa-building"></i></div>
+                                    <div class="flex-grow-1" style="min-width:0">
+                                        <div class="fw-bold text-dark text-truncate-1"><%= w.company %></div>
+                                        <div class="small text-truncate-1"><%= w.position || w.job %></div>
+                                        <div class="small muted"><%= myTR(w.start) %> – <%= w.current ? 'Halen' : myTR(w.end) %></div>
+                                    </div>
+                                    <span class="pill <%= w.current ? 't-ok' : 't-gray' %>" style="font-size:11px"><%= w.current ? 'Aktif' : 'Ayrıldı' %></span>
+                                </div>
+                                <% }) %>
+                            </div>
+                            <div class="ov-f"><a href="#work" class="tab-link" data-tab="work">Tüm iş geçmişi <i class="fas fa-arrow-right ms-1"></i></a></div>
+                        </div>
+                    </div>
+                    <!-- Ek bilgiler -->
+                    <div class="col-lg-4">
+                        <div class="ov-card">
+                            <div class="ov-h"><h3>Ek Bilgiler</h3></div>
+                            <div class="ov-b">
+                                <div class="row-i"><span class="muted" style="width:130px">Almanca Seviyesi</span><b class="text-dark"><%= D.germanLevel || '—' %></b></div>
+                                <div class="row-i"><span class="muted" style="width:130px">İngilizce Seviyesi</span><b class="text-dark"><%= D.englishLevel || '—' %></b></div>
+                                <div class="row-i"><span class="muted" style="width:130px">Diğer Diller</span><b class="text-dark"><%= (D.otherLanguages || []).map(o => o.lang + (o.level ? ' (' + o.level + ')' : '')).join(', ') || '—' %></b></div>
+                                <div class="row-i"><span class="muted" style="width:130px">Ehliyet</span><b class="text-dark"><%= lic.length ? lic.join(', ') : '—' %></b></div>
+                                <div class="row-i"><span class="muted" style="width:130px">Hedef Şehir</span><b class="text-dark"><%= c.targetState && c.targetState !== 'Belirtilmedi' ? c.targetState : '—' %></b></div>
+                                <div class="row-i"><span class="muted" style="width:130px">Puan</span><b class="text-dark"><%= c.score != null ? c.score + ' / 100' : '—' %></b></div>
+                            </div>
+                            <div class="ov-f"><a href="#license" class="tab-link" data-tab="license">Ehliyet ve dil bilgileri <i class="fas fa-arrow-right ms-1"></i></a></div>
+                        </div>
+                    </div>
+                    <!-- Son işlemler -->
+                    <div class="col-lg-4">
+                        <div class="ov-card">
+                            <div class="ov-h"><h3>Son İşlemler</h3></div>
+                            <div class="ov-b">
+                                <% if (!X.history.length) { %><div class="small muted">Henüz kayıt yok.</div><% } %>
+                                <div class="hist">
+                                <% X.history.slice(0, 5).forEach(h => { %>
+                                    <div class="hi" data-kind="<%= h.kind %>"><div class="ic"><i class="fas <%= h.icon %>"></i></div>
+                                        <div style="min-width:0"><div class="tt"><%= h.title %></div><% if (h.text) { %><div class="tx text-truncate-1" title="<%= h.text %>"><%= h.text %></div><% } %><div class="mt"><%= fmtDate(h.at, true) %><%= h.by ? ' · ' + h.by : '' %></div></div></div>
+                                <% }) %>
+                                </div>
+                            </div>
+                            <div class="ov-f"><a href="#history" class="tab-link" data-tab="history">Tümünü Gör <i class="fas fa-arrow-right ms-1"></i></a></div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- ================= KİŞİSEL BİLGİLER ================= -->
+            <div class="pane" id="pane-personal">
+                <% if (_dz) { %><%- include('partials/admin_dossier', { dossier: _dz, c, part: 'summary,personal' }) %><% } %>
+            </div>
+
+            <!-- ================= İŞ GEÇMİŞİ ================= -->
+            <div class="pane" id="pane-work">
+                <% if (_dz) { %><%- include('partials/admin_dossier', { dossier: _dz, c, part: 'work' }) %><% } %>
+            </div>
+
+            <!-- ================= EHLİYET & DİL ================= -->
+            <div class="pane" id="pane-license">
+                <% if (_dz) { %><%- include('partials/admin_dossier', { dossier: _dz, c, part: 'license' }) %><% } %>
+            </div>
+
+            <!-- ================= ÖDEMELER ================= -->
+            <div class="pane" id="pane-payments">
+                <div class="card-x p-3 mb-3 d-flex gap-3 align-items-start" style="background:#FFF8F8;border-color:#FCE0E1">
+                    <i class="fas fa-circle-info mt-1" style="color:var(--brand)"></i>
+                    <div class="small">Sürücü Kayıt ve KOD95 ödemeleri aday başına bir kez takip edilir. Aday dekontu kendi panelinden yükler; dekont olmadan ödeme onaylanamaz. Tüm işlemler ödeme geçmişine ve Süreç Geçmişi’ne kaydedilir.</div>
+                </div>
+                <% if (_dz) { %><%- include('partials/admin_dossier', { dossier: _dz, c, part: 'payments' }) %><% } %>
+            </div>
+
+            <!-- ================= SÜREÇ GEÇMİŞİ ================= -->
+            <div class="pane" id="pane-history">
+                <div class="card-x">
+                    <div class="card-h flex-wrap"><div><h3>Süreç Geçmişi</h3><p class="sub">Başvurudan bugüne tüm işlemler · en yeni en üstte · <%= X.history.length %> kayıt</p></div>
+                        <div class="ms-auto d-flex flex-wrap gap-1" id="histF">
+                            <% const HK = [['', 'Tümü'], ['process', 'Süreç'], ['audit', 'Değişiklikler'], ['document', 'Belgeler'], ['payment', 'Ödemeler'], ['task', 'İş Emirleri'], ['contact', 'İletişim'], ['note', 'Notlar']]; %>
+                            <% HK.forEach(([k, l]) => { const n = k ? X.history.filter(h => h.kind === k).length : X.history.length; if (k && !n) return; %><button type="button" class="chipf <%= k ? '' : 'on' %>" data-k="<%= k %>"><%= l %> <span class="opacity-75">(<%= n %>)</span></button><% }) %>
+                        </div></div>
+                    <div class="card-b">
+                        <% if (!X.history.length) { %><div class="empty"><i class="fas fa-clock-rotate-left"></i>Henüz kayıt yok.</div><% } %>
+                        <div class="hist" id="histList">
+                        <% let _lastDay = ''; X.history.forEach(h => { const day = new Date(h.at).toLocaleDateString('tr-TR', { timeZone: 'Europe/Istanbul', day: '2-digit', month: 'long', year: 'numeric' }); %>
+                            <% if (day !== _lastDay) { _lastDay = day; %><div class="small fw-bold muted mb-2 mt-1 hday"><%= day %></div><% } %>
+                            <div class="hi" data-kind="<%= h.kind %>"><div class="ic"><i class="fas <%= h.icon %>"></i></div>
+                                <div style="min-width:0"><div class="tt"><%= h.title %></div><% if (h.text) { %><div class="tx"><%= h.text %></div><% } %>
+                                <div class="mt"><%= new Date(h.at).toLocaleTimeString('tr-TR', { timeZone: 'Europe/Istanbul', hour: '2-digit', minute: '2-digit' }) %><%= h.by ? ' · ' + h.by : '' %></div></div></div>
+                        <% }) %>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- ================= TEMEL BİLGİLERİ DÜZENLE ================= -->
+            <div class="pane" id="pane-edit">
+                <div class="row g-3">
+                    <div class="col-xl-8">
+                        <form class="card-x" action="/admin/candidate/<%= c._id %>/edit" method="POST" id="editForm">
                             <input type="hidden" name="returnTo" value="<%= ret('overview') %>">
-                            <div class="card-h"><div><h3>Aday Bilgileri</h3><p class="sub">Değişiklikleri yapıp kaydedin.</p></div></div>
+                            <div class="card-h"><div><h3>Temel Bilgiler</h3><p class="sub">Değişiklikler kaydedilir ve Süreç Geçmişi’ne işlenir. Kimlik, adres, ehliyet ve dil bilgileri için ilgili sekmeleri kullanın.</p></div></div>
                             <div class="card-b">
                                 <div class="row g-3">
-                                    <div class="col-md-6"><label class="form-label">Ad</label><input name="firstName" class="form-control" value="<%= c.firstName %>" required></div>
-                                    <div class="col-md-6"><label class="form-label">Soyad</label><input name="lastName" class="form-control" value="<%= c.lastName %>" required></div>
+                                    <div class="col-md-6"><label class="form-label">Ad *</label><input name="firstName" class="form-control" value="<%= c.firstName %>" required maxlength="80"></div>
+                                    <div class="col-md-6"><label class="form-label">Soyad *</label><input name="lastName" class="form-control" value="<%= c.lastName %>" required maxlength="80"></div>
                                     <div class="col-md-6"><label class="form-label">Pasaport No</label><input name="passportNo" class="form-control text-uppercase" value="<%= c.passportNo %>"><div class="form-text">Değiştirirseniz aday yeni numarayla giriş yapar.</div></div>
                                     <div class="col-md-6"><label class="form-label">Başvuru No</label><input name="applicationNo" class="form-control" value="<%= c.applicationNo || '' %>"></div>
                                     <div class="col-md-6"><label class="form-label">E-posta</label><input type="email" name="email" class="form-control" value="<%= c.email || '' %>"></div>
@@ -206,32 +570,34 @@
                             </div>
                         </form>
                     </div>
-                    <div class="col-lg-4">
+                    <div class="col-xl-4">
                         <div class="card-x mb-3">
-                            <div class="card-h"><h3>Özet</h3></div>
-                            <div class="card-b">
-                                <dl class="kv mb-0">
-                                    <dt>Genel aşama</dt><dd><%= c.currentStage %></dd>
-                                    <dt>Entegrasyon</dt><dd><%= intDone %> / 8 adım</dd>
-                                    <dt>Belgeler</dt><dd><%= docs.length %> (<%= pendDocs %> bekliyor)</dd>
-                                    <dt>Başvuru tarihi</dt><dd><%= fmtDate(c.applicationDate) %></dd>
-                                </dl>
-                            </div>
+                            <div class="card-h"><h3>Şirket</h3></div>
+                            <form class="card-b" action="/admin/candidate/company" method="POST">
+                                <input type="hidden" name="returnTo" value="<%= ret('edit') %>"><input type="hidden" name="candidateId" value="<%= c._id %>">
+                                <select name="newCompany" class="form-select mb-2">
+                                    <option value="Atanmadı" <%= (!c.company || c.company === 'Atanmadı') ? 'selected' : '' %>>Atanmadı</option>
+                                    <% companies.forEach(co => { %><option value="<%= co.name %>" <%= c.company === co.name ? 'selected' : '' %>><%= co.name %></option><% }) %>
+                                </select>
+                                <button class="btn btn-soft w-100"><i class="fas fa-building me-1"></i>Şirketi kaydet</button>
+                            </form>
                         </div>
                         <div class="card-x">
-                            <div class="card-h"><h3>Son Not</h3><a href="#notes" class="tab-link ms-auto small" data-tab="notes">Tümü</a></div>
+                            <div class="card-h"><h3>Profil Fotoğrafı</h3></div>
                             <div class="card-b">
-                                <% if (notes.length) { %><div class="note"><div style="white-space:pre-wrap"><%= notes[0].content %></div><div class="muted small mt-2"><%= fmtDate(notes[0].date, true) %></div></div>
-                                <% } else { %><div class="muted">Henüz not yok.</div><% } %>
+                                <div class="d-flex gap-3 align-items-center mb-2">
+                                    <% if (X.photo) { %><img src="<%= X.photo %>" alt="" style="width:64px;height:64px;border-radius:50%;object-fit:cover"><% } else { %><div class="avatar" style="width:64px;height:64px;font-size:20px;<%= avatarStyle(fullName) %>"><%= initials %></div><% } %>
+                                    <div class="small muted">JPG veya PNG, en fazla 2 MB. Fotoğraf CV’de de kullanılır (aday CV ayarından kapatabilir).</div>
+                                </div>
+                                <form action="/admin/candidate/<%= c._id %>/photo" method="POST" enctype="multipart/form-data" class="d-flex gap-2 mb-2">
+                                    <input type="file" name="photo" accept="image/jpeg,image/png" class="form-control form-control-sm" required>
+                                    <button class="btn btn-soft btn-sm text-nowrap"><i class="fas fa-upload me-1"></i>Yükle</button>
+                                </form>
+                                <% if (X.photo) { %><form action="/admin/candidate/<%= c._id %>/photo" method="POST" class="m-0" data-confirm="Profil fotoğrafı kaldırılacak." data-danger><input type="hidden" name="remove" value="1"><button class="btn btn-link btn-sm text-danger p-0"><i class="fas fa-trash me-1"></i>Fotoğrafı kaldır</button></form><% } %>
                             </div>
                         </div>
                     </div>
                 </div>
-            </div>
-
-            <!-- DİJİTAL DOSYA -->
-            <div class="pane" id="pane-dossier">
-                <% if (_dz) { %><%- include('partials/admin_dossier', { dossier: _dz, c }) %><% } %>
             </div>
 
             <!-- SÜREÇ TAKİBİ (9 aşama) -->
@@ -447,7 +813,25 @@
 
             <!-- BELGELER -->
             <div class="pane" id="pane-documents">
-                <form class="card-x card-b mb-3 row g-2 align-items-end m-0" method="POST" action="/admin/candidate/<%= c._id %>/archive" enctype="multipart/form-data">
+                <div class="card-x mb-3">
+                    <div class="card-h"><div><h3>Zorunlu Belgeler</h3><p class="sub"><%= X.docsDone %>/<%= X.req.length %> belge yüklendi<%= X.docsReview ? ' · ' + X.docsReview + ' belge inceleme bekliyor' : '' %>. Eşleştirme belge kategorisine göre yapılır.</p></div></div>
+                    <div class="card-b"><div class="row g-2">
+                        <% X.req.forEach(r => { %>
+                        <div class="col-sm-6 col-xl-4">
+                            <div class="reqd <%= r.state %>">
+                                <span class="ck <%= r.state === 'approved' ? 'ok' : r.state === 'pending' ? 'wait' : r.state === 'rejected' ? 'bad' : 'miss' %>" style="width:34px;height:34px;font-size:14px"><i class="fas <%= r.icon %>"></i></span>
+                                <div class="flex-grow-1" style="min-width:0">
+                                    <div class="fw-bold text-dark small"><%= r.label %></div>
+                                    <div class="small <%= r.state === 'missing' ? '' : 'muted' %> text-truncate-1" style="<%= r.state === 'missing' ? 'color:#B54708' : r.state === 'rejected' ? 'color:var(--bad)' : '' %>"><%= r.state === 'approved' ? 'Onaylandı' : r.state === 'pending' ? 'İnceleniyor' : r.state === 'rejected' ? 'Reddedildi — yenisi gerekli' : 'Eksik belge' %><%= r.doc ? ' · ' + (r.doc.name || '') : '' %></div>
+                                </div>
+                                <% if (r.doc && canPreview(r.doc)) { %><button type="button" class="btn btn-soft btn-sm btn-icon js-pv" data-url="<%= docUrl(r.doc) %>" data-kind="<%= docKind(r.doc) %>" data-name="<%= r.doc.name || r.label %>" data-dl="<%= (r.doc.fileId || r.doc.blobId) ? '/documents/view/' + r.doc._id + '?download=1' : '' %>" title="Önizle"><i class="fas fa-eye"></i></button><% } %>
+                                <% if (r.state === 'missing' || r.state === 'rejected') { %><button type="button" class="btn btn-brand btn-sm btn-icon js-upfor" data-cat="<%= { passport: 'Pasaport', id: 'Kimlik', license: 'Ehliyet', cv: 'CV', work: 'İş Deneyimi', health: 'Sağlık' }[r.key] %>" data-name="<%= r.label %>" title="Yükle"><i class="fas fa-upload"></i></button><% } %>
+                            </div>
+                        </div>
+                        <% }) %>
+                    </div></div>
+                </div>
+                <form class="card-x card-b mb-3 row g-2 align-items-end m-0" method="POST" action="/admin/candidate/<%= c._id %>/archive" enctype="multipart/form-data" id="archForm">
                     <div class="col-md-3"><label class="form-label small">Kategori</label><select name="category" class="form-select form-select-sm" required><% DOC_CATEGORIES.forEach(k => { %><option><%= k %></option><% }) %></select></div>
                     <div class="col-md-3"><label class="form-label small">Belge adı (isteğe bağlı)</label><input name="name" class="form-control form-control-sm" maxlength="120" placeholder="Örn: Pasaport ön yüz"></div>
                     <div class="col-md-4"><label class="form-label small">Dosya</label><input type="file" name="file" class="form-control form-control-sm" required accept=".pdf,.jpg,.jpeg,.png,.webp,.heic,.doc,.docx"></div>
@@ -470,7 +854,8 @@
                                     <td class="d-none d-md-table-cell muted"><%= fmtDate(d.date) %></td>
                                     <td><span class="pill <%= statusTone(d.status) %>"><span class="dot"></span><%= d.status %></span></td>
                                     <td class="text-end" style="white-space:nowrap">
-                                        <a href="<%= docUrl(d) %>" target="_blank" class="btn btn-soft btn-sm"><i class="fas fa-eye me-1"></i>Görüntüle</a>
+                                        <% if (canPreview(d)) { %><button type="button" class="btn btn-soft btn-sm js-pv" data-url="<%= docUrl(d) %>" data-kind="<%= docKind(d) %>" data-name="<%= d.name || 'Belge' %>" data-dl="<%= (d.fileId || d.blobId) ? '/documents/view/' + d._id + '?download=1' : '' %>"><i class="fas fa-eye me-1"></i>Önizle</button>
+                                        <% } else { %><a href="<%= docUrl(d) %>" target="_blank" rel="noopener" class="btn btn-soft btn-sm"><i class="fas fa-up-right-from-square me-1"></i>Aç</a><% } %>
                                         <% if (d.fileId || d.blobId) { %><a href="/documents/view/<%= d._id %>?download=1" class="btn btn-soft btn-sm btn-icon" title="İndir"><i class="fas fa-download"></i></a><% } %>
                                         <% if (d.status !== 'Onaylandı') { %>
                                         <form action="/admin/document/status" method="POST" class="d-inline m-0">
@@ -507,21 +892,23 @@
                     <div class="col-lg-5">
                         <form class="card-x" action="/admin/candidate/add-note" method="POST">
                             <input type="hidden" name="returnTo" value="<%= ret('notes') %>"><input type="hidden" name="candidateId" value="<%= c._id %>">
-                            <div class="card-h"><div><h3>Yeni Not</h3><p class="sub">Notlar yalnızca yöneticiler tarafından görülür.</p></div></div>
+                            <div class="card-h"><div><h3>Yeni Not</h3><p class="sub">Yönetici notları yalnızca yöneticiler tarafından görülür. Personel, görev ekranından bu adaya not ekleyebilir.</p></div></div>
                             <div class="card-b">
-                                <textarea name="noteContent" class="form-control mb-3" rows="5" required placeholder="Örn: Pasaport fotokopisi eksik, 12.11'de tekrar aranacak."></textarea>
+                                <textarea name="noteContent" class="form-control mb-3" rows="5" required maxlength="4000" placeholder="Örn: Pasaport fotokopisi eksik, 12.11'de tekrar aranacak."></textarea>
                                 <button class="btn btn-brand w-100"><i class="fas fa-plus me-1"></i>Not Ekle</button>
                             </div>
                         </form>
                     </div>
                     <div class="col-lg-7">
                         <div class="card-x">
-                            <div class="card-h"><h3>Not Geçmişi</h3></div>
+                            <div class="card-h flex-wrap"><h3>Not Geçmişi</h3>
+                                <div class="ms-auto d-flex gap-1" id="noteF"><button type="button" class="chipf on" data-k="">Tümü (<%= notes.length %>)</button><button type="button" class="chipf" data-k="admin">Yönetici (<%= notes.filter(n => n.authorType !== 'staff').length %>)</button><button type="button" class="chipf" data-k="staff">Personel (<%= notes.filter(n => n.authorType === 'staff').length %>)</button></div></div>
                             <div class="card-b d-flex flex-column gap-2">
                                 <% if (!notes.length) { %><div class="empty"><i class="far fa-note-sticky"></i>Henüz not yok.</div><% } %>
-                                <% notes.forEach(n => { %>
-                                <div class="note d-flex gap-3">
-                                    <div class="flex-grow-1"><div style="white-space:pre-wrap"><%= n.content %></div><div class="muted small mt-2"><i class="far fa-clock me-1"></i><%= fmtDate(n.date, true) %> · <%= n.author || 'Admin' %></div></div>
+                                <% notes.forEach(n => { const st = n.authorType === 'staff'; %>
+                                <div class="note <%= st ? 'staff' : '' %> d-flex gap-3" data-k="<%= st ? 'staff' : 'admin' %>">
+                                    <div class="flex-grow-1"><div style="white-space:pre-wrap"><%= n.content %></div>
+                                        <div class="muted small mt-2"><span class="pill <%= st ? 't-info' : 't-brand' %>" style="font-size:10.5px;padding:1px 7px"><%= st ? 'Personel' : 'Yönetici' %></span> <i class="far fa-clock ms-1 me-1"></i><%= fmtDate(n.date, true) %> · <%= n.authorName || (n.author === 'Admin' ? 'Yönetici' : n.author) || 'Yönetici' %><% if (n.workOrderId) { %> · <a href="/admin/is-emirleri/<%= n.workOrderId %>">ilgili görev</a><% } %></div></div>
                                     <form action="/admin/candidate/<%= c._id %>/note/<%= n._id %>/delete" method="POST" class="m-0" data-confirm="Bu not silinecek." data-danger>
                                         <input type="hidden" name="returnTo" value="<%= ret('notes') %>">
                                         <button class="btn btn-sm btn-icon text-danger" style="background:transparent" title="Notu sil"><i class="fas fa-trash-can"></i></button>
@@ -599,7 +986,7 @@
                                     <textarea name="content" class="form-control mb-3" rows="4" required placeholder="E-posta içeriği…"></textarea>
                                     <button class="btn btn-brand w-100"><i class="fas fa-paper-plane me-1"></i>E-posta Gönder</button>
                                 </fieldset>
-                                <% if (!c.email) { %><div class="form-text mt-2"><a href="#overview" class="tab-link" data-tab="overview">Genel Bilgiler</a> sekmesinden e-posta ekleyebilirsiniz.</div><% } %>
+                                <% if (!c.email) { %><div class="form-text mt-2"><a href="#edit" class="tab-link" data-tab="edit">Düzenle</a> ekranından e-posta ekleyebilirsiniz.</div><% } %>
                             </form>
                         </div>
                     </div>
@@ -716,29 +1103,87 @@
                 </div>
                 <% } %>
             </div>
+            </section>
+            </div>
         </main>
     </div>
 </div>
 
 <%- include('partials/admin_wo_form', { modalId: 'candWO', candidates: [], staffList: _wo.staff, CATEGORIES: _wo.CATEGORIES, PRIORITIES: _wo.PRIORITIES, fixedCandidate: { id: String(c._id), name: fullName }, returnTo: '/admin/candidate/' + c._id + '#workorders' }) %>
+<% if (_dz) { %><%- include('partials/admin_dossier', { dossier: _dz, c, part: 'modal' }) %><% } %>
+<div class="modal fade" id="pvModal" tabindex="-1"><div class="modal-dialog modal-xl modal-dialog-centered"><div class="modal-content">
+    <div class="modal-header"><h5 class="modal-title text-truncate" id="pvTitle">Belge</h5>
+        <div class="ms-auto d-flex gap-2"><a href="#" class="btn btn-soft btn-sm" id="pvDl"><i class="fas fa-download me-1"></i>İndir</a><a href="#" target="_blank" rel="noopener" class="btn btn-soft btn-sm" id="pvOpen"><i class="fas fa-up-right-from-square me-1"></i>Yeni sekme</a><button type="button" class="btn-close ms-1" data-bs-dismiss="modal" aria-label="Kapat"></button></div></div>
+    <div class="modal-body" id="pvBody"></div>
+</div></div></div>
 <%- include('partials/admin_scripts') %>
 <script>
 (function () {
     const panes = [...document.querySelectorAll('.pane')];
-    function show(t) {
+    // Eski bağlantılarla uyumluluk (#dossier, #payments, #pay-..., #dossier-work)
+    const ALIAS = { dossier: 'personal', 'dossier-work': 'work', 'pay-surucu_kayit': 'payments', 'pay-kod95': 'payments' };
+    const MORE = ['pipeline', 'process', 'messages', 'contacts', 'appointments', 'form', 'edit'];
+    function show(t, scrollTo) {
+        t = ALIAS[t] || (t && t.startsWith('pay-') ? 'payments' : t);
         if (!document.getElementById('pane-' + t)) t = 'overview';
         panes.forEach(p => p.classList.toggle('active', p.id === 'pane-' + t));
-        document.querySelectorAll('.tabs-x a').forEach(a => a.classList.toggle('active', a.dataset.tab === t));
+        document.querySelectorAll('.tabs-x > a').forEach(a => a.classList.toggle('active', a.dataset.tab === t));
+        document.querySelectorAll('.tabs-x .dropdown-item').forEach(a => a.classList.toggle('active', a.dataset.tab === t));
+        document.getElementById('moreTabs').classList.toggle('active', MORE.includes(t));
+        const tab = document.querySelector('.tabs-x > a[data-tab="' + t + '"]'), bar = document.getElementById('tabs360');
+        if (tab && (tab.offsetLeft < bar.scrollLeft || tab.offsetLeft + tab.offsetWidth > bar.scrollLeft + bar.clientWidth)) bar.scrollLeft = tab.offsetLeft - 16; // yalnız yatay kaydır
+        if (scrollTo) { const el = document.getElementById(scrollTo); if (el) setTimeout(() => el.scrollIntoView({ behavior: 'smooth', block: 'center' }), 30); }
     }
     window.addEventListener('hashchange', () => show(location.hash.slice(1)));
-    show(location.hash.slice(1));
+    const h0 = location.hash.slice(1);
+    show(h0, ['payments', 'dossier-work'].includes(h0) || h0.startsWith('pay-') ? h0 : null);
+    document.querySelectorAll('[data-scroll]').forEach(a => a.addEventListener('click', () => setTimeout(() => show('overview', a.dataset.scroll), 0)));
+    // Geri dön: tarayıcı geçmişinde aday listesi varsa oraya dön
+    const back = document.getElementById('backBtn');
+    back.addEventListener('click', (e) => { try { const r = document.referrer && new URL(document.referrer); if (r && r.origin === location.origin && r.pathname === '/admin' ) { e.preventDefault(); history.back(); } } catch (_) {} });
+    // Profil fotoğrafı: dosya seçilince yükle
+    const pin = document.getElementById('photoIn');
+    pin.addEventListener('change', () => { if (!pin.files[0]) return; if (pin.files[0].size > 2 * 1024 * 1024) { Swal.fire({ icon: 'error', title: 'Fotoğraf 2 MB\'dan büyük olamaz', confirmButtonColor: '#D4111B' }); pin.value = ''; return; } document.getElementById('photoForm').submit(); });
+    // Hassas bilgiyi göster/gizle
+    document.querySelectorAll('.js-reveal').forEach(b => b.addEventListener('click', () => {
+        const m = b.previousElementSibling; const shown = b.dataset.on === '1';
+        if (!m.dataset.masked) m.dataset.masked = m.textContent;
+        m.textContent = shown ? m.dataset.masked : m.dataset.full; b.textContent = shown ? 'Göster' : 'Gizle'; b.dataset.on = shown ? '0' : '1';
+    }));
+    // Süreç geçmişi filtresi
+    document.querySelectorAll('#histF .chipf').forEach(b => b.addEventListener('click', () => {
+        document.querySelectorAll('#histF .chipf').forEach(x => x.classList.toggle('on', x === b));
+        document.querySelectorAll('#histList .hi').forEach(r => r.style.display = !b.dataset.k || r.dataset.kind === b.dataset.k ? '' : 'none');
+        document.querySelectorAll('#histList .hday').forEach(d => { let n = d.nextElementSibling, any = false; while (n && !n.classList.contains('hday')) { if (n.style.display !== 'none') any = true; n = n.nextElementSibling; } d.style.display = any ? '' : 'none'; });
+    }));
+    // Not filtresi
+    document.querySelectorAll('#noteF .chipf').forEach(b => b.addEventListener('click', () => {
+        document.querySelectorAll('#noteF .chipf').forEach(x => x.classList.toggle('on', x === b));
+        document.querySelectorAll('#pane-notes .note[data-k]').forEach(r => r.classList.toggle('d-none', !!b.dataset.k && r.dataset.k !== b.dataset.k));
+    }));
+    // Belge önizleme
+    const pv = document.getElementById('pvModal'); document.body.appendChild(pv);
+    const pvM = new bootstrap.Modal(pv);
+    document.querySelectorAll('.js-pv').forEach(b => b.addEventListener('click', () => {
+        const body = document.getElementById('pvBody'); body.innerHTML = '';
+        document.getElementById('pvTitle').textContent = b.dataset.name;
+        const dl = document.getElementById('pvDl'); dl.style.display = b.dataset.dl ? '' : 'none'; dl.href = b.dataset.dl || '#';
+        document.getElementById('pvOpen').href = b.dataset.url;
+        if (b.dataset.kind === 'img') { const im = document.createElement('img'); im.src = b.dataset.url; im.alt = b.dataset.name; body.appendChild(im); }
+        else { const fr = document.createElement('iframe'); fr.src = b.dataset.url; fr.title = b.dataset.name; body.appendChild(fr); }
+        pvM.show();
+    }));
+    pv.addEventListener('hidden.bs.modal', () => { document.getElementById('pvBody').innerHTML = ''; });
+    // Eksik zorunlu belge: arşiv formunu kategoriyle hazırla
+    document.querySelectorAll('.js-upfor').forEach(b => b.addEventListener('click', () => {
+        const f = document.getElementById('archForm'); f.elements['category'].value = b.dataset.cat; f.elements['name'].value = b.dataset.name;
+        f.scrollIntoView({ behavior: 'smooth', block: 'center' }); f.style.boxShadow = '0 0 0 3px rgba(212,17,27,.25)'; setTimeout(() => f.style.boxShadow = '', 2200); f.elements['file'].click();
+    }));
     // Arşiv kategori filtresi
     document.querySelectorAll('#docCats [data-cat]').forEach(b => b.addEventListener('click', () => {
         document.querySelectorAll('#docCats [data-cat]').forEach(x => x.className = 'pill border-0 ' + (x === b ? 't-brand' : 't-gray'));
         document.querySelectorAll('#pane-documents tr[data-cat]').forEach(r => r.style.display = !b.dataset.cat || r.dataset.cat === b.dataset.cat ? '' : 'none');
     }));
-    // #payments gibi alt bağlantılar dosya sekmesini açsın
-    if (['payments', 'dossier-work'].includes(location.hash.slice(1))) { show('dossier'); setTimeout(() => document.getElementById(location.hash.slice(1)).scrollIntoView({ block: 'start' }), 50); }
 
     // Entegrasyon anahtarları: canlı sayaç ve renk
     const checks = [...document.querySelectorAll('.int-check')];
