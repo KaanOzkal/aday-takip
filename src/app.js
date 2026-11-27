@@ -108,16 +108,24 @@ const uploadToGoogleDrive = async (fileObject, folderName) => {
 };
 
 // --- MAİL AYARLARI ---
+// Brevo SMTP. Render ücretsiz planı 25/465/587 portlarını engellediği için varsayılan port 2525.
+const SMTP_PORT = parseInt(process.env.SMTP_PORT, 10) || 2525;
 const transporter = nodemailer.createTransport({
-    host: 'smtp-relay.brevo.com',
-    port: 587, // <--- BURAYI 587 YAPTIK
-    secure: false, 
+    host: process.env.SMTP_HOST || 'smtp-relay.brevo.com',
+    port: SMTP_PORT,
+    secure: SMTP_PORT === 465,
     auth: {
-        user: process.env.EMAIL_USER, 
-        pass: process.env.EMAIL_PASS 
+        user: (process.env.EMAIL_USER || '').trim(),
+        pass: (process.env.EMAIL_PASS || '').trim()
     },
-    family: 4 
+    connectionTimeout: 15000, greetingTimeout: 10000, socketTimeout: 20000
 });
+// Açılışta SMTP bağlantısını test et ve sonucu loga yaz (şifre loglanmaz)
+if (process.env.EMAIL_USER && process.env.EMAIL_PASS) {
+    transporter.verify()
+        .then(() => console.log(`✅ SMTP hazır (${process.env.SMTP_HOST || 'smtp-relay.brevo.com'}:${SMTP_PORT})`))
+        .catch(e => console.error(`❌ SMTP bağlantı hatası (${SMTP_PORT}): ${e.code || ''} ${e.message}`));
+} else console.warn('⚠️  EMAIL_USER / EMAIL_PASS tanımlı değil; e-posta gönderilemez.');
 
 // --- GENEL AYARLAR ---
 app.set('views', path.join(__dirname, 'views'));
@@ -893,7 +901,7 @@ app.post('/admin/message/email', adminAuthCheck, async (req, res) => {
         await Candidate.updateOne({ _id: candidate._id }, { $set: { lastActivityAt: new Date() } });
         redirectBack(req, res, 'status', 'mail_success');
     } catch (error) {
-        console.error('Mail hatası:', error.message);
+        console.error('Mail hatası:', error.code || '', error.message);
         redirectBack(req, res, 'error', 'mail_fail');
     }
 });
@@ -919,12 +927,12 @@ app.post('/admin/message/email/bulk', adminAuthCheck, async (req, res) => {
                 subject: subject || 'Duyuru',
                 html: mailTemplate(c.firstName, content || '')
             })));
-            results.forEach(r => r.status === 'fulfilled' ? sent++ : failed++);
+            results.forEach(r => { if (r.status === 'fulfilled') sent++; else { failed++; if (failed === 1) console.error('Toplu mail hatası:', r.reason && (r.reason.code || ''), r.reason && r.reason.message); } });
             await Promise.all(batch.map((c, k) => results[k].status === 'fulfilled' ? CandidateContact.create({ candidateId: c._id, type: 'email', direction: 'outgoing', subject: String(subject || 'Duyuru').slice(0, 200), summary: `[Toplu e-posta] ${String(content || '').slice(0, 3900)}`, source: 'system', authorType: 'admin', authorId: 'admin', authorName: 'Yönetici' }).catch(() => {}) : null));
         }
         if (sent === 0) return redirectBack(req, res, 'error', 'bulk_mail_fail');
         redirectBack(req, res, 'status', failed ? `bulk_mail_partial_${sent}_${failed}` : 'bulk_mail_success');
-    } catch (error) { redirectBack(req, res, 'error', 'bulk_mail_fail'); }
+    } catch (error) { console.error('Toplu mail hatası:', error.message); redirectBack(req, res, 'error', 'bulk_mail_fail'); }
 });
 
 app.get('/admin/sync-drive-files', adminAuthCheck, async (req, res) => {
